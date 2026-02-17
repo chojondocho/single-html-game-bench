@@ -1,0 +1,2378 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ECHOES BELOW - 3D Horror Roguelike RPG</title>
+  <style>
+    :root {
+      --ink: #e4e8ef;
+      --blood: #b3363f;
+      --fog: #0a0e13;
+      --panel: rgba(7, 10, 16, 0.76);
+      --panel-bright: rgba(15, 20, 30, 0.8);
+      --accent: #d5a76a;
+      --good: #7cc76e;
+      --warn: #e2b75c;
+      --danger: #db5c5c;
+      --line: rgba(255, 255, 255, 0.12);
+      --title: "Bebas Neue", "Impact", sans-serif;
+      --body: "Space Grotesk", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 30% 20%, #202631 0%, #0f131b 34%, #07090d 66%, #020205 100%);
+      color: var(--ink);
+      overflow: hidden;
+      font-family: var(--body);
+      letter-spacing: 0.02em;
+    }
+
+    #game-shell {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    #hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto 1fr auto;
+      padding: 14px;
+      gap: 12px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      backdrop-filter: blur(8px);
+      border-radius: 10px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.38);
+    }
+
+    #stats {
+      align-self: start;
+      justify-self: start;
+      min-width: 350px;
+      max-width: min(560px, 92vw);
+      padding: 12px 14px;
+      display: grid;
+      gap: 8px;
+    }
+
+    #stats h1 {
+      margin: 0;
+      font-family: var(--title);
+      font-size: 26px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: #f6dbc4;
+      text-shadow: 0 0 10px rgba(200, 80, 70, 0.3);
+    }
+
+    .meter-group {
+      display: grid;
+      gap: 6px;
+    }
+
+    .meter-row {
+      display: grid;
+      grid-template-columns: 84px 1fr 54px;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #ced6df;
+    }
+
+    .meter {
+      position: relative;
+      height: 9px;
+      border-radius: 99px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.11);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .meter > span {
+      display: block;
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      transition: width 0.16s linear;
+    }
+
+    #hp-meter > span { background: linear-gradient(90deg, #873538, #cf5a61); }
+    #xp-meter > span { background: linear-gradient(90deg, #5552a8, #8f84ff); }
+    #fear-meter > span { background: linear-gradient(90deg, #c48733, #ead091); }
+    #battery-meter > span { background: linear-gradient(90deg, #2d8066, #73dbc3); }
+
+    #run-meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(140px, auto));
+      gap: 4px 10px;
+      font-size: 12px;
+      color: #cfdae8;
+    }
+
+    #right-pane {
+      align-self: start;
+      justify-self: end;
+      display: grid;
+      gap: 10px;
+      max-width: min(360px, 88vw);
+      pointer-events: none;
+    }
+
+    #objective {
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.35;
+      color: #f1e8d8;
+      border-left: 3px solid var(--accent);
+    }
+
+    #event-log {
+      padding: 10px 12px;
+      font-size: 12px;
+      min-height: 82px;
+      max-height: 164px;
+      overflow: hidden;
+      color: #d5dce7;
+    }
+
+    #event-log .entry {
+      opacity: 0;
+      transform: translateY(6px);
+      animation: log-in 0.42s ease forwards;
+      margin: 0 0 4px;
+    }
+
+    @keyframes log-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    #crosshair {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: 16px;
+      height: 16px;
+      margin-left: -8px;
+      margin-top: -8px;
+      pointer-events: none;
+      opacity: 0.75;
+      transition: opacity 0.2s ease;
+    }
+
+    #crosshair::before,
+    #crosshair::after {
+      content: "";
+      position: absolute;
+      background: rgba(245, 236, 225, 0.88);
+      box-shadow: 0 0 8px rgba(250, 220, 190, 0.5);
+    }
+
+    #crosshair::before {
+      left: 7px;
+      top: 0;
+      width: 2px;
+      height: 16px;
+    }
+
+    #crosshair::after {
+      left: 0;
+      top: 7px;
+      width: 16px;
+      height: 2px;
+    }
+
+    #overlays {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+
+    .overlay {
+      pointer-events: auto;
+      width: min(880px, 92vw);
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: linear-gradient(145deg, rgba(8, 11, 16, 0.92), rgba(12, 16, 23, 0.88));
+      box-shadow: 0 24px 44px rgba(0, 0, 0, 0.54);
+      padding: clamp(18px, 3vw, 28px);
+      display: none;
+      animation: rise 0.35s ease;
+      backdrop-filter: blur(14px);
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(10px) scale(0.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .overlay.visible {
+      display: block;
+    }
+
+    .overlay h2 {
+      margin: 0 0 10px;
+      font-family: var(--title);
+      letter-spacing: 0.09em;
+      font-size: clamp(30px, 5vw, 48px);
+      font-weight: 500;
+      color: #f8dfcf;
+    }
+
+    .overlay p {
+      margin: 0 0 10px;
+      line-height: 1.45;
+      color: #dde5ef;
+    }
+
+    .btn-row {
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button,
+    .choice {
+      border: 1px solid rgba(233, 200, 160, 0.38);
+      color: #f6eee2;
+      background: linear-gradient(135deg, rgba(136, 63, 54, 0.75), rgba(81, 42, 37, 0.82));
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-family: var(--body);
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    button:hover,
+    .choice:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.08);
+    }
+
+    #start-grid {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .mini-panel {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 10px;
+      background: var(--panel-bright);
+      font-size: 12px;
+      color: #d8dfeb;
+    }
+
+    #choices {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .choice {
+      width: 100%;
+      text-align: left;
+      background: linear-gradient(135deg, rgba(74, 54, 108, 0.68), rgba(43, 32, 67, 0.84));
+      border-color: rgba(173, 140, 231, 0.4);
+    }
+
+    #danger-vignette,
+    #hallucination,
+    #damage-flash {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    #danger-vignette {
+      background: radial-gradient(circle at center, rgba(0, 0, 0, 0) 44%, rgba(0, 0, 0, 0.56) 100%);
+      mix-blend-mode: multiply;
+    }
+
+    #hallucination {
+      background-image:
+        linear-gradient(120deg, rgba(255, 255, 255, 0.01) 35%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.01) 65%),
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.12) 0 2px, rgba(255, 255, 255, 0.02) 2px 3px);
+      mix-blend-mode: screen;
+    }
+
+    #damage-flash {
+      background: radial-gradient(circle at center, rgba(255, 85, 85, 0.08), rgba(110, 0, 0, 0.54));
+      mix-blend-mode: screen;
+    }
+
+    #footer-tip {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 12px;
+      color: rgba(236, 242, 250, 0.7);
+      font-size: 11px;
+      pointer-events: none;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    #transition-fade {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: #000;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+
+    @media (max-width: 900px) {
+      #hud {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto 1fr auto;
+      }
+
+      #stats {
+        min-width: 0;
+        width: 100%;
+      }
+
+      #right-pane {
+        justify-self: stretch;
+        max-width: 100%;
+      }
+
+      #start-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-shell"></div>
+
+  <div id="hud">
+    <div id="stats" class="panel">
+      <h1>ECHOES BELOW</h1>
+      <div class="meter-group">
+        <div class="meter-row">
+          <span>Vitality</span>
+          <div id="hp-meter" class="meter"><span></span></div>
+          <span id="hp-label">0/0</span>
+        </div>
+        <div class="meter-row">
+          <span>Resolve</span>
+          <div id="xp-meter" class="meter"><span></span></div>
+          <span id="xp-label">0%</span>
+        </div>
+        <div class="meter-row">
+          <span>Fear</span>
+          <div id="fear-meter" class="meter"><span></span></div>
+          <span id="fear-label">0%</span>
+        </div>
+        <div class="meter-row">
+          <span>Battery</span>
+          <div id="battery-meter" class="meter"><span></span></div>
+          <span id="battery-label">0%</span>
+        </div>
+      </div>
+      <div id="run-meta"></div>
+    </div>
+
+    <div id="right-pane">
+      <div id="objective" class="panel">Reach the lower vault and survive.</div>
+      <div id="event-log" class="panel"></div>
+    </div>
+
+    <div id="footer-tip">LMB attack | E interact | Q flashlight | R heal | 1-3 consumables | F fullscreen</div>
+  </div>
+
+  <div id="crosshair"></div>
+
+  <div id="overlays">
+    <section id="start-screen" class="overlay visible" aria-live="polite">
+      <h2>ECHOES BELOW</h2>
+      <p>An impossible labyrinth beneath an abandoned city remembers every life it devours.</p>
+      <p>Each run is procedural. Each death is permanent. Spend recovered Soul Shards to return stronger.</p>
+      <div id="start-grid">
+        <div class="mini-panel">
+          <strong>Controls</strong><br />
+          Move: WASD / Arrows<br />
+          Look: Mouse<br />
+          Attack: Left Click / B<br />
+          Interact: E / A<br />
+          Sprint: Shift<br />
+          Pause: Esc
+        </div>
+        <div class="mini-panel" id="meta-summary"></div>
+      </div>
+      <div class="btn-row">
+        <button id="start-btn" type="button">Begin Descending</button>
+      </div>
+    </section>
+
+    <section id="levelup-screen" class="overlay" aria-live="polite">
+      <h2>Awakening</h2>
+      <p>Choose one blessing.</p>
+      <div id="choices"></div>
+    </section>
+
+    <section id="pause-screen" class="overlay" aria-live="polite">
+      <h2>Suspended Breath</h2>
+      <p>The labyrinth waits.</p>
+      <div class="btn-row">
+        <button id="resume-btn" type="button">Resume</button>
+        <button id="restart-btn" type="button">Restart Run</button>
+      </div>
+    </section>
+
+    <section id="death-screen" class="overlay" aria-live="polite">
+      <h2>Consumed</h2>
+      <p id="death-copy">The dark remembers your name.</p>
+      <div class="btn-row">
+        <button id="death-restart-btn" type="button">Return to Surface</button>
+      </div>
+    </section>
+
+    <section id="victory-screen" class="overlay" aria-live="polite">
+      <h2>Vault Broken</h2>
+      <p id="victory-copy">You escaped with forbidden memory.</p>
+      <div class="btn-row">
+        <button id="victory-restart-btn" type="button">Challenge The Abyss Again</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="danger-vignette"></div>
+  <div id="hallucination"></div>
+  <div id="damage-flash"></div>
+  <div id="transition-fade"></div>
+
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js";
+
+    const rng = (() => {
+      let seed = 1;
+      const setSeed = (s) => {
+        seed = (s >>> 0) || 1;
+      };
+      const next = () => {
+        seed ^= seed << 13;
+        seed ^= seed >>> 17;
+        seed ^= seed << 5;
+        return ((seed >>> 0) % 1000000) / 1000000;
+      };
+      const range = (a, b) => a + (b - a) * next();
+      const int = (a, b) => Math.floor(range(a, b + 1));
+      const pick = (arr) => arr[Math.floor(next() * arr.length)] ?? arr[0];
+      return { setSeed, next, range, int, pick };
+    })();
+
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const TAU = Math.PI * 2;
+
+    const state = {
+      mode: "menu",
+      runSeed: (Date.now() ^ 0x9e3779b9) >>> 0,
+      floor: 1,
+      maxFloor: 10,
+      score: 0,
+      shardsThisRun: 0,
+      time: 0,
+      pauseReason: "",
+      pointerLocked: false,
+      meta: loadMeta(),
+      objective: "Reach the stair sigil.",
+      eventLog: [],
+      recentKills: 0,
+      dangerPulse: 0,
+      flashAmount: 0,
+      hallucination: 0,
+      transition: 0,
+      lastDamageAt: -10,
+      jumpScareTimer: 7,
+      floorClearMoment: false,
+      floorData: null,
+      levelUpOptions: [],
+      consumables: { medkit: 1, battery: 1, charm: 0 },
+      lights: [],
+      pickups: [],
+      enemies: [],
+      bullets: [],
+      decor: [],
+      effects: [],
+      interactables: [],
+      player: {
+        pos: new THREE.Vector3(0, 1.65, 0),
+        vel: new THREE.Vector3(),
+        radius: 0.36,
+        yaw: 0,
+        pitch: 0,
+        hp: 100,
+        hpMax: 100,
+        stamina: 100,
+        sanity: 100,
+        fear: 10,
+        battery: 100,
+        flashlightOn: true,
+        level: 1,
+        xp: 0,
+        nextXp: 80,
+        stats: {
+          might: 6,
+          agility: 6,
+          mind: 6,
+          vitality: 6,
+        },
+        weapon: {
+          name: "Ritual Blade",
+          tier: 1,
+          minDmg: 12,
+          maxDmg: 19,
+          crit: 0.08,
+          range: 2.2,
+          cooldown: 0.38,
+          lastAttack: -99,
+        },
+        relics: [],
+        damageBoostUntil: 0,
+      },
+    };
+
+    const config = {
+      cellSize: 8,
+      gridW: 29,
+      gridH: 29,
+      roomAttempts: 18,
+      worldHeight: 6,
+      attackArc: 0.6,
+      interactRange: 2.3,
+      enemyAvoid: 1.4,
+      walkSpeed: 4.6,
+      sprintSpeed: 7.2,
+      accel: 34,
+      friction: 7,
+      flashlightDrain: 2.7,
+      batteryRecharge: 0.85,
+      fearGrowthDark: 6.6,
+      fearGrowthNearEnemy: 14,
+      fearDecaySafe: 5.2,
+      sanityDecayFear: 3.2,
+      sanityRecover: 1.2,
+    };
+
+    const keys = new Set();
+    const keyAlias = new Map([
+      ["KeyW", "forward"],
+      ["ArrowUp", "forward"],
+      ["KeyS", "backward"],
+      ["ArrowDown", "backward"],
+      ["KeyA", "left"],
+      ["ArrowLeft", "left"],
+      ["KeyD", "right"],
+      ["ArrowRight", "right"],
+      ["ShiftLeft", "sprint"],
+      ["ShiftRight", "sprint"],
+    ]);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x101a26);
+    scene.fog = new THREE.FogExp2(0x0d141f, 0.024);
+
+    const camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.1, 270);
+    camera.position.copy(state.player.pos);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 2.05;
+    document.getElementById("game-shell").appendChild(renderer.domElement);
+
+    const hemi = new THREE.HemisphereLight(0x9fb0d1, 0x1b2430, 0.66);
+    scene.add(hemi);
+
+    const ambient = new THREE.AmbientLight(0x9ca9c2, 0.56);
+    scene.add(ambient);
+
+    const flashlight = new THREE.SpotLight(0xfff0dc, 1.4, 34, Math.PI / 6.4, 0.34, 1.35);
+    flashlight.castShadow = true;
+    flashlight.shadow.mapSize.set(1024, 1024);
+    flashlight.shadow.bias = -0.0002;
+    camera.add(flashlight);
+    flashlight.position.set(0, 0, 0);
+    flashlight.target.position.set(0, 0, -4);
+    camera.add(flashlight.target);
+    const fillLamp = new THREE.PointLight(0xa7cfff, 1.08, 24, 1.4);
+    fillLamp.position.set(0, 0.18, 0);
+    camera.add(fillLamp);
+    scene.add(camera);
+
+    const moonLight = new THREE.DirectionalLight(0x8da4ff, 0.11);
+    moonLight.position.set(18, 34, -12);
+    scene.add(moonLight);
+
+    const worldGroup = new THREE.Group();
+    scene.add(worldGroup);
+
+    const mats = {
+      floor: new THREE.MeshStandardMaterial({ color: 0x425873, emissive: 0x0c131b, roughness: 0.86, metalness: 0.05 }),
+      ceiling: new THREE.MeshStandardMaterial({ color: 0x34475e, emissive: 0x090d13, roughness: 0.86, metalness: 0.07 }),
+      wall: new THREE.MeshStandardMaterial({ color: 0x5f7693, emissive: 0x0f1622, roughness: 0.78, metalness: 0.11 }),
+      pillar: new THREE.MeshStandardMaterial({ color: 0x7087a2, emissive: 0x111822, roughness: 0.76, metalness: 0.13 }),
+      stairs: new THREE.MeshStandardMaterial({ color: 0x493f34, roughness: 0.8, metalness: 0.15, emissive: 0x1d0f08 }),
+      chest: new THREE.MeshStandardMaterial({ color: 0x5d4434, roughness: 0.61, metalness: 0.34 }),
+      medkit: new THREE.MeshStandardMaterial({ color: 0xae3f45, roughness: 0.48, metalness: 0.2 }),
+      battery: new THREE.MeshStandardMaterial({ color: 0x2c8f78, roughness: 0.35, metalness: 0.32 }),
+      charm: new THREE.MeshStandardMaterial({ color: 0x8960bc, roughness: 0.42, metalness: 0.52, emissive: 0x1e1132 }),
+      enemy: new THREE.MeshStandardMaterial({ color: 0x6c7890, roughness: 0.55, metalness: 0.14, emissive: 0x080d14 }),
+      stalker: new THREE.MeshStandardMaterial({ color: 0x454151, roughness: 0.6, metalness: 0.12, emissive: 0x12050c }),
+      brute: new THREE.MeshStandardMaterial({ color: 0x51584e, roughness: 0.67, metalness: 0.1, emissive: 0x0b1207 }),
+      boss: new THREE.MeshStandardMaterial({ color: 0x4d3141, roughness: 0.44, metalness: 0.33, emissive: 0x1f0714 }),
+      projectile: new THREE.MeshStandardMaterial({ color: 0xffd3a3, emissive: 0xff8e46, roughness: 0.12, metalness: 0.15 }),
+      rune: new THREE.MeshStandardMaterial({ color: 0x6fa9ff, emissive: 0x3569bb, roughness: 0.3, metalness: 0.5 }),
+    };
+
+    const geos = {
+      floor: new THREE.PlaneGeometry(config.cellSize, config.cellSize),
+      wall: new THREE.BoxGeometry(config.cellSize, config.worldHeight, config.cellSize),
+      ceiling: new THREE.PlaneGeometry(config.cellSize, config.cellSize),
+      pillar: new THREE.BoxGeometry(1.3, 3.2, 1.3),
+      chest: new THREE.BoxGeometry(1.4, 1, 1),
+      medkit: new THREE.BoxGeometry(0.8, 0.5, 0.8),
+      battery: new THREE.CylinderGeometry(0.3, 0.3, 0.9, 12),
+      charm: new THREE.OctahedronGeometry(0.45, 0),
+      enemy: new THREE.CapsuleGeometry(0.45, 1.2, 6, 10),
+      brute: new THREE.CapsuleGeometry(0.62, 1.4, 6, 12),
+      boss: new THREE.CapsuleGeometry(0.92, 1.9, 7, 14),
+      orb: new THREE.SphereGeometry(0.14, 10, 10),
+      rune: new THREE.TorusGeometry(1.1, 0.14, 8, 24),
+    };
+
+    const ui = {
+      hpBar: document.querySelector("#hp-meter > span"),
+      xpBar: document.querySelector("#xp-meter > span"),
+      fearBar: document.querySelector("#fear-meter > span"),
+      batteryBar: document.querySelector("#battery-meter > span"),
+      hpLabel: document.getElementById("hp-label"),
+      xpLabel: document.getElementById("xp-label"),
+      fearLabel: document.getElementById("fear-label"),
+      batteryLabel: document.getElementById("battery-label"),
+      runMeta: document.getElementById("run-meta"),
+      objective: document.getElementById("objective"),
+      eventLog: document.getElementById("event-log"),
+      crosshair: document.getElementById("crosshair"),
+      danger: document.getElementById("danger-vignette"),
+      hall: document.getElementById("hallucination"),
+      flash: document.getElementById("damage-flash"),
+      transition: document.getElementById("transition-fade"),
+      start: document.getElementById("start-screen"),
+      pause: document.getElementById("pause-screen"),
+      levelUp: document.getElementById("levelup-screen"),
+      death: document.getElementById("death-screen"),
+      deathCopy: document.getElementById("death-copy"),
+      victory: document.getElementById("victory-screen"),
+      victoryCopy: document.getElementById("victory-copy"),
+      choices: document.getElementById("choices"),
+      metaSummary: document.getElementById("meta-summary"),
+      footerTip: document.getElementById("footer-tip"),
+    };
+
+    const floorWallMap = [];
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.28;
+    masterGain.connect(audioCtx.destination);
+
+    let ambienceNoise = null;
+    let pulseOsc = null;
+    let pulseGain = null;
+
+    function resumeAudio() {
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume().catch(() => {});
+      }
+      if (!ambienceNoise) {
+        startAmbientAudio();
+      }
+    }
+
+    function startAmbientAudio() {
+      const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * 0.24;
+      }
+
+      ambienceNoise = audioCtx.createBufferSource();
+      ambienceNoise.buffer = buffer;
+      ambienceNoise.loop = true;
+
+      const band = audioCtx.createBiquadFilter();
+      band.type = "bandpass";
+      band.frequency.value = 520;
+      band.Q.value = 0.5;
+
+      const low = audioCtx.createBiquadFilter();
+      low.type = "lowpass";
+      low.frequency.value = 950;
+
+      const gain = audioCtx.createGain();
+      gain.gain.value = 0.016;
+
+      ambienceNoise.connect(band);
+      band.connect(low);
+      low.connect(gain);
+      gain.connect(masterGain);
+      ambienceNoise.start();
+
+      pulseOsc = audioCtx.createOscillator();
+      pulseOsc.type = "sine";
+      pulseOsc.frequency.value = 41;
+      pulseGain = audioCtx.createGain();
+      pulseGain.gain.value = 0;
+      pulseOsc.connect(pulseGain);
+      pulseGain.connect(masterGain);
+      pulseOsc.start();
+    }
+
+    function playTone(freq = 380, length = 0.09, wave = "triangle", volume = 0.06, glide = 0.84) {
+      if (audioCtx.state !== "running") return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = wave;
+      osc.frequency.value = freq;
+      osc.frequency.exponentialRampToValueAtTime(Math.max(44, freq * glide), audioCtx.currentTime + length);
+      gain.gain.value = 0.0001;
+      gain.gain.exponentialRampToValueAtTime(volume, audioCtx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + length);
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.start();
+      osc.stop(audioCtx.currentTime + length + 0.03);
+    }
+
+    function logEvent(text, tint = "") {
+      state.eventLog.unshift({ text, tint, at: state.time });
+      if (state.eventLog.length > 7) state.eventLog.length = 7;
+      renderEventLog();
+    }
+
+    function renderEventLog() {
+      ui.eventLog.innerHTML = "";
+      for (const event of state.eventLog) {
+        const p = document.createElement("p");
+        p.className = "entry";
+        p.textContent = event.text;
+        if (event.tint) p.style.color = event.tint;
+        ui.eventLog.appendChild(p);
+      }
+    }
+
+    function setOverlay(mode) {
+      const overlays = {
+        menu: ui.start,
+        paused: ui.pause,
+        levelup: ui.levelUp,
+        dead: ui.death,
+        victory: ui.victory,
+      };
+      for (const element of [ui.start, ui.pause, ui.levelUp, ui.death, ui.victory]) {
+        element.classList.remove("visible");
+      }
+      if (overlays[mode]) overlays[mode].classList.add("visible");
+
+      const inGame = state.mode === "playing";
+      ui.crosshair.style.opacity = inGame ? "0.74" : "0";
+      ui.footerTip.style.opacity = inGame ? "0.75" : "0.24";
+    }
+
+    function updateMetaSummary() {
+      const m = state.meta;
+      ui.metaSummary.innerHTML = [
+        `<strong>Legacy</strong><br />`,
+        `Best Floor: ${m.bestFloor}<br />`,
+        `Best Score: ${m.bestScore}<br />`,
+        `Total Shards: ${m.totalShards}<br />`,
+        `Runs: ${m.runs}<br />`,
+        `Unlocked: ${m.unlocks.join(", ") || "none"}`,
+      ].join("");
+    }
+
+    function showTransition() {
+      state.transition = 1;
+      ui.transition.style.opacity = "1";
+      setTimeout(() => {
+        state.transition = 0;
+        ui.transition.style.opacity = "0";
+      }, 430);
+    }
+
+    function localToWorld(cx, cy) {
+      const x = (cx - config.gridW / 2) * config.cellSize + config.cellSize / 2;
+      const z = (cy - config.gridH / 2) * config.cellSize + config.cellSize / 2;
+      return new THREE.Vector3(x, 0, z);
+    }
+
+    function worldToCell(x, z) {
+      const cx = Math.floor((x + (config.gridW * config.cellSize) / 2) / config.cellSize);
+      const cy = Math.floor((z + (config.gridH * config.cellSize) / 2) / config.cellSize);
+      return { cx, cy };
+    }
+
+    function cellInside(cx, cy) {
+      return cx >= 0 && cy >= 0 && cx < config.gridW && cy < config.gridH;
+    }
+
+    function clearWorld() {
+      for (const child of [...worldGroup.children]) {
+        worldGroup.remove(child);
+      }
+      state.lights.forEach((light) => scene.remove(light));
+      state.lights.length = 0;
+      state.pickups.length = 0;
+      state.enemies.length = 0;
+      state.bullets.length = 0;
+      state.effects.length = 0;
+      state.decor.length = 0;
+      state.interactables.length = 0;
+      floorWallMap.length = 0;
+    }
+
+    function carveDungeon() {
+      const grid = Array.from({ length: config.gridH }, () => Array(config.gridW).fill(1));
+      const rooms = [];
+
+      const carveRoom = (x, y, w, h) => {
+        for (let j = y; j < y + h; j++) {
+          for (let i = x; i < x + w; i++) {
+            if (cellInside(i, j)) grid[j][i] = 0;
+          }
+        }
+        rooms.push({ x, y, w, h, center: { x: x + (w >> 1), y: y + (h >> 1) } });
+      };
+
+      for (let attempt = 0; attempt < config.roomAttempts; attempt++) {
+        const w = rng.int(3, 6);
+        const h = rng.int(3, 6);
+        const x = rng.int(1, config.gridW - w - 2);
+        const y = rng.int(1, config.gridH - h - 2);
+
+        let overlaps = false;
+        for (const room of rooms) {
+          if (x <= room.x + room.w + 1 && x + w + 1 >= room.x && y <= room.y + room.h + 1 && y + h + 1 >= room.y) {
+            overlaps = true;
+            break;
+          }
+        }
+        if (!overlaps) carveRoom(x, y, w, h);
+      }
+
+      if (!rooms.length) {
+        carveRoom(10, 10, 5, 5);
+      }
+
+      rooms.sort((a, b) => (a.center.x - b.center.x) + (a.center.y - b.center.y));
+      for (let i = 1; i < rooms.length; i++) {
+        const a = rooms[i - 1].center;
+        const b = rooms[i].center;
+        for (let x = Math.min(a.x, b.x); x <= Math.max(a.x, b.x); x++) grid[a.y][x] = 0;
+        for (let y = Math.min(a.y, b.y); y <= Math.max(a.y, b.y); y++) grid[y][b.x] = 0;
+      }
+
+      const centerPoint = { x: config.gridW / 2, y: config.gridH / 2 };
+      const start = [...rooms].sort((a, b) => {
+        const da = Math.hypot(a.center.x - centerPoint.x, a.center.y - centerPoint.y);
+        const db = Math.hypot(b.center.x - centerPoint.x, b.center.y - centerPoint.y);
+        return da - db;
+      })[0].center;
+      const far = [...rooms].sort((a, b) => {
+        const da = Math.hypot(a.center.x - start.x, a.center.y - start.y);
+        const db = Math.hypot(b.center.x - start.x, b.center.y - start.y);
+        return db - da;
+      })[0].center;
+
+      return { grid, rooms, start, far };
+    }
+
+    function buildFloor() {
+      clearWorld();
+      rng.setSeed((state.runSeed + state.floor * 7919 + state.meta.totalShards * 1777) >>> 0);
+      const { grid, rooms, start, far } = carveDungeon();
+
+      state.floorData = {
+        grid,
+        rooms,
+        startCell: start,
+        exitCell: far,
+      };
+
+      for (let y = 0; y < config.gridH; y++) {
+        floorWallMap.push(Array(config.gridW).fill(1));
+      }
+
+      const floorRoot = new THREE.Group();
+      floorRoot.name = "floorRoot";
+      worldGroup.add(floorRoot);
+
+      const floorLightCount = Math.min(rooms.length, Math.floor(rooms.length * 1.3));
+      const lightRooms = [...rooms].sort(() => rng.next() - 0.5).slice(0, floorLightCount);
+      const lightCells = new Set(lightRooms.map((r) => `${r.center.x}:${r.center.y}`));
+
+      for (let y = 0; y < config.gridH; y++) {
+        for (let x = 0; x < config.gridW; x++) {
+          const cellType = grid[y][x];
+          const pos = localToWorld(x, y);
+
+          if (cellType === 0) {
+            floorWallMap[y][x] = 0;
+
+            const floorTile = new THREE.Mesh(geos.floor, mats.floor);
+            floorTile.rotation.x = -Math.PI / 2;
+            floorTile.position.set(pos.x, 0, pos.z);
+            floorTile.receiveShadow = true;
+            floorRoot.add(floorTile);
+
+            const ceil = new THREE.Mesh(geos.ceiling, mats.ceiling);
+            ceil.rotation.x = Math.PI / 2;
+            ceil.position.set(pos.x, config.worldHeight, pos.z);
+            floorRoot.add(ceil);
+
+            const nearWallCount =
+              isWall(x + 1, y, grid) + isWall(x - 1, y, grid) + isWall(x, y + 1, grid) + isWall(x, y - 1, grid);
+
+            if (nearWallCount >= 2 && rng.next() < 0.1) {
+              const pillar = new THREE.Mesh(geos.pillar, mats.pillar);
+              pillar.position.set(pos.x + rng.range(-2, 2), 1.6, pos.z + rng.range(-2, 2));
+              pillar.castShadow = true;
+              pillar.receiveShadow = true;
+              floorRoot.add(pillar);
+              state.decor.push({ mesh: pillar, kind: "pillar" });
+            }
+
+            if (lightCells.has(`${x}:${y}`)) {
+              const flame = new THREE.PointLight(0xffb06e, 1.4, 16, 1.55);
+              flame.position.set(pos.x, 2.2, pos.z);
+              flame.userData.baseIntensity = flame.intensity;
+              scene.add(flame);
+              state.lights.push(flame);
+
+              const ember = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffc07d }));
+              ember.position.copy(flame.position);
+              floorRoot.add(ember);
+              state.effects.push({ mesh: ember, type: "ember", pulse: rng.range(0, TAU) });
+            }
+          } else {
+            const wall = new THREE.Mesh(geos.wall, mats.wall);
+            wall.position.set(pos.x, config.worldHeight / 2, pos.z);
+            wall.castShadow = true;
+            wall.receiveShadow = true;
+            floorRoot.add(wall);
+          }
+        }
+      }
+
+      const startPos = localToWorld(start.x, start.y);
+      state.player.pos.set(startPos.x, 1.65, startPos.z);
+      state.player.vel.set(0, 0, 0);
+      const lookDir = localToWorld(far.x, far.y).sub(startPos);
+      state.player.yaw = Math.atan2(lookDir.x, -lookDir.z);
+      state.player.pitch = -0.06;
+
+      const exitPos = localToWorld(far.x, far.y);
+      const rune = new THREE.Mesh(geos.rune, mats.rune);
+      rune.position.set(exitPos.x, 0.2, exitPos.z);
+      rune.rotation.x = Math.PI / 2;
+      floorRoot.add(rune);
+      state.interactables.push({
+        kind: "stairs",
+        pos: new THREE.Vector3(exitPos.x, 0, exitPos.z),
+        radius: 1.55,
+        mesh: rune,
+      });
+
+      const stairPedestal = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.75, 0.8, 12), mats.stairs);
+      stairPedestal.position.set(exitPos.x, 0.38, exitPos.z);
+      stairPedestal.castShadow = true;
+      stairPedestal.receiveShadow = true;
+      floorRoot.add(stairPedestal);
+
+      spawnPickups(rooms, start, far);
+      spawnEnemies(rooms, start, far);
+      spawnNearbyThreat(start, far, grid);
+
+      const bossFloor = state.floor % 5 === 0;
+      state.objective = bossFloor
+        ? "Defeat the floor apex, then use the sigil to descend."
+        : "Find the sigil and survive the hunt.";
+
+      if (bossFloor) spawnBoss(far);
+
+      showTransition();
+      logEvent(`Floor ${state.floor} generated: ${rooms.length} chambers.`, "#f2ddc2");
+    }
+
+    function isWall(x, y, grid = state.floorData?.grid) {
+      if (!grid) return 1;
+      if (!cellInside(x, y)) return 1;
+      return grid[y][x] === 1 ? 1 : 0;
+    }
+
+    function spawnPickups(rooms, start, far) {
+      const floorRoot = worldGroup.children[0];
+      const pickupCount = clamp(2 + Math.floor(state.floor * 0.9), 3, 10);
+      const candidates = rooms.filter((r) => {
+        const distStart = Math.hypot(r.center.x - start.x, r.center.y - start.y);
+        const distExit = Math.hypot(r.center.x - far.x, r.center.y - far.y);
+        return distStart > 3 && distExit > 2;
+      });
+
+      for (let i = 0; i < pickupCount && candidates.length; i++) {
+        const room = candidates[rng.int(0, candidates.length - 1)];
+        const cx = rng.int(room.x, room.x + room.w - 1);
+        const cy = rng.int(room.y, room.y + room.h - 1);
+        const pos = localToWorld(cx, cy);
+        const roll = rng.next();
+
+        if (roll < 0.32) {
+          const mesh = new THREE.Mesh(geos.medkit, mats.medkit);
+          mesh.position.set(pos.x, 0.33, pos.z);
+          mesh.castShadow = true;
+          floorRoot.add(mesh);
+          state.pickups.push({ kind: "medkit", mesh, pos: mesh.position, amount: rng.int(22, 36) });
+        } else if (roll < 0.62) {
+          const mesh = new THREE.Mesh(geos.battery, mats.battery);
+          mesh.position.set(pos.x, 0.45, pos.z);
+          mesh.castShadow = true;
+          floorRoot.add(mesh);
+          state.pickups.push({ kind: "battery", mesh, pos: mesh.position, amount: rng.int(26, 40) });
+        } else if (roll < 0.82) {
+          const mesh = new THREE.Mesh(geos.charm, mats.charm);
+          mesh.position.set(pos.x, 0.62, pos.z);
+          mesh.castShadow = true;
+          floorRoot.add(mesh);
+          state.pickups.push({ kind: "charm", mesh, pos: mesh.position, amount: rng.int(12, 20) });
+        } else {
+          const mesh = new THREE.Mesh(geos.chest, mats.chest);
+          mesh.position.set(pos.x, 0.5, pos.z);
+          mesh.castShadow = true;
+          mesh.userData.opened = false;
+          floorRoot.add(mesh);
+          state.interactables.push({ kind: "chest", mesh, pos: mesh.position, radius: 1.6 });
+        }
+      }
+    }
+
+    function enemyProfile(kind) {
+      const scale = 1 + (state.floor - 1) * 0.13;
+      if (kind === "stalker") {
+        return {
+          hp: Math.round(28 * scale),
+          speed: 3.6 + state.floor * 0.09,
+          damage: Math.round(9 * scale),
+          xp: Math.round(22 * scale),
+          radius: 0.48,
+          cooldown: 1.35,
+          meshGeo: geos.enemy,
+          mat: mats.stalker,
+          chase: 42,
+          rarity: 0.35,
+        };
+      }
+      if (kind === "brute") {
+        return {
+          hp: Math.round(52 * scale),
+          speed: 2.35 + state.floor * 0.06,
+          damage: Math.round(16 * scale),
+          xp: Math.round(38 * scale),
+          radius: 0.63,
+          cooldown: 1.9,
+          meshGeo: geos.brute,
+          mat: mats.brute,
+          chase: 34,
+          rarity: 0.22,
+        };
+      }
+      return {
+        hp: Math.round(36 * scale),
+        speed: 2.9 + state.floor * 0.07,
+        damage: Math.round(12 * scale),
+        xp: Math.round(28 * scale),
+        radius: 0.52,
+        cooldown: 1.6,
+        meshGeo: geos.enemy,
+        mat: mats.enemy,
+          chase: 48,
+        rarity: 1,
+      };
+    }
+
+    function spawnEnemies(rooms, start, far) {
+      const floorRoot = worldGroup.children[0];
+      const baseCount = clamp(5 + state.floor * 2, 7, 28);
+      for (let i = 0; i < baseCount; i++) {
+        const room = rng.pick(rooms);
+        const cx = rng.int(room.x, room.x + room.w - 1);
+        const cy = rng.int(room.y, room.y + room.h - 1);
+        const dStart = Math.hypot(cx - start.x, cy - start.y);
+        const dExit = Math.hypot(cx - far.x, cy - far.y);
+        if (dStart < 3 || dExit < 1.5) continue;
+
+        const roll = rng.next();
+        const kind = roll < 0.18 ? "stalker" : roll < 0.35 ? "brute" : "wraith";
+        const profile = enemyProfile(kind);
+        const pos = localToWorld(cx, cy);
+        const mesh = new THREE.Mesh(profile.meshGeo, profile.mat);
+        mesh.position.set(pos.x, kind === "brute" ? 1.62 : 1.35, pos.z);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        floorRoot.add(mesh);
+
+        const glow = new THREE.PointLight(kind === "stalker" ? 0xde4b77 : kind === "brute" ? 0x8bd163 : 0x79b8ea, 0.28, 5, 1.4);
+        glow.position.set(pos.x, 1.65, pos.z);
+        scene.add(glow);
+        state.lights.push(glow);
+
+        state.enemies.push({
+          id: `e-${state.floor}-${i}-${Math.round(rng.next() * 1e6)}`,
+          kind,
+          hp: profile.hp,
+          hpMax: profile.hp,
+          speed: profile.speed,
+          damage: profile.damage,
+          xp: profile.xp,
+          radius: profile.radius,
+          cooldown: profile.cooldown,
+          chaseRange: profile.chase,
+          mesh,
+          glow,
+          pos: mesh.position,
+          vel: new THREE.Vector3(),
+          dir: new THREE.Vector3(rng.range(-1, 1), 0, rng.range(-1, 1)).normalize(),
+          attackReadyAt: 0,
+          fearAura: kind === "stalker" ? 1.7 : kind === "brute" ? 1.3 : 1.5,
+          wanderTimer: rng.range(0.4, 2),
+        });
+      }
+    }
+
+    function spawnNearbyThreat(start, far, grid) {
+      const floorRoot = worldGroup.children[0];
+      const existingNearest = state.enemies.reduce((min, e) => {
+        return Math.min(min, e.pos.distanceTo(state.player.pos));
+      }, Infinity);
+      if (existingNearest < 20) return;
+
+      const dirX = Math.sign(far.x - start.x) || 1;
+      const dirY = Math.sign(far.y - start.y) || 1;
+      const offsets = [
+        [dirX, dirY], [dirX, 0], [0, dirY], [dirX * 2, dirY * 2],
+        [dirX * 2, 0], [0, dirY * 2], [dirX, -dirY], [-dirX, dirY],
+        [-dirX, 0], [0, -dirY], [1, 1], [-1, 1], [1, -1], [-1, -1],
+      ];
+
+      let chosen = null;
+      for (const [ox, oy] of offsets) {
+        const cx = start.x + ox;
+        const cy = start.y + oy;
+        if (!cellInside(cx, cy)) continue;
+        if (grid[cy][cx] === 0) {
+          chosen = { cx, cy };
+          break;
+        }
+      }
+      if (!chosen) return;
+
+      const profile = enemyProfile("wraith");
+      const pos = localToWorld(chosen.cx, chosen.cy);
+      const mesh = new THREE.Mesh(profile.meshGeo, profile.mat);
+      mesh.position.set(pos.x, 1.35, pos.z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      floorRoot.add(mesh);
+
+      const glow = new THREE.PointLight(0x8cc4ff, 0.42, 6, 1.4);
+      glow.position.set(pos.x, 1.7, pos.z);
+      scene.add(glow);
+      state.lights.push(glow);
+
+      state.enemies.push({
+        id: `ambush-${state.floor}-${Math.round(rng.next() * 1e6)}`,
+        kind: "wraith",
+        hp: Math.round(profile.hp * 0.66),
+        hpMax: Math.round(profile.hp * 0.66),
+        speed: profile.speed * 1.1,
+        damage: Math.max(6, Math.round(profile.damage * 0.7)),
+        xp: profile.xp,
+        radius: profile.radius,
+        cooldown: profile.cooldown,
+        chaseRange: 58,
+        mesh,
+        glow,
+        pos: mesh.position,
+        vel: new THREE.Vector3(),
+        dir: new THREE.Vector3(dirX, 0, dirY).normalize(),
+        attackReadyAt: 0,
+        fearAura: 1.8,
+        wanderTimer: 0,
+      });
+
+      logEvent("You sense movement nearby.", "#c2d8ff");
+    }
+
+    function spawnBoss(farCell) {
+      const floorRoot = worldGroup.children[0];
+      const bossProfile = {
+        hp: Math.round(280 + state.floor * 40),
+        speed: 2.7 + state.floor * 0.09,
+        damage: Math.round(21 + state.floor * 1.5),
+        xp: Math.round(280 + state.floor * 26),
+        radius: 1,
+        cooldown: 1.5,
+      };
+
+      const bossPos = localToWorld(
+        clamp(farCell.x + rng.int(-3, 3), 2, config.gridW - 3),
+        clamp(farCell.y + rng.int(-3, 3), 2, config.gridH - 3)
+      );
+
+      const mesh = new THREE.Mesh(geos.boss, mats.boss);
+      mesh.position.set(bossPos.x, 2.3, bossPos.z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      floorRoot.add(mesh);
+
+      const glow = new THREE.PointLight(0xff4e95, 0.7, 13, 1.3);
+      glow.position.set(bossPos.x, 2.5, bossPos.z);
+      scene.add(glow);
+      state.lights.push(glow);
+
+      state.enemies.push({
+        id: `boss-${state.floor}`,
+        kind: "apex",
+        hp: bossProfile.hp,
+        hpMax: bossProfile.hp,
+        speed: bossProfile.speed,
+        damage: bossProfile.damage,
+        xp: bossProfile.xp,
+        radius: bossProfile.radius,
+        cooldown: bossProfile.cooldown,
+        chaseRange: 35,
+        mesh,
+        glow,
+        pos: mesh.position,
+        vel: new THREE.Vector3(),
+        dir: new THREE.Vector3(1, 0, 0),
+        attackReadyAt: 0,
+        fearAura: 2.9,
+        wanderTimer: 0,
+      });
+
+      state.objective = "The Apex has manifested. Destroy it before descending.";
+      logEvent("A floor Apex has awakened.", "#ff8ab4");
+      playTone(91, 0.35, "sawtooth", 0.13, 0.72);
+    }
+
+    function tryAttack() {
+      if (state.mode !== "playing") return;
+      const now = state.time;
+      const weapon = state.player.weapon;
+      if (now - weapon.lastAttack < weapon.cooldown) return;
+      weapon.lastAttack = now;
+      resumeAudio();
+      playTone(540, 0.06, "square", 0.045, 0.62);
+
+      const origin = state.player.pos.clone();
+      const forward = new THREE.Vector3(Math.sin(state.player.yaw), 0, Math.cos(state.player.yaw) * -1).normalize();
+      let hit = false;
+
+      for (const enemy of state.enemies) {
+        const toEnemy = enemy.pos.clone().sub(origin);
+        const distance = toEnemy.length();
+        if (distance > weapon.range + enemy.radius) continue;
+        let canHit = false;
+        if (distance <= enemy.radius + 0.95) {
+          canHit = true;
+        } else {
+          const dir = toEnemy.normalize();
+          const dot = forward.dot(dir);
+          canHit = dot >= Math.cos(config.attackArc);
+        }
+        if (!canHit) continue;
+
+        const base = rng.range(weapon.minDmg, weapon.maxDmg);
+        const statScale = 1 + state.player.stats.might * 0.035;
+        const crit = rng.next() < weapon.crit + state.player.stats.agility * 0.0025;
+        const runeBoost = state.time < state.player.damageBoostUntil ? 1.22 : 1;
+        const dmg = Math.round(base * statScale * runeBoost * (crit ? 1.8 : 1));
+
+        enemy.hp -= dmg;
+        hit = true;
+        spawnHitSpark(enemy.pos, crit);
+        if (crit) playTone(760, 0.08, "triangle", 0.075, 0.7);
+
+        if (enemy.hp <= 0) {
+          slayEnemy(enemy, crit);
+        } else {
+          logEvent(`${enemy.kind.toUpperCase()} takes ${dmg} damage.`, crit ? "#ffc99a" : "#d9dfe9");
+        }
+      }
+
+      if (!hit) {
+        spawnSwingTrail(forward);
+      }
+    }
+
+    function spawnSwingTrail(forward) {
+      const mesh = new THREE.Mesh(geos.orb, mats.projectile);
+      mesh.scale.setScalar(0.55);
+      const p = state.player.pos.clone().add(forward.clone().multiplyScalar(1.5));
+      mesh.position.set(p.x, 1.4, p.z);
+      worldGroup.add(mesh);
+      state.effects.push({ mesh, type: "swing", ttl: 0.08 });
+    }
+
+    function spawnHitSpark(position, crit) {
+      for (let i = 0; i < (crit ? 7 : 4); i++) {
+        const mesh = new THREE.Mesh(geos.orb, mats.projectile);
+        mesh.position.set(position.x, position.y + rng.range(0.2, 1.2), position.z);
+        mesh.scale.setScalar(rng.range(0.28, 0.5));
+        worldGroup.add(mesh);
+        const vel = new THREE.Vector3(rng.range(-2.2, 2.2), rng.range(1, 2.5), rng.range(-2.2, 2.2));
+        state.effects.push({ mesh, type: "spark", ttl: rng.range(0.2, 0.44), vel });
+      }
+    }
+
+    function slayEnemy(enemy, critKill = false) {
+      const idx = state.enemies.indexOf(enemy);
+      if (idx !== -1) state.enemies.splice(idx, 1);
+      worldGroup.remove(enemy.mesh);
+      scene.remove(enemy.glow);
+
+      const gainXp = enemy.xp;
+      const gainedShards = Math.max(1, Math.round(enemy.xp * 0.06));
+      state.shardsThisRun += gainedShards;
+      state.score += enemy.kind === "apex" ? 1200 : enemy.kind === "brute" ? 340 : 230;
+      state.recentKills += 1;
+
+      addXp(gainXp);
+      logEvent(`${enemy.kind.toUpperCase()} erased. +${gainXp} XP +${gainedShards} Shards`, critKill ? "#ffd6b5" : "#a8e6bb");
+      playTone(enemy.kind === "apex" ? 170 : 230, 0.17, "sawtooth", 0.08, 1.8);
+
+      if (enemy.kind === "apex") {
+        state.objective = "Apex ended. Reach the sigil to descend.";
+        state.floorClearMoment = true;
+        if (!state.meta.unlocks.includes("Apex Touched")) {
+          state.meta.unlocks.push("Apex Touched");
+          persistMeta();
+        }
+      }
+
+      if (rng.next() < 0.14) {
+        const dropKind = rng.next() < 0.4 ? "medkit" : rng.next() < 0.7 ? "battery" : "charm";
+        dropPickup(dropKind, enemy.pos);
+      }
+    }
+
+    function dropPickup(kind, atPos) {
+      let mesh;
+      let amount;
+      if (kind === "medkit") {
+        mesh = new THREE.Mesh(geos.medkit, mats.medkit);
+        amount = rng.int(20, 34);
+        mesh.position.set(atPos.x, 0.33, atPos.z);
+      } else if (kind === "battery") {
+        mesh = new THREE.Mesh(geos.battery, mats.battery);
+        amount = rng.int(24, 40);
+        mesh.position.set(atPos.x, 0.45, atPos.z);
+      } else {
+        mesh = new THREE.Mesh(geos.charm, mats.charm);
+        amount = rng.int(10, 18);
+        mesh.position.set(atPos.x, 0.62, atPos.z);
+      }
+      worldGroup.children[0].add(mesh);
+      state.pickups.push({ kind, mesh, pos: mesh.position, amount });
+    }
+
+    function addXp(amount) {
+      state.player.xp += amount;
+      while (state.player.xp >= state.player.nextXp) {
+        state.player.xp -= state.player.nextXp;
+        state.player.level += 1;
+        state.player.nextXp = Math.round(state.player.nextXp * 1.32 + 12);
+        levelUp();
+      }
+    }
+
+    function levelUp() {
+      state.mode = "levelup";
+      state.pauseReason = "levelup";
+      state.player.hp = Math.min(state.player.hpMax, state.player.hp + 22);
+
+      const blessings = [
+        {
+          name: "Bloodline Vigor",
+          description: "+28 max HP and immediate +24 heal.",
+          apply: () => {
+            state.player.hpMax += 28;
+            state.player.hp = Math.min(state.player.hp + 24, state.player.hpMax);
+            state.player.stats.vitality += 2;
+          },
+        },
+        {
+          name: "Predator Instinct",
+          description: "+4 to weapon min/max damage and +5% crit.",
+          apply: () => {
+            state.player.weapon.minDmg += 4;
+            state.player.weapon.maxDmg += 4;
+            state.player.weapon.crit += 0.05;
+            state.player.stats.might += 2;
+          },
+        },
+        {
+          name: "Mind Lantern",
+          description: "Fear growth reduced and flashlight drain reduced.",
+          apply: () => {
+            state.player.stats.mind += 2;
+            config.fearGrowthDark = Math.max(2.2, config.fearGrowthDark - 0.75);
+            config.flashlightDrain = Math.max(0.75, config.flashlightDrain - 0.2);
+          },
+        },
+        {
+          name: "Velocity Glyph",
+          description: "+15% move speed and shorter attack cooldown.",
+          apply: () => {
+            config.walkSpeed += 0.52;
+            config.sprintSpeed += 0.68;
+            state.player.weapon.cooldown = Math.max(0.18, state.player.weapon.cooldown - 0.04);
+            state.player.stats.agility += 2;
+          },
+        },
+        {
+          name: "Abyssal Bargain",
+          description: "+3 Soul Shards per kill this floor, but +12% incoming damage.",
+          apply: () => {
+            state.player.relics.push("Bargain");
+          },
+        },
+        {
+          name: "Ritual Surge",
+          description: "Using a charm grants 6s damage surge.",
+          apply: () => {
+            state.player.relics.push("SurgeCharm");
+          },
+        },
+      ];
+
+      const optionPool = [...blessings].sort(() => rng.next() - 0.5).slice(0, 3);
+      state.levelUpOptions = optionPool;
+      ui.choices.innerHTML = "";
+      optionPool.forEach((option, idx) => {
+        const button = document.createElement("button");
+        button.className = "choice";
+        button.type = "button";
+        button.textContent = `${idx + 1}. ${option.name} - ${option.description}`;
+        button.addEventListener("click", () => selectLevelUp(idx));
+        ui.choices.appendChild(button);
+      });
+
+      setOverlay("levelup");
+      logEvent("Level up. Choose a blessing (1-3).", "#c7b5ff");
+      playTone(300, 0.18, "triangle", 0.07, 1.34);
+      exitPointerLock();
+    }
+
+    function selectLevelUp(index) {
+      if (state.mode !== "levelup") return;
+      const option = state.levelUpOptions[index];
+      if (!option) return;
+      option.apply();
+      logEvent(`Blessing accepted: ${option.name}`, "#d6ccff");
+      state.mode = "playing";
+      state.pauseReason = "";
+      setOverlay();
+      requestPointerLockSoon();
+    }
+
+    function interact() {
+      if (state.mode !== "playing") return;
+      const playerPos = state.player.pos;
+      const nearest = state.interactables
+        .map((it) => ({ it, d: it.pos.distanceTo(playerPos) }))
+        .sort((a, b) => a.d - b.d)[0];
+
+      if (!nearest || nearest.d > config.interactRange) return;
+
+      if (nearest.it.kind === "stairs") {
+        if (state.floor % 5 === 0 && state.enemies.some((e) => e.kind === "apex")) {
+          logEvent("The sigil resists while the Apex lives.", "#ffc3d8");
+          playTone(180, 0.12, "square", 0.05, 0.7);
+          return;
+        }
+        descendFloor();
+      } else if (nearest.it.kind === "chest") {
+        if (nearest.it.mesh.userData.opened) return;
+        nearest.it.mesh.userData.opened = true;
+        nearest.it.mesh.rotation.x = -0.45;
+        const roll = rng.next();
+        if (roll < 0.3) {
+          state.consumables.medkit += 1;
+          logEvent("Recovered medkit stock +1.", "#a8f0bb");
+        } else if (roll < 0.6) {
+          state.consumables.battery += 1;
+          logEvent("Recovered battery stock +1.", "#96e5ce");
+        } else if (roll < 0.82) {
+          state.consumables.charm += 1;
+          logEvent("Recovered warding charm +1.", "#d0b8ff");
+        } else {
+          state.player.weapon.tier += 1;
+          state.player.weapon.minDmg += rng.int(2, 5);
+          state.player.weapon.maxDmg += rng.int(3, 7);
+          state.player.weapon.name = ["Ritual Blade", "Cursed Falchion", "Catacomb Severance", "Nightglass Edge", "Abyssbrand"]
+            [Math.min(4, state.player.weapon.tier - 1)];
+          logEvent(`Weapon ascended: ${state.player.weapon.name}`, "#ffd9b8");
+        }
+        playTone(460, 0.1, "triangle", 0.06, 0.9);
+      }
+    }
+
+    function descendFloor() {
+      state.floor += 1;
+      state.score += 420 + Math.round(state.floor * 50);
+      state.player.battery = Math.min(100, state.player.battery + 18);
+      state.player.sanity = Math.min(100, state.player.sanity + 14);
+      state.player.fear = Math.max(4, state.player.fear - 22);
+
+      if (state.floor > state.maxFloor) {
+        winRun();
+        return;
+      }
+
+      buildFloor();
+      requestPointerLockSoon();
+    }
+
+    function winRun() {
+      state.mode = "victory";
+      const rewards = state.shardsThisRun + 80;
+      state.meta.totalShards += rewards;
+      state.meta.bestFloor = Math.max(state.meta.bestFloor, state.floor);
+      state.meta.bestScore = Math.max(state.meta.bestScore, state.score + 2800);
+      if (!state.meta.unlocks.includes("Vaultbreaker")) state.meta.unlocks.push("Vaultbreaker");
+      state.meta.runs += 1;
+      persistMeta();
+      updateMetaSummary();
+      ui.victoryCopy.textContent = `You cleared ${state.floor} floors and extracted ${rewards} Soul Shards.`;
+      setOverlay("victory");
+      exitPointerLock();
+      playTone(320, 0.42, "triangle", 0.1, 1.9);
+      logEvent("Victory run complete.", "#ffe6c8");
+    }
+
+    function takeDamage(amount, source = "") {
+      const bargainPenalty = state.player.relics.includes("Bargain") ? 1.12 : 1;
+      const mitigation = 1 - state.player.stats.vitality * 0.012;
+      const final = Math.max(1, Math.round(amount * bargainPenalty * mitigation));
+      state.player.hp -= final;
+      state.lastDamageAt = state.time;
+      state.flashAmount = 1;
+      ui.flash.style.opacity = "1";
+      state.player.fear = Math.min(100, state.player.fear + final * 0.7);
+      logEvent(`${source || "Unknown force"} hits for ${final}.`, "#ff9fa3");
+      playTone(140, 0.1, "square", 0.09, 0.65);
+
+      if (state.player.hp <= 0) {
+        state.player.hp = 0;
+        gameOver();
+      }
+    }
+
+    function gameOver() {
+      state.mode = "dead";
+      state.meta.totalShards += state.shardsThisRun;
+      state.meta.bestFloor = Math.max(state.meta.bestFloor, state.floor);
+      state.meta.bestScore = Math.max(state.meta.bestScore, state.score);
+      state.meta.runs += 1;
+      if (state.floor >= 5 && !state.meta.unlocks.includes("Depth Initiate")) state.meta.unlocks.push("Depth Initiate");
+      persistMeta();
+      updateMetaSummary();
+      ui.deathCopy.textContent = `Floor ${state.floor} | Score ${state.score} | Soul Shards recovered ${state.shardsThisRun}`;
+      setOverlay("dead");
+      exitPointerLock();
+      logEvent("Run ended.", "#ffb5b5");
+      playTone(98, 0.4, "sawtooth", 0.13, 0.65);
+    }
+
+    function consume(slot) {
+      if (state.mode !== "playing") return;
+      if (slot === "medkit") {
+        if (state.consumables.medkit <= 0) return;
+        state.consumables.medkit -= 1;
+        state.player.hp = Math.min(state.player.hpMax, state.player.hp + 42 + state.player.stats.vitality * 2);
+        state.player.fear = Math.max(0, state.player.fear - 8);
+        logEvent("Medkit used.", "#a8ecbc");
+        playTone(440, 0.09, "triangle", 0.045, 1.3);
+      } else if (slot === "battery") {
+        if (state.consumables.battery <= 0) return;
+        state.consumables.battery -= 1;
+        state.player.battery = Math.min(100, state.player.battery + 58);
+        logEvent("Battery replaced.", "#8de4cf");
+        playTone(520, 0.08, "triangle", 0.045, 1.18);
+      } else if (slot === "charm") {
+        if (state.consumables.charm <= 0) return;
+        state.consumables.charm -= 1;
+        state.player.fear = Math.max(0, state.player.fear - 22);
+        state.player.sanity = Math.min(100, state.player.sanity + 26);
+        if (state.player.relics.includes("SurgeCharm")) {
+          state.player.damageBoostUntil = state.time + 6;
+          logEvent("Charm surge active: +22% damage.", "#d2b9ff");
+        } else {
+          logEvent("Charm ward restored your mind.", "#d2b9ff");
+        }
+        playTone(610, 0.11, "sine", 0.055, 1.35);
+      }
+    }
+
+    function jumpScare() {
+      state.hallucination = 1;
+      state.flashAmount = 0.6;
+      state.player.fear = clamp(state.player.fear + rng.range(8, 16), 0, 100);
+      playTone(rng.range(180, 280), 0.2, "sawtooth", 0.11, 0.41);
+      logEvent("Something screamed from the walls.", "#f2b2c5");
+    }
+
+    function updateJumpScares(dt) {
+      if (state.mode !== "playing") return;
+      state.jumpScareTimer -= dt;
+      const panicFactor = state.player.fear / 100;
+      if (state.jumpScareTimer <= 0) {
+        if (panicFactor > 0.62 && rng.next() < 0.45) jumpScare();
+        state.jumpScareTimer = rng.range(5, 11) * (1.15 - panicFactor * 0.45);
+      }
+    }
+
+    function updateFearAndSanity(dt) {
+      const player = state.player;
+      const nearestEnemyDist = nearestEnemyDistance();
+      const darkFactor = player.flashlightOn && player.battery > 0 ? 0 : 1;
+      const enemyFear = nearestEnemyDist < 8 ? (1 - nearestEnemyDist / 8) : 0;
+      const fearGain = darkFactor * config.fearGrowthDark + enemyFear * config.fearGrowthNearEnemy;
+      const fearLoss = nearestEnemyDist > 11 && !darkFactor ? config.fearDecaySafe : 0;
+
+      player.fear = clamp(player.fear + (fearGain - fearLoss) * dt, 0, 100);
+
+      const sanityLoss = (player.fear / 100) * config.sanityDecayFear;
+      const sanityGain = player.fear < 24 ? config.sanityRecover : 0;
+      player.sanity = clamp(player.sanity + (sanityGain - sanityLoss) * dt, 0, 100);
+
+      if (player.sanity <= 0) {
+        takeDamage(1.6 * dt, "Psychic rupture");
+      }
+
+      if (player.flashlightOn && player.battery > 0) {
+        player.battery = clamp(player.battery - config.flashlightDrain * dt, 0, 100);
+      } else {
+        player.battery = clamp(player.battery + config.batteryRecharge * dt, 0, 100);
+      }
+
+      if (player.flashlightOn && player.battery <= 0) {
+        player.flashlightOn = false;
+        logEvent("Flashlight died.", "#ffcc96");
+      }
+
+      flashlight.visible = player.flashlightOn;
+      flashlight.intensity = player.flashlightOn ? lerp(1.05, 2.2, player.battery / 100) : 0;
+      flashlight.distance = 16 + player.battery * 0.26;
+    }
+
+    function nearestEnemyDistance() {
+      let min = Infinity;
+      const p = state.player.pos;
+      for (const enemy of state.enemies) {
+        min = Math.min(min, enemy.pos.distanceTo(p));
+      }
+      return Number.isFinite(min) ? min : 999;
+    }
+
+    function handleInput(dt) {
+      if (state.mode !== "playing") return;
+
+      const moveX = (keys.has("right") ? 1 : 0) - (keys.has("left") ? 1 : 0);
+      const moveZ = (keys.has("forward") ? 1 : 0) - (keys.has("backward") ? 1 : 0);
+
+      const len = Math.hypot(moveX, moveZ) || 1;
+      const localDir = new THREE.Vector3(moveX / len, 0, moveZ / len);
+
+      const sin = Math.sin(state.player.yaw);
+      const cos = Math.cos(state.player.yaw);
+      const worldDir = new THREE.Vector3(
+        localDir.x * cos + localDir.z * sin,
+        0,
+        localDir.z * cos - localDir.x * sin
+      );
+
+      const targetSpeed = (keys.has("sprint") ? config.sprintSpeed : config.walkSpeed) * (1 + state.player.stats.agility * 0.012);
+      const targetVel = worldDir.multiplyScalar(targetSpeed);
+
+      state.player.vel.x = lerp(state.player.vel.x, targetVel.x, clamp(config.accel * dt, 0, 1));
+      state.player.vel.z = lerp(state.player.vel.z, targetVel.z, clamp(config.accel * dt, 0, 1));
+
+      if (Math.abs(moveX) + Math.abs(moveZ) < 0.01) {
+        state.player.vel.x = lerp(state.player.vel.x, 0, clamp(config.friction * dt, 0, 1));
+        state.player.vel.z = lerp(state.player.vel.z, 0, clamp(config.friction * dt, 0, 1));
+      }
+
+      const nextPos = state.player.pos.clone().addScaledVector(state.player.vel, dt);
+      resolvePlayerCollision(nextPos);
+    }
+
+    function resolvePlayerCollision(nextPos) {
+      const p = state.player;
+      const radius = p.radius;
+
+      const attempts = [
+        new THREE.Vector3(nextPos.x, p.pos.y, p.pos.z),
+        new THREE.Vector3(p.pos.x, p.pos.y, nextPos.z),
+        new THREE.Vector3(nextPos.x, p.pos.y, nextPos.z),
+      ];
+
+      for (const candidate of attempts) {
+        if (!collidesWithWall(candidate.x, candidate.z, radius)) {
+          p.pos.x = candidate.x;
+          p.pos.z = candidate.z;
+          return;
+        }
+      }
+
+      p.vel.x *= 0.06;
+      p.vel.z *= 0.06;
+    }
+
+    function collidesWithWall(x, z, radius) {
+      const { cx, cy } = worldToCell(x, z);
+      for (let y = cy - 1; y <= cy + 1; y++) {
+        for (let xx = cx - 1; xx <= cx + 1; xx++) {
+          if (!cellInside(xx, y) || floorWallMap[y][xx] === 1) {
+            const center = localToWorld(xx, y);
+            const half = config.cellSize / 2;
+            const dx = Math.abs(x - center.x) - half;
+            const dz = Math.abs(z - center.z) - half;
+            const penX = Math.max(dx, 0);
+            const penZ = Math.max(dz, 0);
+            if (penX * penX + penZ * penZ < radius * radius) return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function updateEnemies(dt) {
+      if (state.mode !== "playing") return;
+      const playerPos = state.player.pos;
+
+      for (const enemy of state.enemies) {
+        const toPlayer = playerPos.clone().sub(enemy.pos);
+        const distance = toPlayer.length();
+
+        enemy.wanderTimer -= dt;
+        const shouldChase = distance < enemy.chaseRange || state.player.fear > 62;
+
+        if (shouldChase) {
+          enemy.dir.copy(toPlayer.normalize());
+        } else if (enemy.wanderTimer <= 0) {
+          enemy.wanderTimer = rng.range(0.5, 2.3);
+          enemy.dir.set(rng.range(-1, 1), 0, rng.range(-1, 1)).normalize();
+        }
+
+        const speed = enemy.speed * (enemy.kind === "apex" ? lerp(1, 1.35, 1 - enemy.hp / enemy.hpMax) : 1);
+        const step = enemy.dir.clone().multiplyScalar(speed * dt);
+        const next = enemy.pos.clone().add(step);
+
+        if (!collidesWithWall(next.x, next.z, enemy.radius)) {
+          enemy.pos.x = next.x;
+          enemy.pos.z = next.z;
+        } else {
+          enemy.dir.multiplyScalar(-1);
+        }
+
+        const jitter = Math.sin(state.time * 5.1 + enemy.pos.x * 0.03) * 0.06;
+        enemy.mesh.position.set(enemy.pos.x, enemy.mesh.position.y + jitter * dt * 16, enemy.pos.z);
+        enemy.mesh.lookAt(playerPos.x, enemy.mesh.position.y, playerPos.z);
+
+        enemy.glow.position.set(enemy.pos.x, enemy.mesh.position.y + 0.4, enemy.pos.z);
+        enemy.glow.intensity = lerp(0.18, 0.62, 1 - enemy.hp / enemy.hpMax);
+
+        if (distance < enemy.radius + state.player.radius + 0.34 && state.time >= enemy.attackReadyAt) {
+          enemy.attackReadyAt = state.time + enemy.cooldown;
+          takeDamage(enemy.damage, enemy.kind.toUpperCase());
+        }
+      }
+
+      for (let i = 0; i < state.enemies.length; i++) {
+        const a = state.enemies[i];
+        for (let j = i + 1; j < state.enemies.length; j++) {
+          const b = state.enemies[j];
+          const dx = b.pos.x - a.pos.x;
+          const dz = b.pos.z - a.pos.z;
+          const dist = Math.hypot(dx, dz) || 0.0001;
+          const minDist = a.radius + b.radius + 0.1;
+          if (dist < minDist) {
+            const push = ((minDist - dist) * 0.5) / dist;
+            a.pos.x -= dx * push;
+            a.pos.z -= dz * push;
+            b.pos.x += dx * push;
+            b.pos.z += dz * push;
+          }
+        }
+      }
+    }
+
+    function updatePickups(dt) {
+      if (state.mode !== "playing") return;
+      const p = state.player.pos;
+      for (let i = state.pickups.length - 1; i >= 0; i--) {
+        const item = state.pickups[i];
+        item.mesh.rotation.y += dt * 1.8;
+        item.mesh.position.y += Math.sin(state.time * 2.2 + i) * dt * 0.15;
+        const d = item.pos.distanceTo(p);
+        if (d <= 1.1) {
+          if (item.kind === "medkit") {
+            state.player.hp = Math.min(state.player.hpMax, state.player.hp + item.amount);
+            logEvent(`Recovered ${item.amount} HP from field medkit.`, "#9de8b0");
+          } else if (item.kind === "battery") {
+            state.player.battery = Math.min(100, state.player.battery + item.amount);
+            logEvent(`Recovered ${item.amount}% battery charge.`, "#91e0cb");
+          } else if (item.kind === "charm") {
+            state.player.sanity = Math.min(100, state.player.sanity + item.amount);
+            state.player.fear = Math.max(0, state.player.fear - item.amount * 0.7);
+            logEvent("Warding charm steadied your mind.", "#cdb7ff");
+          }
+          worldGroup.remove(item.mesh);
+          state.pickups.splice(i, 1);
+          playTone(620, 0.06, "triangle", 0.04, 1.28);
+        }
+      }
+    }
+
+    function updateInteractables(dt) {
+      const p = state.player.pos;
+      let prompt = state.objective;
+      for (const it of state.interactables) {
+        if (it.kind === "stairs") {
+          it.mesh.rotation.z += dt * 0.32;
+          it.mesh.rotation.y += dt * 0.6;
+        }
+
+        const d = it.pos.distanceTo(p);
+        if (d <= config.interactRange) {
+          if (it.kind === "stairs") {
+            prompt = state.floor % 5 === 0 && state.enemies.some((e) => e.kind === "apex")
+              ? "Defeat the Apex before using the sigil."
+              : "Press E / A at the sigil to descend.";
+          } else if (it.kind === "chest") {
+            prompt = it.mesh.userData.opened
+              ? "Ransacked chest."
+              : "Press E / A to open chest.";
+          }
+          break;
+        }
+      }
+      state.objective = prompt;
+    }
+
+    function updateEffects(dt) {
+      for (let i = state.effects.length - 1; i >= 0; i--) {
+        const fx = state.effects[i];
+        if (fx.type === "ember") {
+          fx.pulse += dt;
+          fx.mesh.position.y += Math.sin(fx.pulse * 3.1) * 0.003;
+        } else {
+          fx.ttl -= dt;
+          if (fx.vel) {
+            fx.mesh.position.addScaledVector(fx.vel, dt);
+            fx.vel.y -= 5 * dt;
+          }
+          fx.mesh.scale.multiplyScalar(0.96);
+          if (fx.ttl <= 0) {
+            worldGroup.remove(fx.mesh);
+            state.effects.splice(i, 1);
+          }
+        }
+      }
+    }
+
+    function updateLighting(dt) {
+      const threat = clamp(state.player.fear / 100, 0, 1);
+      scene.fog.density = lerp(0.012, 0.028, threat);
+
+      for (let i = 0; i < state.lights.length; i++) {
+        const light = state.lights[i];
+        if (light.type === "PointLight" && light.userData.baseIntensity) {
+          light.intensity = light.userData.baseIntensity * (0.72 + Math.sin(state.time * 5 + i * 1.7) * 0.18);
+        }
+      }
+
+      if (pulseGain) {
+        pulseGain.gain.value = lerp(0.0, 0.05, threat);
+      }
+
+      state.dangerPulse = lerp(state.dangerPulse, threat, dt * 4);
+      state.hallucination = Math.max(0, state.hallucination - dt * 0.45);
+      state.flashAmount = Math.max(0, state.flashAmount - dt * 4.5);
+
+      ui.danger.style.opacity = String(clamp(state.dangerPulse * 1.35, 0, 0.92));
+      ui.hall.style.opacity = String(clamp(state.hallucination * 0.8 + threat * 0.22, 0, 0.82));
+      ui.flash.style.opacity = String(clamp(state.flashAmount, 0, 1));
+    }
+
+    function updateCamera(dt) {
+      camera.position.copy(state.player.pos);
+      camera.rotation.order = "YXZ";
+      camera.rotation.y = state.player.yaw;
+      camera.rotation.x = state.player.pitch;
+
+      const trauma = clamp(state.player.fear / 100, 0, 1);
+      camera.position.y += Math.sin(state.time * 8.2) * 0.006 * trauma;
+      camera.rotation.z = Math.sin(state.time * 4.6) * 0.01 * trauma;
+    }
+
+    function updateUI() {
+      const p = state.player;
+      ui.hpBar.style.width = `${(p.hp / p.hpMax) * 100}%`;
+      ui.hpLabel.textContent = `${Math.round(p.hp)}/${p.hpMax}`;
+
+      const xpPct = (p.xp / p.nextXp) * 100;
+      ui.xpBar.style.width = `${xpPct}%`;
+      ui.xpLabel.textContent = `${Math.round(xpPct)}%`;
+
+      ui.fearBar.style.width = `${p.fear}%`;
+      ui.fearLabel.textContent = `${Math.round(p.fear)}%`;
+
+      ui.batteryBar.style.width = `${p.battery}%`;
+      ui.batteryLabel.textContent = `${Math.round(p.battery)}%`;
+
+      ui.objective.textContent = state.objective;
+      ui.runMeta.innerHTML = [
+        `<div>Floor: <strong>${state.floor}/${state.maxFloor}</strong></div>`,
+        `<div>Score: <strong>${state.score}</strong></div>`,
+        `<div>Level: <strong>${p.level}</strong></div>`,
+        `<div>XP: <strong>${p.xp}/${p.nextXp}</strong></div>`,
+        `<div>Weapon: <strong>${p.weapon.name}</strong></div>`,
+        `<div>Shards (run): <strong>${state.shardsThisRun}</strong></div>`,
+        `<div>Consumables: <strong>M${state.consumables.medkit} B${state.consumables.battery} C${state.consumables.charm}</strong></div>`,
+        `<div>Sanity: <strong>${Math.round(p.sanity)}%</strong></div>`,
+      ].join("");
+    }
+
+    function update(dt) {
+      state.time += dt;
+
+      if (state.mode === "playing") {
+        handleInput(dt);
+        updateEnemies(dt);
+        updatePickups(dt);
+        updateInteractables(dt);
+        updateFearAndSanity(dt);
+        updateJumpScares(dt);
+      }
+
+      updateEffects(dt);
+      updateLighting(dt);
+      updateCamera(dt);
+      updateUI();
+    }
+
+    function render() {
+      renderer.render(scene, camera);
+    }
+
+    let lastFrame = performance.now();
+    let accumulated = 0;
+    const step = 1 / 60;
+
+    function frame(now) {
+      const rawDt = Math.min(0.05, (now - lastFrame) / 1000 || step);
+      lastFrame = now;
+
+      accumulated += rawDt;
+      while (accumulated >= step) {
+        update(step);
+        accumulated -= step;
+      }
+      render();
+      requestAnimationFrame(frame);
+    }
+
+    function safeRequestPointerLock() {
+      if (typeof renderer.domElement.requestPointerLock !== "function") return;
+      if (!renderer.domElement.isConnected) return;
+      try {
+        const maybePromise = renderer.domElement.requestPointerLock();
+        if (maybePromise && typeof maybePromise.catch === "function") {
+          maybePromise.catch(() => {});
+        }
+      } catch {
+        // Ignore pointer lock failures in automation/headless contexts.
+      }
+    }
+
+    function requestPointerLockSoon() {
+      setTimeout(() => {
+        if (state.mode === "playing") safeRequestPointerLock();
+      }, 40);
+    }
+
+    function exitPointerLock() {
+      if (document.pointerLockElement) {
+        document.exitPointerLock?.();
+      }
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      setOverlay(mode === "playing" ? undefined : mode);
+    }
+
+    function resetRun() {
+      state.runSeed = (Date.now() ^ Math.round(Math.random() * 0xffffffff)) >>> 0;
+      state.floor = 1;
+      state.score = 0;
+      state.shardsThisRun = 0;
+      state.time = 0;
+      state.eventLog.length = 0;
+      state.objective = "Find the sigil and survive the hunt.";
+      state.player.hpMax = 100 + Math.floor(state.meta.totalShards * 0.03) + (state.meta.bestFloor >= 6 ? 18 : 0);
+      state.player.hp = state.player.hpMax;
+      state.player.sanity = 100;
+      state.player.fear = 10;
+      state.player.battery = 100;
+      state.player.flashlightOn = true;
+      state.player.level = 1;
+      state.player.xp = 0;
+      state.player.nextXp = 80;
+      state.player.stats = {
+        might: 6 + Math.floor(state.meta.bestFloor / 3),
+        agility: 6,
+        mind: 6,
+        vitality: 6,
+      };
+      state.player.weapon = {
+        name: "Ritual Blade",
+        tier: 1,
+        minDmg: 12 + Math.floor(state.meta.bestFloor / 4),
+        maxDmg: 19 + Math.floor(state.meta.bestFloor / 3),
+        crit: 0.08,
+        range: 2.2,
+        cooldown: 0.38,
+        lastAttack: -99,
+      };
+      state.player.relics = [];
+      state.player.damageBoostUntil = 0;
+      state.consumables = { medkit: 1 + Math.floor(state.meta.bestFloor / 5), battery: 1, charm: 0 };
+
+      config.fearGrowthDark = 6.6;
+      config.flashlightDrain = 2.7;
+      config.walkSpeed = 4.6;
+      config.sprintSpeed = 7.2;
+
+      buildFloor();
+      updateUI();
+      setMode("playing");
+      requestPointerLockSoon();
+      logEvent("Run started.", "#d6e9ff");
+      resumeAudio();
+    }
+
+    function loadMeta() {
+      try {
+        const raw = localStorage.getItem("echoes-below-meta");
+        if (!raw) throw new Error("missing");
+        const parsed = JSON.parse(raw);
+        return {
+          bestFloor: parsed.bestFloor || 1,
+          bestScore: parsed.bestScore || 0,
+          totalShards: parsed.totalShards || 0,
+          runs: parsed.runs || 0,
+          unlocks: Array.isArray(parsed.unlocks) ? parsed.unlocks : [],
+        };
+      } catch {
+        return {
+          bestFloor: 1,
+          bestScore: 0,
+          totalShards: 0,
+          runs: 0,
+          unlocks: [],
+        };
+      }
+    }
+
+    function persistMeta() {
+      localStorage.setItem("echoes-below-meta", JSON.stringify(state.meta));
+    }
+
+    function togglePause() {
+      if (state.mode === "playing") {
+        state.mode = "paused";
+        state.pauseReason = "manual";
+        setOverlay("paused");
+        exitPointerLock();
+      } else if (state.mode === "paused") {
+        state.mode = "playing";
+        state.pauseReason = "";
+        setOverlay();
+        requestPointerLockSoon();
+      }
+    }
+
+    function toggleFullscreen() {
+      const root = document.documentElement;
+      if (!document.fullscreenElement) {
+        root.requestFullscreen?.().catch(() => {});
+      } else {
+        document.exitFullscreen?.().catch(() => {});
+      }
+    }
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    });
+
+    window.addEventListener("keydown", (ev) => {
+      const alias = keyAlias.get(ev.code);
+      if (alias) keys.add(alias);
+
+      if (state.mode === "menu") {
+        if (ev.code === "Enter" || ev.code === "Space") {
+          ev.preventDefault();
+          resetRun();
+        }
+        return;
+      }
+
+      if (state.mode === "levelup") {
+        if (ev.code === "Digit1") selectLevelUp(0);
+        if (ev.code === "Digit2") selectLevelUp(1);
+        if (ev.code === "Digit3") selectLevelUp(2);
+        return;
+      }
+
+      if (ev.code === "Escape") {
+        if (document.fullscreenElement) {
+          document.exitFullscreen?.().catch(() => {});
+        }
+        if (state.mode === "playing" || state.mode === "paused") {
+          ev.preventDefault();
+          togglePause();
+        }
+      }
+
+      if (ev.code === "KeyF") {
+        ev.preventDefault();
+        toggleFullscreen();
+      }
+
+      if (ev.code === "KeyQ" && state.mode === "playing") {
+        state.player.flashlightOn = !state.player.flashlightOn;
+        logEvent(state.player.flashlightOn ? "Flashlight engaged." : "Flashlight off.", "#f9d1a6");
+      }
+
+      if ((ev.code === "KeyE" || ev.code === "KeyA") && state.mode === "playing") {
+        interact();
+      }
+
+      if (ev.code === "KeyB" && state.mode === "playing") {
+        tryAttack();
+      }
+
+      if ((ev.code === "KeyR" || ev.code === "Digit1") && state.mode === "playing") {
+        consume("medkit");
+      } else if (ev.code === "Digit2" && state.mode === "playing") {
+        consume("battery");
+      } else if (ev.code === "Digit3" && state.mode === "playing") {
+        consume("charm");
+      }
+
+      if (ev.code === "Enter" && state.mode === "dead") {
+        setMode("menu");
+      }
+    });
+
+    window.addEventListener("keyup", (ev) => {
+      const alias = keyAlias.get(ev.code);
+      if (alias) keys.delete(alias);
+    });
+
+    renderer.domElement.addEventListener("click", () => {
+      resumeAudio();
+      if (state.mode === "playing") {
+        safeRequestPointerLock();
+      }
+    });
+
+    window.addEventListener("pointerdown", (ev) => {
+      if (ev.button === 0 && state.mode === "playing") {
+        tryAttack();
+      }
+    });
+
+    window.addEventListener("mousemove", (ev) => {
+      if (document.pointerLockElement !== renderer.domElement || state.mode !== "playing") return;
+      const sensitivity = 0.0023;
+      state.player.yaw -= ev.movementX * sensitivity;
+      state.player.pitch -= ev.movementY * sensitivity;
+      state.player.pitch = clamp(state.player.pitch, -1.35, 1.35);
+    });
+
+    document.addEventListener("pointerlockchange", () => {
+      state.pointerLocked = document.pointerLockElement === renderer.domElement;
+      if (state.mode === "playing" && !state.pointerLocked) {
+        // Keep keyboard-only play functional for automation/headless runs.
+      }
+    });
+
+    document.getElementById("start-btn").addEventListener("click", () => {
+      resetRun();
+    });
+
+    document.getElementById("resume-btn").addEventListener("click", () => {
+      if (state.mode === "paused") togglePause();
+    });
+
+    document.getElementById("restart-btn").addEventListener("click", () => {
+      setMode("menu");
+      updateMetaSummary();
+    });
+
+    document.getElementById("death-restart-btn").addEventListener("click", () => {
+      setMode("menu");
+      updateMetaSummary();
+    });
+
+    document.getElementById("victory-restart-btn").addEventListener("click", () => {
+      setMode("menu");
+      updateMetaSummary();
+    });
+
+    // Deterministic stepping hook for automation.
+    window.advanceTime = (ms) => {
+      const steps = Math.max(1, Math.round(ms / (1000 / 60)));
+      for (let i = 0; i < steps; i++) {
+        update(step);
+      }
+      render();
+      return Promise.resolve();
+    };
+
+    // Text-mode state representation for automated verification and accessibility.
+    window.render_game_to_text = () => {
+      const p = state.player;
+      const nearestEnemies = [...state.enemies]
+        .sort((a, b) => a.pos.distanceTo(p.pos) - b.pos.distanceTo(p.pos))
+        .slice(0, 8)
+        .map((e) => ({
+          id: e.id,
+          kind: e.kind,
+          hp: Math.round(e.hp),
+          hp_max: e.hpMax,
+          x: Number(e.pos.x.toFixed(2)),
+          y: Number(e.mesh.position.y.toFixed(2)),
+          z: Number(e.pos.z.toFixed(2)),
+          dist: Number(e.pos.distanceTo(p.pos).toFixed(2)),
+        }));
+
+      const payload = {
+        coordinate_system: "right-handed world coordinates: origin near map center; +x east/right, +z south/back, +y up",
+        mode: state.mode,
+        floor: state.floor,
+        max_floor: state.maxFloor,
+        objective: state.objective,
+        score: state.score,
+        shards_run: state.shardsThisRun,
+        player: {
+          x: Number(p.pos.x.toFixed(2)),
+          y: Number(p.pos.y.toFixed(2)),
+          z: Number(p.pos.z.toFixed(2)),
+          vel_x: Number(p.vel.x.toFixed(2)),
+          vel_z: Number(p.vel.z.toFixed(2)),
+          yaw: Number(p.yaw.toFixed(3)),
+          pitch: Number(p.pitch.toFixed(3)),
+          hp: Number(p.hp.toFixed(1)),
+          hp_max: p.hpMax,
+          fear: Number(p.fear.toFixed(1)),
+          sanity: Number(p.sanity.toFixed(1)),
+          battery: Number(p.battery.toFixed(1)),
+          flashlight_on: p.flashlightOn,
+          level: p.level,
+          xp: p.xp,
+          next_xp: p.nextXp,
+          weapon: {
+            name: p.weapon.name,
+            tier: p.weapon.tier,
+            min_dmg: p.weapon.minDmg,
+            max_dmg: p.weapon.maxDmg,
+            crit: Number(p.weapon.crit.toFixed(3)),
+            cooldown: Number(p.weapon.cooldown.toFixed(3)),
+          },
+          consumables: { ...state.consumables },
+          relics: [...p.relics],
+        },
+        enemies_visible: nearestEnemies,
+        enemy_count_total: state.enemies.length,
+        pickups: state.pickups.slice(0, 10).map((item) => ({
+          kind: item.kind,
+          x: Number(item.pos.x.toFixed(2)),
+          y: Number(item.pos.y.toFixed(2)),
+          z: Number(item.pos.z.toFixed(2)),
+          dist: Number(item.pos.distanceTo(p.pos).toFixed(2)),
+        })),
+        interactables: state.interactables.slice(0, 6).map((it) => ({
+          kind: it.kind,
+          x: Number(it.pos.x.toFixed(2)),
+          y: Number(it.pos.y.toFixed(2)),
+          z: Number(it.pos.z.toFixed(2)),
+          dist: Number(it.pos.distanceTo(p.pos).toFixed(2)),
+        })),
+        recent_events: state.eventLog.slice(0, 5).map((e) => e.text),
+      };
+
+      return JSON.stringify(payload, null, 2);
+    };
+
+    updateMetaSummary();
+    updateUI();
+    setOverlay("menu");
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

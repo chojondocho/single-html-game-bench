@@ -1,0 +1,1769 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cathedral of Hollow Saints</title>
+  <style>
+    :root {
+      --ink: #f7f2d6;
+      --blood: #c1372a;
+      --mist: #96a2a6;
+      --night: #05070b;
+      --stone: #1b1e28;
+      --gold: #c6a96b;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 20%, #182027 0%, var(--night) 70%);
+      color: var(--ink);
+      font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+    }
+
+    #app {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    #game {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      image-rendering: auto;
+      cursor: crosshair;
+      background: #030406;
+    }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      background: linear-gradient(170deg, rgba(8, 10, 18, 0.9), rgba(8, 10, 16, 0.45));
+      transition: opacity 180ms ease;
+    }
+
+    #panel {
+      width: min(900px, 92vw);
+      padding: 28px 34px;
+      border: 1px solid rgba(198, 169, 107, 0.45);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.65);
+      background: linear-gradient(150deg, rgba(18, 22, 34, 0.9), rgba(9, 11, 18, 0.86));
+      backdrop-filter: blur(6px);
+      pointer-events: auto;
+      border-radius: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 54px);
+      letter-spacing: 1px;
+      color: #f8f2d9;
+      text-shadow: 0 3px 18px rgba(0, 0, 0, 0.55);
+    }
+
+    p,
+    li,
+    button,
+    .meta {
+      font-size: clamp(14px, 1.8vw, 17px);
+      line-height: 1.4;
+    }
+
+    .sub {
+      color: var(--mist);
+      margin-top: 8px;
+      margin-bottom: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 9px 18px;
+      margin: 14px 0;
+      color: #e6dcc0;
+    }
+
+    .stats {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      color: #dacda9;
+    }
+
+    .stat {
+      padding: 6px 10px;
+      border: 1px solid rgba(198, 169, 107, 0.35);
+      border-radius: 999px;
+      background: rgba(9, 10, 16, 0.44);
+    }
+
+    .controls {
+      margin-top: 15px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(198, 169, 107, 0.25);
+      color: #c4c9ca;
+    }
+
+    .btn-row {
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 1px solid rgba(225, 203, 151, 0.65);
+      border-radius: 8px;
+      color: #f8f3dd;
+      padding: 9px 13px;
+      cursor: pointer;
+      background: linear-gradient(180deg, rgba(85, 37, 30, 0.92), rgba(46, 22, 19, 0.92));
+      transition: transform 100ms ease, box-shadow 100ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 22px rgba(193, 55, 42, 0.28);
+    }
+
+    button.secondary {
+      background: linear-gradient(180deg, rgba(30, 41, 57, 0.95), rgba(15, 22, 34, 0.95));
+    }
+
+    button.choice {
+      width: min(320px, 100%);
+      text-align: left;
+      background: linear-gradient(180deg, rgba(60, 52, 39, 0.94), rgba(31, 26, 19, 0.95));
+    }
+
+    .tiny {
+      margin-top: 8px;
+      color: #9ca4a8;
+      font-size: 12px;
+    }
+
+    .hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="game"></canvas>
+  </div>
+  <div id="overlay">
+    <div id="panel"></div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d", { alpha: false });
+      const overlay = document.getElementById("overlay");
+      const panel = document.getElementById("panel");
+
+      const VERSION = "1.0.0";
+      const MAX_FLOOR = 5;
+      const FOV = Math.PI / 2.65;
+      const MAX_DEPTH = 22;
+      const FIXED_STEP = 1 / 60;
+      const MAP_W = 31;
+      const MAP_H = 31;
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function distSq(ax, ay, bx, by) {
+        const dx = ax - bx;
+        const dy = ay - by;
+        return dx * dx + dy * dy;
+      }
+
+      function normalizeAngle(angle) {
+        while (angle < -Math.PI) angle += Math.PI * 2;
+        while (angle > Math.PI) angle -= Math.PI * 2;
+        return angle;
+      }
+
+      function choose(arr, rand) {
+        return arr[Math.floor(rand() * arr.length)];
+      }
+
+      function createRng(seed) {
+        let s = seed >>> 0;
+        return () => {
+          s = (s + 0x6d2b79f5) | 0;
+          let t = Math.imul(s ^ (s >>> 15), 1 | s);
+          t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function loadMeta() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem("hollowSaintsMeta") || "{}");
+          return {
+            souls: parsed.souls | 0,
+            upgrades: {
+              vitality: (parsed.upgrades?.vitality | 0) || 0,
+              resolve: (parsed.upgrades?.resolve | 0) || 0,
+              occult: (parsed.upgrades?.occult | 0) || 0,
+            },
+            bestFloor: parsed.bestFloor | 0,
+            bestScore: parsed.bestScore | 0,
+          };
+        } catch {
+          return {
+            souls: 0,
+            upgrades: { vitality: 0, resolve: 0, occult: 0 },
+            bestFloor: 0,
+            bestScore: 0,
+          };
+        }
+      }
+
+      function saveMeta(meta) {
+        localStorage.setItem("hollowSaintsMeta", JSON.stringify(meta));
+      }
+
+      const meta = loadMeta();
+
+      const state = {
+        mode: "menu",
+        width: window.innerWidth,
+        height: window.innerHeight,
+        seed: (Date.now() ^ (Math.random() * 1e9)) >>> 0,
+        floor: 1,
+        map: [],
+        mapMaterials: [],
+        player: null,
+        enemies: [],
+        projectiles: [],
+        pickups: [],
+        particles: [],
+        stains: [],
+        stairs: null,
+        sigilsRequired: 3,
+        sigilsCollected: 0,
+        runScore: 0,
+        runShards: 0,
+        kills: 0,
+        message: "",
+        messageT: 0,
+        levelChoices: [],
+        elapsed: 0,
+        dangerPulse: 0,
+        hallucination: 0,
+        flashT: 0,
+        lastDt: FIXED_STEP,
+        cameraBob: 0,
+        winTime: 0,
+      };
+
+      const keys = new Set();
+      const pointer = { locked: false, mx: 0, my: 0 };
+
+      const audio = {
+        ctx: null,
+        master: null,
+        ambientGain: null,
+        heartbeatGain: null,
+        initialized: false,
+      };
+
+      function initAudio() {
+        if (audio.initialized) return;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        audio.ctx = new AC();
+        audio.master = audio.ctx.createGain();
+        audio.master.gain.value = 0.2;
+        audio.master.connect(audio.ctx.destination);
+
+        const drone = audio.ctx.createOscillator();
+        drone.type = "sawtooth";
+        drone.frequency.value = 42;
+        const droneFilter = audio.ctx.createBiquadFilter();
+        droneFilter.type = "lowpass";
+        droneFilter.frequency.value = 280;
+        const droneGain = audio.ctx.createGain();
+        droneGain.gain.value = 0.04;
+        drone.connect(droneFilter);
+        droneFilter.connect(droneGain);
+        droneGain.connect(audio.master);
+        drone.start();
+        audio.ambientGain = droneGain;
+
+        const heartbeat = audio.ctx.createOscillator();
+        heartbeat.type = "triangle";
+        heartbeat.frequency.value = 2.2;
+        const heartbeatAmp = audio.ctx.createGain();
+        heartbeatAmp.gain.value = 0;
+        heartbeat.connect(heartbeatAmp);
+        heartbeatAmp.connect(audio.master);
+        heartbeat.start();
+        audio.heartbeatGain = heartbeatAmp;
+
+        audio.initialized = true;
+      }
+
+      function sfx({ freq = 220, time = 0.08, type = "square", gain = 0.055, slide = 0.72 }) {
+        if (!audio.initialized || !audio.ctx) return;
+        const now = audio.ctx.currentTime;
+        const osc = audio.ctx.createOscillator();
+        const amp = audio.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(20, freq * slide), now + time);
+        amp.gain.setValueAtTime(gain, now);
+        amp.gain.exponentialRampToValueAtTime(0.001, now + time);
+        osc.connect(amp);
+        amp.connect(audio.master);
+        osc.start(now);
+        osc.stop(now + time + 0.01);
+      }
+
+      function heartbeatAmount(v) {
+        if (!audio.initialized || !audio.heartbeatGain || !audio.ctx) return;
+        const now = audio.ctx.currentTime;
+        audio.heartbeatGain.gain.cancelScheduledValues(now);
+        audio.heartbeatGain.gain.linearRampToValueAtTime(v, now + 0.12);
+      }
+
+      function noise2(x, y) {
+        const v = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+        return v - Math.floor(v);
+      }
+
+      function inBounds(x, y) {
+        return x >= 0 && y >= 0 && x < MAP_W && y < MAP_H;
+      }
+
+      function isWall(x, y) {
+        if (!inBounds(x, y)) return true;
+        return state.map[y][x] === 1;
+      }
+
+      function isSolidAt(px, py) {
+        return isWall(Math.floor(px), Math.floor(py));
+      }
+
+      function setMessage(text, time = 2.2) {
+        state.message = text;
+        state.messageT = time;
+      }
+
+      function buildFloor(seed, floor) {
+        const rand = createRng(seed);
+        state.map = Array.from({ length: MAP_H }, () => Array(MAP_W).fill(1));
+        state.mapMaterials = Array.from({ length: MAP_H }, () => Array(MAP_W).fill(0));
+
+        let cx = Math.floor(MAP_W / 2);
+        let cy = Math.floor(MAP_H / 2);
+        const digSteps = 620 + floor * 65;
+
+        for (let i = 0; i < digSteps; i++) {
+          state.map[cy][cx] = 0;
+          state.mapMaterials[cy][cx] = Math.floor(rand() * 4);
+          const dir = Math.floor(rand() * 4);
+          if (dir === 0) cx++;
+          else if (dir === 1) cx--;
+          else if (dir === 2) cy++;
+          else cy--;
+          cx = clamp(cx, 2, MAP_W - 3);
+          cy = clamp(cy, 2, MAP_H - 3);
+
+          if (rand() < 0.05) {
+            const rw = 1 + Math.floor(rand() * 3);
+            const rh = 1 + Math.floor(rand() * 3);
+            for (let y = cy - rh; y <= cy + rh; y++) {
+              for (let x = cx - rw; x <= cx + rw; x++) {
+                if (inBounds(x, y) && x > 0 && y > 0 && x < MAP_W - 1 && y < MAP_H - 1) {
+                  state.map[y][x] = 0;
+                  state.mapMaterials[y][x] = Math.floor(rand() * 4);
+                }
+              }
+            }
+          }
+        }
+
+        for (let y = 0; y < MAP_H; y++) {
+          state.map[y][0] = 1;
+          state.map[y][MAP_W - 1] = 1;
+        }
+        for (let x = 0; x < MAP_W; x++) {
+          state.map[0][x] = 1;
+          state.map[MAP_H - 1][x] = 1;
+        }
+
+        const opens = [];
+        for (let y = 1; y < MAP_H - 1; y++) {
+          for (let x = 1; x < MAP_W - 1; x++) {
+            if (state.map[y][x] === 0) opens.push({ x: x + 0.5, y: y + 0.5 });
+          }
+        }
+
+        const wallNeighbors = (cellX, cellY) => {
+          let count = 0;
+          for (let yy = -1; yy <= 1; yy++) {
+            for (let xx = -1; xx <= 1; xx++) {
+              if (!xx && !yy) continue;
+              if (isWall(cellX + xx, cellY + yy)) count++;
+            }
+          }
+          return count;
+        };
+
+        const startCandidates = opens.filter((c) => wallNeighbors(Math.floor(c.x), Math.floor(c.y)) >= 3);
+        const start = choose(startCandidates.length ? startCandidates : opens, rand);
+        const player = {
+          x: start.x,
+          y: start.y,
+          dir: rand() * Math.PI * 2,
+          hp: 100 + meta.upgrades.vitality * 18,
+          maxHp: 100 + meta.upgrades.vitality * 18,
+          sanity: 100 + meta.upgrades.resolve * 12,
+          maxSanity: 100 + meta.upgrades.resolve * 12,
+          mana: 60 + meta.upgrades.occult * 10,
+          maxMana: 60 + meta.upgrades.occult * 10,
+          lantern: 100,
+          level: 1,
+          xp: 0,
+          xpNeed: 40,
+          damage: 18,
+          speed: 2.45,
+          sprintMul: 1.45,
+          dashCd: 0,
+          attackCd: 0,
+          castCd: 0,
+          invuln: 0,
+          stamina: 100,
+          maxStamina: 100,
+          critChance: 0.08,
+          lifesteal: 0,
+          wardPower: 1,
+          perks: [],
+          inventory: {
+            medkit: 1,
+            tonic: 1,
+            flare: 1,
+          },
+        };
+        state.player = player;
+
+        let far = opens[0];
+        let farDist = -1;
+        for (const cell of opens) {
+          const d = distSq(cell.x, cell.y, player.x, player.y);
+          const nearbyWalls = wallNeighbors(Math.floor(cell.x), Math.floor(cell.y));
+          if (d > farDist && nearbyWalls >= 1) {
+            farDist = d;
+            far = cell;
+          }
+        }
+        state.stairs = { x: far.x, y: far.y, active: false, pulse: 0 };
+
+        const enemyCount = 6 + floor * 3;
+        state.enemies = [];
+        for (let i = 0; i < enemyCount; i++) {
+          const spot = choose(opens, rand);
+          if (distSq(spot.x, spot.y, player.x, player.y) < 18) continue;
+          const kindRoll = rand();
+          const kind = kindRoll < 0.55 ? "wretch" : kindRoll < 0.9 ? "lurker" : "seeker";
+          const e = {
+            x: spot.x,
+            y: spot.y,
+            dir: rand() * Math.PI * 2,
+            hp: (kind === "wretch" ? 28 : kind === "lurker" ? 42 : 35) + floor * 12,
+            maxHp: (kind === "wretch" ? 28 : kind === "lurker" ? 42 : 35) + floor * 12,
+            speed: (kind === "wretch" ? 1.3 : kind === "lurker" ? 0.9 : 1.6) + floor * 0.06,
+            damage: (kind === "wretch" ? 8 : kind === "lurker" ? 14 : 10) + floor * 2,
+            kind,
+            atkCd: rand() * 0.8,
+            aggro: 0,
+            fear: 0,
+            wanderT: 0,
+            wanderDir: rand() * Math.PI * 2,
+            hitFlash: 0,
+          };
+          state.enemies.push(e);
+        }
+
+        if (floor === MAX_FLOOR) {
+          const bossSpot = choose(opens, rand);
+          state.enemies.push({
+            x: bossSpot.x,
+            y: bossSpot.y,
+            dir: 0,
+            hp: 520,
+            maxHp: 520,
+            speed: 1.2,
+            damage: 26,
+            kind: "saint",
+            atkCd: 1,
+            aggro: 1,
+            fear: 0,
+            wanderT: 0,
+            wanderDir: 0,
+            hitFlash: 0,
+          });
+          setMessage("The Hollow Saint is hunting you.", 3.8);
+        }
+
+        state.pickups = [];
+        state.sigilsCollected = 0;
+        state.sigilsRequired = floor === MAX_FLOOR ? 4 : 3;
+
+        for (let i = 0; i < state.sigilsRequired; i++) {
+          const spot = choose(opens, rand);
+          if (distSq(spot.x, spot.y, player.x, player.y) < 20) continue;
+          state.pickups.push({ type: "sigil", x: spot.x, y: spot.y, t: rand() * 10 });
+        }
+
+        const miscCount = 11 + floor * 2;
+        const miscTypes = ["medkit", "tonic", "flare", "oil", "shard"];
+        for (let i = 0; i < miscCount; i++) {
+          const spot = choose(opens, rand);
+          if (distSq(spot.x, spot.y, player.x, player.y) < 8) continue;
+          state.pickups.push({ type: choose(miscTypes, rand), x: spot.x, y: spot.y, t: rand() * 8 });
+        }
+
+        state.projectiles = [];
+        state.particles = [];
+        state.stains = [];
+      }
+
+      function startRun() {
+        state.seed = (Date.now() ^ ((Math.random() * 1e9) | 0)) >>> 0;
+        state.floor = 1;
+        state.runScore = 0;
+        state.runShards = 0;
+        state.kills = 0;
+        state.elapsed = 0;
+        state.winTime = 0;
+        buildFloor(state.seed, state.floor);
+        state.mode = "playing";
+        state.flashT = 0;
+        updateOverlay();
+      }
+
+      function descendFloor() {
+        if (state.floor >= MAX_FLOOR) {
+          state.mode = "victory";
+          state.winTime = 0;
+          const bounty = 18 + state.runShards + state.floor * 7 + Math.floor(state.runScore / 220);
+          meta.souls += bounty;
+          meta.bestFloor = Math.max(meta.bestFloor, state.floor);
+          meta.bestScore = Math.max(meta.bestScore, state.runScore);
+          saveMeta(meta);
+          sfx({ freq: 580, type: "triangle", gain: 0.08, time: 0.24, slide: 1.3 });
+          updateOverlay();
+          return;
+        }
+        state.floor++;
+        const carry = state.player;
+        const oldPerks = carry.perks.slice();
+        const oldLevel = carry.level;
+        const oldDamage = carry.damage;
+        buildFloor(state.seed + state.floor * 9973, state.floor);
+        state.player.level = oldLevel;
+        state.player.damage = oldDamage;
+        state.player.perks = oldPerks;
+        state.player.maxHp += 10;
+        state.player.hp = clamp(state.player.hp + 28, 1, state.player.maxHp);
+        state.player.maxSanity += 4;
+        state.player.sanity = clamp(state.player.sanity + 16, 0, state.player.maxSanity);
+        state.player.maxMana += 3;
+        state.player.mana = clamp(state.player.mana + 15, 0, state.player.maxMana);
+        state.player.xpNeed = Math.round(40 + Math.pow(state.player.level, 1.24) * 28);
+        state.runScore += 420;
+        setMessage(`You descend into floor ${state.floor}.`, 2.6);
+      }
+
+      function awardXp(xp) {
+        const p = state.player;
+        p.xp += xp;
+        while (p.xp >= p.xpNeed) {
+          p.xp -= p.xpNeed;
+          p.level++;
+          p.xpNeed = Math.round(40 + Math.pow(p.level, 1.25) * 28);
+          openLevelUp();
+        }
+      }
+
+      const perks = [
+        {
+          name: "Ritual Vigor",
+          desc: "+26 Max HP and heal 26.",
+          apply: (p) => {
+            p.maxHp += 26;
+            p.hp = clamp(p.hp + 26, 0, p.maxHp);
+          },
+        },
+        {
+          name: "Warding Lessons",
+          desc: "Ward pulse +30% damage.",
+          apply: (p) => {
+            p.wardPower *= 1.3;
+          },
+        },
+        {
+          name: "Huntsman Step",
+          desc: "+14% movement speed.",
+          apply: (p) => {
+            p.speed *= 1.14;
+          },
+        },
+        {
+          name: "Serrated Rite",
+          desc: "+8 melee damage.",
+          apply: (p) => {
+            p.damage += 8;
+          },
+        },
+        {
+          name: "Black Lantern",
+          desc: "+26 lantern fuel and slower drain.",
+          apply: (p) => {
+            p.lantern = clamp(p.lantern + 26, 0, 130);
+            p.lanternDrainMul = (p.lanternDrainMul || 1) * 0.88;
+          },
+        },
+        {
+          name: "Iron Resolve",
+          desc: "+24 max sanity, recover 20 sanity.",
+          apply: (p) => {
+            p.maxSanity += 24;
+            p.sanity = clamp(p.sanity + 20, 0, p.maxSanity);
+          },
+        },
+        {
+          name: "Grave Leech",
+          desc: "Gain 6% lifesteal on melee.",
+          apply: (p) => {
+            p.lifesteal += 0.06;
+          },
+        },
+        {
+          name: "Blood Oracle",
+          desc: "+9% critical chance.",
+          apply: (p) => {
+            p.critChance += 0.09;
+          },
+        },
+      ];
+
+      function openLevelUp() {
+        if (state.mode === "dead" || state.mode === "victory") return;
+        const rand = createRng((state.seed + state.elapsed * 997 + state.player.level * 77) | 0);
+        const pool = perks.slice();
+        state.levelChoices = [];
+        for (let i = 0; i < 3 && pool.length; i++) {
+          const idx = Math.floor(rand() * pool.length);
+          state.levelChoices.push(pool[idx]);
+          pool.splice(idx, 1);
+        }
+        state.mode = "levelup";
+        sfx({ freq: 380, type: "sine", gain: 0.09, time: 0.2, slide: 1.1 });
+        updateOverlay();
+      }
+
+      function choosePerk(index) {
+        const choice = state.levelChoices[index];
+        if (!choice) return;
+        choice.apply(state.player);
+        state.player.perks.push(choice.name);
+        state.levelChoices = [];
+        state.mode = "playing";
+        setMessage(`Perk gained: ${choice.name}`, 2.2);
+        updateOverlay();
+      }
+
+      function spendSoul(upgrade) {
+        const level = meta.upgrades[upgrade] || 0;
+        const cost = 4 + level * 3;
+        if (meta.souls < cost) {
+          setMessage("Not enough Echo Souls.", 1.7);
+          return;
+        }
+        if (level >= 6) {
+          setMessage("Upgrade already mastered.", 1.7);
+          return;
+        }
+        meta.souls -= cost;
+        meta.upgrades[upgrade] = level + 1;
+        saveMeta(meta);
+        updateOverlay();
+      }
+
+      function hasLineOfSight(ax, ay, bx, by) {
+        const dx = bx - ax;
+        const dy = by - ay;
+        const dist = Math.hypot(dx, dy);
+        const steps = Math.ceil(dist / 0.18);
+        for (let i = 1; i < steps; i++) {
+          const t = i / steps;
+          const x = ax + dx * t;
+          const y = ay + dy * t;
+          if (isSolidAt(x, y)) return false;
+        }
+        return true;
+      }
+
+      function tryMove(entity, nx, ny, radius = 0.19) {
+        const checks = [
+          [nx - radius, ny - radius],
+          [nx + radius, ny - radius],
+          [nx - radius, ny + radius],
+          [nx + radius, ny + radius],
+        ];
+        for (const [x, y] of checks) {
+          if (isSolidAt(x, y)) return false;
+        }
+        entity.x = nx;
+        entity.y = ny;
+        return true;
+      }
+
+      function dealDamageToEnemy(enemy, dmg, source = "melee") {
+        const crit = Math.random() < state.player.critChance;
+        let final = dmg;
+        if (crit) final *= 1.72;
+        enemy.hp -= final;
+        enemy.hitFlash = 0.2;
+        state.flashT = 0.04;
+        sfx({ freq: crit ? 510 : 330, gain: 0.06, time: 0.07, slide: 0.55 });
+        state.particles.push({ x: enemy.x, y: enemy.y, z: 0.5, t: 0.36, color: crit ? "#ffd178" : "#be2f2f" });
+
+        if (state.player.lifesteal > 0 && source === "melee") {
+          const heal = final * state.player.lifesteal;
+          state.player.hp = clamp(state.player.hp + heal, 0, state.player.maxHp);
+        }
+
+        if (enemy.hp <= 0) {
+          const xp = enemy.kind === "saint" ? 240 : enemy.kind === "lurker" ? 38 : enemy.kind === "seeker" ? 30 : 24;
+          awardXp(xp + state.floor * 3);
+          state.kills++;
+          state.runScore += 80 + state.floor * 12;
+          if (Math.random() < 0.23) {
+            state.pickups.push({ type: "shard", x: enemy.x, y: enemy.y, t: 0 });
+          }
+          state.stains.push({ x: enemy.x, y: enemy.y, t: 20 });
+          const idx = state.enemies.indexOf(enemy);
+          if (idx >= 0) state.enemies.splice(idx, 1);
+          if (enemy.kind === "saint") {
+            setMessage("The Hollow Saint has fallen.", 3.2);
+          }
+        }
+      }
+
+      function playerAttack() {
+        if (state.mode !== "playing") return;
+        const p = state.player;
+        if (p.attackCd > 0) return;
+        p.attackCd = 0.33;
+        sfx({ freq: 220, gain: 0.05, time: 0.08, slide: 0.4 });
+
+        let target = null;
+        let best = Infinity;
+        for (const enemy of state.enemies) {
+          const dx = enemy.x - p.x;
+          const dy = enemy.y - p.y;
+          const d = Math.hypot(dx, dy);
+          if (d > 1.8) continue;
+          const angle = Math.atan2(dy, dx);
+          const diff = Math.abs(normalizeAngle(angle - p.dir));
+          if (diff > 0.62) continue;
+          if (!hasLineOfSight(p.x, p.y, enemy.x, enemy.y)) continue;
+          if (d < best) {
+            best = d;
+            target = enemy;
+          }
+        }
+        if (target) {
+          dealDamageToEnemy(target, p.damage, "melee");
+        }
+      }
+
+      function castWard() {
+        if (state.mode !== "playing") return;
+        const p = state.player;
+        if (p.castCd > 0 || p.mana < 20) return;
+        p.mana -= 20;
+        p.castCd = 1.8;
+        sfx({ freq: 470, gain: 0.09, time: 0.2, type: "triangle", slide: 1.3 });
+        state.flashT = 0.06;
+        for (const enemy of state.enemies.slice()) {
+          const d = Math.hypot(enemy.x - p.x, enemy.y - p.y);
+          if (d > 3.5) continue;
+          enemy.fear = 2.4;
+          dealDamageToEnemy(enemy, (24 + state.floor * 2) * p.wardPower, "ward");
+        }
+      }
+
+      function useItem(slot) {
+        const p = state.player;
+        if (state.mode !== "playing") return;
+        if (slot === "medkit" && p.inventory.medkit > 0) {
+          p.inventory.medkit--;
+          p.hp = clamp(p.hp + 48, 0, p.maxHp);
+          sfx({ freq: 250, gain: 0.07, time: 0.16, type: "sine", slide: 1.2 });
+          setMessage("Used Medkit (+HP)", 1.4);
+        }
+        if (slot === "tonic" && p.inventory.tonic > 0) {
+          p.inventory.tonic--;
+          p.sanity = clamp(p.sanity + 42, 0, p.maxSanity);
+          p.mana = clamp(p.mana + 18, 0, p.maxMana);
+          sfx({ freq: 330, gain: 0.07, time: 0.12, type: "triangle", slide: 1.4 });
+          setMessage("Drank Tonic (+Sanity/Mana)", 1.4);
+        }
+        if (slot === "flare" && p.inventory.flare > 0) {
+          p.inventory.flare--;
+          p.lantern = clamp(p.lantern + 44, 0, 130);
+          state.flashT = 0.12;
+          for (const enemy of state.enemies) enemy.fear = Math.max(enemy.fear, 1.4);
+          sfx({ freq: 540, gain: 0.08, time: 0.17, type: "sawtooth", slide: 0.8 });
+          setMessage("Flare ignited. The dark recoils.", 1.8);
+        }
+      }
+
+      function pickup(type) {
+        const p = state.player;
+        if (type === "sigil") {
+          state.sigilsCollected++;
+          state.runScore += 210;
+          sfx({ freq: 610, gain: 0.09, time: 0.2, type: "triangle", slide: 1.5 });
+          setMessage(`Sigil secured ${state.sigilsCollected}/${state.sigilsRequired}`, 2);
+          if (state.sigilsCollected >= state.sigilsRequired) {
+            state.stairs.active = true;
+            setMessage("Ritual path opened. Reach the stairs.", 2.6);
+          }
+          return;
+        }
+        if (type === "medkit") {
+          p.inventory.medkit++;
+          setMessage("Medkit acquired.", 1.4);
+        } else if (type === "tonic") {
+          p.inventory.tonic++;
+          setMessage("Calming tonic acquired.", 1.4);
+        } else if (type === "flare") {
+          p.inventory.flare++;
+          setMessage("Flare acquired.", 1.4);
+        } else if (type === "oil") {
+          p.lantern = clamp(p.lantern + 28, 0, 130);
+          setMessage("Lantern oil recovered.", 1.4);
+        } else if (type === "shard") {
+          state.runShards += 1;
+          state.runScore += 40;
+          setMessage("Echo shard claimed.", 1.1);
+        }
+      }
+
+      function damagePlayer(amount, sanityHit = 0) {
+        const p = state.player;
+        if (p.invuln > 0 || state.mode !== "playing") return;
+        p.hp -= amount;
+        p.sanity = clamp(p.sanity - sanityHit, 0, p.maxSanity);
+        p.invuln = 0.4;
+        state.flashT = 0.07;
+        sfx({ freq: 170, gain: 0.08, time: 0.1, type: "sawtooth", slide: 0.5 });
+        if (p.hp <= 0) {
+          triggerDeath();
+        }
+      }
+
+      function triggerDeath() {
+        state.mode = "dead";
+        pointer.locked = false;
+        document.exitPointerLock?.();
+        const earned = 8 + state.runShards + Math.floor(state.runScore / 180) + state.floor * 4;
+        meta.souls += earned;
+        meta.bestFloor = Math.max(meta.bestFloor, state.floor);
+        meta.bestScore = Math.max(meta.bestScore, state.runScore);
+        saveMeta(meta);
+        updateOverlay();
+      }
+
+      function updatePlayer(dt) {
+        const p = state.player;
+        p.attackCd = Math.max(0, p.attackCd - dt);
+        p.castCd = Math.max(0, p.castCd - dt);
+        p.invuln = Math.max(0, p.invuln - dt);
+        p.dashCd = Math.max(0, p.dashCd - dt);
+
+        const forward = (keys.has("KeyW") ? 1 : 0) - (keys.has("KeyS") ? 1 : 0);
+        const strafe = (keys.has("KeyD") ? 1 : 0) - (keys.has("KeyA") ? 1 : 0);
+        const turn = (keys.has("ArrowRight") ? 1 : 0) - (keys.has("ArrowLeft") ? 1 : 0);
+
+        p.dir += turn * dt * 2.4;
+
+        let moveSpeed = p.speed;
+        const sprinting = keys.has("ShiftLeft") || keys.has("ShiftRight");
+        if (sprinting && p.stamina > 0.4 && (forward || strafe)) {
+          moveSpeed *= p.sprintMul;
+          p.stamina = Math.max(0, p.stamina - dt * 20);
+        } else {
+          p.stamina = Math.min(p.maxStamina, p.stamina + dt * 14);
+        }
+
+        const moveX = Math.cos(p.dir) * forward + Math.cos(p.dir + Math.PI / 2) * strafe;
+        const moveY = Math.sin(p.dir) * forward + Math.sin(p.dir + Math.PI / 2) * strafe;
+
+        if (moveX || moveY) {
+          const mag = Math.hypot(moveX, moveY);
+          const vx = (moveX / mag) * moveSpeed * dt;
+          const vy = (moveY / mag) * moveSpeed * dt;
+          if (!tryMove(p, p.x + vx, p.y, 0.2)) tryMove(p, p.x, p.y + vy, 0.2);
+          else tryMove(p, p.x, p.y + vy, 0.2);
+          state.cameraBob += dt * 8.2;
+        }
+
+        p.mana = Math.min(p.maxMana, p.mana + dt * 7);
+        const lanternDrain = (p.lanternDrainMul || 1) * (0.68 + state.floor * 0.08);
+        p.lantern = Math.max(0, p.lantern - dt * lanternDrain);
+
+        const darkness = 1 - clamp(p.lantern / 100, 0, 1);
+        let threat = 0;
+        for (const e of state.enemies) {
+          const d = Math.hypot(e.x - p.x, e.y - p.y);
+          if (d < 7) threat += (7 - d) / 7;
+        }
+        const sanityDrain = Math.max(0, darkness * 2.3 + threat * 0.8 - 0.4);
+        p.sanity = Math.max(0, p.sanity - dt * sanityDrain);
+
+        if (p.sanity <= 0) {
+          damagePlayer(5 * dt, 0);
+        }
+        state.hallucination = clamp((1 - p.sanity / p.maxSanity) * 1.3, 0, 1);
+
+        state.stairs.pulse += dt * 2.4;
+
+        for (let i = state.pickups.length - 1; i >= 0; i--) {
+          const it = state.pickups[i];
+          it.t += dt;
+          if (Math.hypot(it.x - p.x, it.y - p.y) < 0.6) {
+            pickup(it.type);
+            state.pickups.splice(i, 1);
+          }
+        }
+
+        if (state.stairs.active && Math.hypot(state.stairs.x - p.x, state.stairs.y - p.y) < 0.85) {
+          descendFloor();
+        }
+      }
+
+      function updateEnemies(dt) {
+        const p = state.player;
+        for (const e of state.enemies) {
+          e.atkCd = Math.max(0, e.atkCd - dt);
+          e.fear = Math.max(0, e.fear - dt);
+          e.hitFlash = Math.max(0, e.hitFlash - dt);
+          const dx = p.x - e.x;
+          const dy = p.y - e.y;
+          const d = Math.hypot(dx, dy);
+          const los = d < 11 && hasLineOfSight(e.x, e.y, p.x, p.y);
+          if (los) e.aggro = Math.min(3, e.aggro + dt * 2.8);
+          else e.aggro = Math.max(0, e.aggro - dt * 0.8);
+
+          let targetDir = e.wanderDir;
+          let speedMul = 0.5;
+
+          if (e.fear > 0) {
+            targetDir = Math.atan2(-dy, -dx);
+            speedMul = 1.2;
+          } else if (e.aggro > 0.4) {
+            targetDir = Math.atan2(dy, dx);
+            speedMul = e.kind === "saint" ? 1.15 : 1;
+          } else {
+            e.wanderT -= dt;
+            if (e.wanderT <= 0) {
+              e.wanderT = 1 + Math.random() * 2.5;
+              e.wanderDir += (Math.random() - 0.5) * 1.8;
+            }
+            targetDir = e.wanderDir;
+            speedMul = 0.4;
+          }
+
+          const speed = e.speed * speedMul;
+          const nx = e.x + Math.cos(targetDir) * speed * dt;
+          const ny = e.y + Math.sin(targetDir) * speed * dt;
+          if (!tryMove(e, nx, ny, e.kind === "saint" ? 0.34 : 0.2)) {
+            e.wanderDir += (Math.random() - 0.5) * 1.3;
+          }
+
+          if (d < (e.kind === "saint" ? 1.25 : 0.92) && e.atkCd <= 0 && e.fear <= 0) {
+            e.atkCd = e.kind === "saint" ? 0.8 : 1.1;
+            damagePlayer(e.damage, 10 + (e.kind === "lurker" ? 6 : 0));
+          }
+
+          if (e.kind === "seeker" && e.aggro > 0.8 && e.atkCd <= 0 && d > 1.8 && d < 7.5 && los) {
+            e.atkCd = 1.6;
+            state.projectiles.push({
+              x: e.x,
+              y: e.y,
+              vx: (dx / d) * 4.5,
+              vy: (dy / d) * 4.5,
+              ttl: 2.4,
+              dmg: e.damage * 0.85,
+            });
+            sfx({ freq: 260, gain: 0.05, time: 0.05, type: "triangle", slide: 1.4 });
+          }
+        }
+      }
+
+      function updateProjectiles(dt) {
+        for (let i = state.projectiles.length - 1; i >= 0; i--) {
+          const pr = state.projectiles[i];
+          pr.ttl -= dt;
+          if (pr.ttl <= 0) {
+            state.projectiles.splice(i, 1);
+            continue;
+          }
+          const nx = pr.x + pr.vx * dt;
+          const ny = pr.y + pr.vy * dt;
+          if (isSolidAt(nx, ny)) {
+            state.projectiles.splice(i, 1);
+            continue;
+          }
+          pr.x = nx;
+          pr.y = ny;
+          if (Math.hypot(pr.x - state.player.x, pr.y - state.player.y) < 0.32) {
+            damagePlayer(pr.dmg, 8);
+            state.projectiles.splice(i, 1);
+          }
+        }
+      }
+
+      function updateParticles(dt) {
+        for (let i = state.particles.length - 1; i >= 0; i--) {
+          const p = state.particles[i];
+          p.t -= dt;
+          p.z += dt * 0.15;
+          if (p.t <= 0) state.particles.splice(i, 1);
+        }
+        for (let i = state.stains.length - 1; i >= 0; i--) {
+          state.stains[i].t -= dt;
+          if (state.stains[i].t <= 0) state.stains.splice(i, 1);
+        }
+      }
+
+      function update(dt) {
+        state.lastDt = dt;
+        state.elapsed += dt;
+
+        if (state.messageT > 0) state.messageT = Math.max(0, state.messageT - dt);
+        state.flashT = Math.max(0, state.flashT - dt);
+        state.dangerPulse += dt * 2.1;
+
+        if (state.mode === "victory") {
+          state.winTime += dt;
+        }
+
+        if (state.mode !== "playing") {
+          heartbeatAmount(0);
+          return;
+        }
+
+        updatePlayer(dt);
+        updateEnemies(dt);
+        updateProjectiles(dt);
+        updateParticles(dt);
+
+        const healthRatio = state.player.hp / state.player.maxHp;
+        heartbeatAmount(Math.max(0, 0.17 - healthRatio * 0.12));
+
+        if (state.player.hp <= 0) {
+          triggerDeath();
+        }
+      }
+
+      function castRay(px, py, angle) {
+        const step = 0.045;
+        let d = 0;
+        while (d < MAX_DEPTH) {
+          const x = px + Math.cos(angle) * d;
+          const y = py + Math.sin(angle) * d;
+          if (isSolidAt(x, y)) {
+            return { d, x, y, material: state.mapMaterials[Math.floor(y)]?.[Math.floor(x)] || 0 };
+          }
+          d += step;
+        }
+        return { d: MAX_DEPTH, x: px + Math.cos(angle) * MAX_DEPTH, y: py + Math.sin(angle) * MAX_DEPTH, material: 0 };
+      }
+
+      function drawBackground() {
+        const w = state.width;
+        const h = state.height;
+        const gTop = ctx.createLinearGradient(0, 0, 0, h * 0.55);
+        const darkMul = 1 - clamp(state.player.lantern / 115, 0.18, 0.95);
+        gTop.addColorStop(0, `rgb(${Math.floor(17 + darkMul * 16)},${Math.floor(24 + darkMul * 18)},${Math.floor(36 + darkMul * 18)})`);
+        gTop.addColorStop(1, `rgb(${Math.floor(18 + darkMul * 14)},${Math.floor(13 + darkMul * 8)},${Math.floor(17 + darkMul * 9)})`);
+        ctx.fillStyle = gTop;
+        ctx.fillRect(0, 0, w, h * 0.55);
+
+        const gBottom = ctx.createLinearGradient(0, h * 0.52, 0, h);
+        gBottom.addColorStop(0, "#201820");
+        gBottom.addColorStop(1, "#08090d");
+        ctx.fillStyle = gBottom;
+        ctx.fillRect(0, h * 0.52, w, h * 0.48);
+
+        const mist = clamp(0.05 + state.hallucination * 0.12, 0.03, 0.2);
+        for (let i = 0; i < 14; i++) {
+          const x = (noise2(i * 11.2, state.elapsed * 0.16) * (w + 400)) - 200;
+          const y = (noise2(i * 15.5, state.elapsed * 0.11 + 3.8) * (h + 200)) - 100;
+          const r = 90 + noise2(i * 6.7, 9.1 + state.elapsed * 0.12) * 170;
+          const grad = ctx.createRadialGradient(x, y, 2, x, y, r);
+          grad.addColorStop(0, `rgba(185,198,209,${mist * 0.25})`);
+          grad.addColorStop(1, "rgba(185,198,209,0)");
+          ctx.fillStyle = grad;
+          ctx.fillRect(x - r, y - r, r * 2, r * 2);
+        }
+      }
+
+      function drawWorld() {
+        const w = state.width;
+        const h = state.height;
+        const p = state.player;
+        const cols = Math.max(260, Math.floor(w / 1.8));
+        const colW = w / cols;
+        const depthBuffer = new Array(cols);
+        const horizon = h * 0.52;
+
+        // Subtle perspective cues so long corridors keep depth readability.
+        ctx.save();
+        ctx.globalAlpha = 0.11;
+        ctx.strokeStyle = "#79808d";
+        for (let i = 1; i <= 13; i++) {
+          const t = i / 13;
+          const y = horizon + (1 - Math.pow(1 - t, 2)) * (h - horizon);
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 0.08;
+        for (let i = -8; i <= 8; i++) {
+          const tx = w * 0.5 + (i / 8) * w * 0.9;
+          ctx.beginPath();
+          ctx.moveTo(w * 0.5, horizon + 2);
+          ctx.lineTo(tx, h);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        for (let col = 0; col < cols; col++) {
+          const t = col / (cols - 1);
+          const rayAngle = p.dir - FOV / 2 + t * FOV;
+          const hit = castRay(p.x, p.y, rayAngle);
+          const dist = hit.d * Math.cos(rayAngle - p.dir);
+          depthBuffer[col] = dist;
+          const wallH = clamp((h / (dist + 0.001)) * 0.9, 0, h * 1.6);
+          const y = h * 0.5 - wallH * 0.5;
+          const m = hit.material;
+          const basePalette = [
+            [66, 69, 82],
+            [76, 63, 58],
+            [48, 72, 74],
+            [75, 62, 88],
+          ];
+          const rgb = basePalette[m % basePalette.length];
+          const light = clamp(1.22 - dist / (7 + p.lantern * 0.07), 0.08, 1.0);
+          const fx = noise2(hit.x * 1.6, hit.y * 1.6) * 0.16 + 0.92;
+          const rr = Math.floor(rgb[0] * light * fx);
+          const gg = Math.floor(rgb[1] * light * fx);
+          const bb = Math.floor(rgb[2] * light * fx);
+          ctx.fillStyle = `rgb(${rr},${gg},${bb})`;
+          ctx.fillRect(col * colW, y, colW + 1, wallH);
+
+          const edge = clamp(1 - Math.abs((hit.x % 1) - 0.5) * 2 + 1 - Math.abs((hit.y % 1) - 0.5) * 2, 0, 1);
+          ctx.fillStyle = `rgba(255, 245, 215, ${edge * 0.03})`;
+          ctx.fillRect(col * colW, y, colW + 1, wallH);
+        }
+
+        const sprites = [];
+        for (const e of state.enemies) {
+          sprites.push({
+            kind: "enemy",
+            x: e.x,
+            y: e.y,
+            dist: Math.hypot(e.x - p.x, e.y - p.y),
+            ref: e,
+          });
+        }
+        for (const it of state.pickups) {
+          sprites.push({ kind: "pickup", x: it.x, y: it.y, dist: Math.hypot(it.x - p.x, it.y - p.y), ref: it });
+        }
+        for (const pr of state.projectiles) {
+          sprites.push({ kind: "projectile", x: pr.x, y: pr.y, dist: Math.hypot(pr.x - p.x, pr.y - p.y), ref: pr });
+        }
+
+        sprites.push({ kind: "stairs", x: state.stairs.x, y: state.stairs.y, dist: Math.hypot(state.stairs.x - p.x, state.stairs.y - p.y), ref: state.stairs });
+
+        sprites.sort((a, b) => b.dist - a.dist);
+
+        for (const s of sprites) {
+          const dx = s.x - p.x;
+          const dy = s.y - p.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < 0.1 || dist > MAX_DEPTH) continue;
+          const ang = normalizeAngle(Math.atan2(dy, dx) - p.dir);
+          if (Math.abs(ang) > FOV * 0.62) continue;
+
+          const screenX = (0.5 + ang / FOV) * w;
+          const size = clamp((h / dist) * (s.kind === "pickup" ? 0.42 : s.kind === "projectile" ? 0.22 : s.kind === "stairs" ? 0.58 : 0.72), 6, h * 0.95);
+          const sy = h * 0.5 - size * 0.42;
+
+          const colIdx = Math.floor((screenX / w) * cols);
+          if (colIdx < 0 || colIdx >= cols) continue;
+          if (dist > depthBuffer[colIdx] + 0.25) continue;
+
+          if (s.kind === "enemy") {
+            const e = s.ref;
+            let color = "#ad2d2d";
+            if (e.kind === "lurker") color = "#9b784a";
+            if (e.kind === "seeker") color = "#4f8eb4";
+            if (e.kind === "saint") color = "#e6d89f";
+            const glow = clamp(1.2 - dist / 7, 0.1, 1);
+            ctx.fillStyle = `rgba(0,0,0,${0.2 + 0.2 * glow})`;
+            ctx.fillRect(screenX - size * 0.3, sy + size * 0.75, size * 0.6, size * 0.2);
+            ctx.fillStyle = color;
+            ctx.globalAlpha = 0.75 + e.hitFlash * 0.8;
+            ctx.fillRect(screenX - size * 0.27, sy, size * 0.54, size * 0.8);
+            ctx.fillStyle = "#f1dfca";
+            ctx.fillRect(screenX - size * 0.08, sy + size * 0.2, size * 0.06, size * 0.06);
+            ctx.fillRect(screenX + size * 0.03, sy + size * 0.2, size * 0.06, size * 0.06);
+            if (e.kind === "saint") {
+              ctx.strokeStyle = "rgba(255,228,168,0.66)";
+              ctx.lineWidth = Math.max(1, size * 0.02);
+              ctx.beginPath();
+              ctx.arc(screenX, sy - size * 0.1, size * 0.24, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+          } else if (s.kind === "pickup") {
+            const it = s.ref;
+            const bob = Math.sin(state.elapsed * 3.5 + it.t) * size * 0.09;
+            const cy = sy + bob + size * 0.36;
+            if (it.type === "sigil") {
+              ctx.fillStyle = "#e6bd68";
+              ctx.beginPath();
+              ctx.moveTo(screenX, cy - size * 0.32);
+              ctx.lineTo(screenX + size * 0.22, cy);
+              ctx.lineTo(screenX, cy + size * 0.32);
+              ctx.lineTo(screenX - size * 0.22, cy);
+              ctx.closePath();
+              ctx.fill();
+            } else {
+              const colors = {
+                medkit: "#dd574b",
+                tonic: "#7cb2d6",
+                flare: "#f3a74a",
+                oil: "#ddd092",
+                shard: "#9be2df",
+              };
+              ctx.fillStyle = colors[it.type] || "#fff";
+              ctx.fillRect(screenX - size * 0.17, cy - size * 0.17, size * 0.34, size * 0.34);
+            }
+          } else if (s.kind === "projectile") {
+            ctx.fillStyle = "#8bbcff";
+            ctx.beginPath();
+            ctx.arc(screenX, sy + size * 0.25, size * 0.15, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (s.kind === "stairs" && state.stairs.active) {
+            const pulse = (Math.sin(state.stairs.pulse * 4) + 1) * 0.5;
+            ctx.fillStyle = `rgba(223, 210, 164, ${0.4 + pulse * 0.4})`;
+            ctx.fillRect(screenX - size * 0.25, sy + size * 0.1, size * 0.5, size * 0.7);
+            ctx.strokeStyle = "rgba(255,244,196,0.9)";
+            ctx.lineWidth = Math.max(1, size * 0.03);
+            ctx.strokeRect(screenX - size * 0.25, sy + size * 0.1, size * 0.5, size * 0.7);
+          }
+        }
+
+        const v = clamp(state.hallucination, 0, 1);
+        if (v > 0.1) {
+          ctx.globalAlpha = v * 0.35;
+          for (let i = 0; i < 8; i++) {
+            const jitterX = noise2(i, state.elapsed * 2) * w;
+            const jitterY = noise2(i + 77, state.elapsed * 2) * h;
+            ctx.fillStyle = i % 2 ? "#442534" : "#29404e";
+            ctx.fillRect(jitterX, jitterY, 2 + v * 4, 2 + v * 4);
+          }
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      function drawHud() {
+        const p = state.player;
+        const w = state.width;
+        const h = state.height;
+
+        const boxW = Math.min(460, w - 24);
+        const x = 12;
+        const y = 12;
+        ctx.fillStyle = "rgba(7,9,13,0.56)";
+        ctx.fillRect(x, y, boxW, 112);
+        ctx.strokeStyle = "rgba(205, 183, 132, 0.45)";
+        ctx.strokeRect(x + 0.5, y + 0.5, boxW - 1, 111);
+
+        function bar(by, ratio, color, label, valueText) {
+          const bw = boxW - 124;
+          ctx.fillStyle = "rgba(255,255,255,0.08)";
+          ctx.fillRect(x + 102, by, bw, 14);
+          ctx.fillStyle = color;
+          ctx.fillRect(x + 102, by, bw * clamp(ratio, 0, 1), 14);
+          ctx.fillStyle = "#e5e0ca";
+          ctx.font = "12px Palatino Linotype, serif";
+          ctx.fillText(label, x + 10, by + 11);
+          ctx.fillText(valueText, x + 108 + bw, by + 11);
+        }
+
+        bar(y + 16, p.hp / p.maxHp, "#cc4338", "VIGOR", `${Math.ceil(p.hp)}/${Math.ceil(p.maxHp)}`);
+        bar(y + 36, p.sanity / p.maxSanity, "#58a3c6", "SANITY", `${Math.ceil(p.sanity)}/${Math.ceil(p.maxSanity)}`);
+        bar(y + 56, p.mana / p.maxMana, "#8a7dcf", "MANA", `${Math.ceil(p.mana)}/${Math.ceil(p.maxMana)}`);
+        bar(y + 76, p.lantern / 100, "#d2b169", "LANTERN", `${Math.ceil(p.lantern)}%`);
+
+        ctx.fillStyle = "#e8dfc0";
+        ctx.font = "14px Palatino Linotype, serif";
+        ctx.fillText(`Floor ${state.floor}/${MAX_FLOOR}`, x + 10, y + 102);
+        ctx.fillText(`Sigils ${state.sigilsCollected}/${state.sigilsRequired}`, x + 130, y + 102);
+        ctx.fillText(`Level ${p.level}`, x + 250, y + 102);
+        ctx.fillText(`Score ${state.runScore}`, x + 330, y + 102);
+
+        const invY = h - 34;
+        ctx.fillStyle = "rgba(7,8,12,0.6)";
+        ctx.fillRect(12, invY - 18, 280, 26);
+        ctx.fillStyle = "#d8cfb2";
+        ctx.fillText(`1 Medkit:${p.inventory.medkit}   2 Tonic:${p.inventory.tonic}   3 Flare:${p.inventory.flare}`, 18, invY);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.35)";
+        const cx = w * 0.5;
+        const cy = h * 0.5;
+        const cross = 7 + Math.sin(state.elapsed * 8) * 0.8;
+        ctx.beginPath();
+        ctx.moveTo(cx - cross, cy);
+        ctx.lineTo(cx + cross, cy);
+        ctx.moveTo(cx, cy - cross);
+        ctx.lineTo(cx, cy + cross);
+        ctx.stroke();
+
+        if (state.messageT > 0) {
+          const alpha = clamp(state.messageT / 0.8, 0, 1);
+          ctx.fillStyle = `rgba(8,10,14,${0.45 * alpha})`;
+          const mw = Math.min(w - 40, 560);
+          ctx.fillRect((w - mw) / 2, h * 0.16, mw, 34);
+          ctx.fillStyle = `rgba(244,233,203,${alpha})`;
+          ctx.font = "20px Palatino Linotype, serif";
+          ctx.textAlign = "center";
+          ctx.fillText(state.message, w * 0.5, h * 0.184);
+          ctx.textAlign = "left";
+        }
+
+        if (state.flashT > 0) {
+          ctx.fillStyle = `rgba(255,230,205,${state.flashT * 0.9})`;
+          ctx.fillRect(0, 0, w, h);
+        }
+
+        const danger = clamp(1 - p.hp / p.maxHp, 0, 1);
+        if (danger > 0.15) {
+          const pulse = (Math.sin(state.dangerPulse * 5) + 1) * 0.5;
+          ctx.strokeStyle = `rgba(198,40,40,${danger * (0.25 + pulse * 0.22)})`;
+          ctx.lineWidth = 10;
+          ctx.strokeRect(0, 0, w, h);
+        }
+      }
+
+      function drawMenuBackground() {
+        const w = state.width;
+        const h = state.height;
+        ctx.fillStyle = "#0a0b11";
+        ctx.fillRect(0, 0, w, h);
+        for (let i = 0; i < 230; i++) {
+          const x = noise2(i, 1.2) * w;
+          const y = noise2(i + 99, 1.7) * h;
+          const a = 0.04 + noise2(i + 33, 1.4) * 0.16;
+          ctx.fillStyle = `rgba(220,224,240,${a})`;
+          ctx.fillRect(x, y, 1, 1);
+        }
+        const glow = ctx.createRadialGradient(w * 0.5, h * 0.42, 20, w * 0.5, h * 0.42, h * 0.55);
+        glow.addColorStop(0, "rgba(180,150,110,0.24)");
+        glow.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      function render() {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, state.width, state.height);
+
+        if (state.mode === "menu" || state.mode === "dead" || state.mode === "victory") {
+          drawMenuBackground();
+        }
+
+        if (state.mode === "playing" || state.mode === "paused" || state.mode === "levelup") {
+          drawBackground();
+          drawWorld();
+          drawHud();
+        }
+      }
+
+      function updateOverlay() {
+        if (state.mode === "playing") {
+          overlay.classList.add("hidden");
+          return;
+        }
+        overlay.classList.remove("hidden");
+
+        if (state.mode === "menu") {
+          const vitCost = 4 + meta.upgrades.vitality * 3;
+          const resCost = 4 + meta.upgrades.resolve * 3;
+          const occCost = 4 + meta.upgrades.occult * 3;
+          panel.innerHTML = `
+            <h1>Cathedral of Hollow Saints</h1>
+            <p class="sub">A procedural descent through haunted sanctums. Survive, level up, and escape with your mind intact.</p>
+            <div class="stats">
+              <span class="stat">Echo Souls: ${meta.souls}</span>
+              <span class="stat">Best Floor: ${meta.bestFloor || 0}</span>
+              <span class="stat">Best Score: ${meta.bestScore || 0}</span>
+              <span class="stat">Version ${VERSION}</span>
+            </div>
+            <div class="grid">
+              <div><strong>Vitality ${meta.upgrades.vitality}/6</strong><br/>+18 max HP per rank</div>
+              <div><strong>Resolve ${meta.upgrades.resolve}/6</strong><br/>+12 max sanity per rank</div>
+              <div><strong>Occult ${meta.upgrades.occult}/6</strong><br/>+10 max mana per rank</div>
+            </div>
+            <div class="btn-row">
+              <button id="start-btn">Begin New Run</button>
+              <button class="secondary" id="up-vitality">Upgrade Vitality (${vitCost})</button>
+              <button class="secondary" id="up-resolve">Upgrade Resolve (${resCost})</button>
+              <button class="secondary" id="up-occult">Upgrade Occult (${occCost})</button>
+            </div>
+            <div class="controls">
+              <strong>Controls:</strong> WASD move, Shift sprint, Mouse turn, Left Click/Space attack, Right Click/Q ward pulse, 1/2/3 items, F fullscreen, P pause.
+            </div>
+            <p class="tiny">Roguelike rules: death ends the run, but Echo Souls persist for permanent upgrades.</p>
+          `;
+          document.getElementById("start-btn").onclick = () => {
+            initAudio();
+            startRun();
+            requestLock();
+          };
+          document.getElementById("up-vitality").onclick = () => spendSoul("vitality");
+          document.getElementById("up-resolve").onclick = () => spendSoul("resolve");
+          document.getElementById("up-occult").onclick = () => spendSoul("occult");
+          return;
+        }
+
+        if (state.mode === "levelup") {
+          const options = state.levelChoices
+            .map((p, i) => `<button class="choice" data-choice="${i}"><strong>${p.name}</strong><br/>${p.desc}</button>`)
+            .join("");
+          panel.innerHTML = `
+            <h1>Ritual Adaptation</h1>
+            <p class="sub">Select one boon before the Cathedral closes in.</p>
+            <div class="btn-row">${options}</div>
+            <p class="tiny">Your run pauses while choosing.</p>
+          `;
+          panel.querySelectorAll("[data-choice]").forEach((el) => {
+            el.onclick = () => choosePerk(Number(el.dataset.choice));
+          });
+          return;
+        }
+
+        if (state.mode === "paused") {
+          panel.innerHTML = `
+            <h1>Ritual Interrupted</h1>
+            <p class="sub">The Cathedral waits. Your run is paused.</p>
+            <div class="stats">
+              <span class="stat">Floor ${state.floor}/${MAX_FLOOR}</span>
+              <span class="stat">Level ${state.player.level}</span>
+              <span class="stat">Sigils ${state.sigilsCollected}/${state.sigilsRequired}</span>
+              <span class="stat">Score ${state.runScore}</span>
+            </div>
+            <div class="btn-row">
+              <button id="resume-btn">Resume</button>
+              <button class="secondary" id="abandon-btn">Abandon Run</button>
+            </div>
+          `;
+          document.getElementById("resume-btn").onclick = () => {
+            state.mode = "playing";
+            updateOverlay();
+            requestLock();
+          };
+          document.getElementById("abandon-btn").onclick = () => {
+            state.mode = "menu";
+            updateOverlay();
+          };
+          return;
+        }
+
+        if (state.mode === "dead") {
+          panel.innerHTML = `
+            <h1>You Are Claimed</h1>
+            <p class="sub">The Cathedral consumed this run, but your memory leaves strength behind.</p>
+            <div class="stats">
+              <span class="stat">Floor Reached: ${state.floor}</span>
+              <span class="stat">Kills: ${state.kills}</span>
+              <span class="stat">Run Score: ${state.runScore}</span>
+              <span class="stat">Echo Souls Now: ${meta.souls}</span>
+            </div>
+            <div class="btn-row">
+              <button id="retry-btn">Start Again</button>
+              <button class="secondary" id="menu-btn">Return to Menu</button>
+            </div>
+          `;
+          document.getElementById("retry-btn").onclick = () => {
+            startRun();
+            requestLock();
+          };
+          document.getElementById("menu-btn").onclick = () => {
+            state.mode = "menu";
+            updateOverlay();
+          };
+          return;
+        }
+
+        if (state.mode === "victory") {
+          panel.innerHTML = `
+            <h1>Dawn Breaks</h1>
+            <p class="sub">You ended the Hollow Saint and escaped the Cathedral.</p>
+            <div class="stats">
+              <span class="stat">Final Score: ${state.runScore}</span>
+              <span class="stat">Floor Cleared: ${state.floor}</span>
+              <span class="stat">Total Kills: ${state.kills}</span>
+              <span class="stat">Echo Souls: ${meta.souls}</span>
+            </div>
+            <div class="btn-row">
+              <button id="victory-run">Play Another Run</button>
+              <button class="secondary" id="victory-menu">Main Menu</button>
+            </div>
+          `;
+          document.getElementById("victory-run").onclick = () => {
+            startRun();
+            requestLock();
+          };
+          document.getElementById("victory-menu").onclick = () => {
+            state.mode = "menu";
+            updateOverlay();
+          };
+        }
+      }
+
+      function requestLock() {
+        if (state.mode !== "playing") return;
+        try {
+          const lockAttempt = canvas.requestPointerLock?.();
+          if (lockAttempt && typeof lockAttempt.catch === "function") {
+            lockAttempt.catch(() => {});
+          }
+        } catch {
+          // Pointer lock can fail in headless runs; gameplay continues without it.
+        }
+      }
+
+      function resize() {
+        state.width = window.innerWidth;
+        state.height = window.innerHeight;
+        canvas.width = state.width;
+        canvas.height = state.height;
+      }
+
+      function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen?.();
+        } else {
+          document.exitFullscreen?.();
+        }
+      }
+
+      document.addEventListener("fullscreenchange", resize);
+      window.addEventListener("resize", resize);
+
+      document.addEventListener("pointerlockchange", () => {
+        pointer.locked = document.pointerLockElement === canvas;
+      });
+
+      canvas.addEventListener("click", () => {
+        initAudio();
+        if (state.mode === "playing") requestLock();
+      });
+
+      canvas.addEventListener("contextmenu", (ev) => ev.preventDefault());
+
+      document.addEventListener("mousemove", (ev) => {
+        if (!pointer.locked || state.mode !== "playing") return;
+        state.player.dir += ev.movementX * 0.0024;
+      });
+
+      document.addEventListener("keydown", (ev) => {
+        keys.add(ev.code);
+        if (ev.code === "Enter") {
+          if (state.mode === "menu" || state.mode === "dead" || state.mode === "victory") {
+            initAudio();
+            startRun();
+            requestLock();
+          } else if (state.mode === "paused") {
+            state.mode = "playing";
+            updateOverlay();
+            requestLock();
+          }
+        }
+        if (ev.code === "KeyF") toggleFullscreen();
+        if (ev.code === "Escape" && state.mode === "playing") {
+          state.mode = "paused";
+          document.exitPointerLock?.();
+          updateOverlay();
+        }
+        if (ev.code === "KeyP") {
+          if (state.mode === "playing") {
+            state.mode = "paused";
+            document.exitPointerLock?.();
+            updateOverlay();
+          } else if (state.mode === "paused") {
+            state.mode = "playing";
+            updateOverlay();
+            requestLock();
+          }
+        }
+        if (ev.code === "Space") {
+          ev.preventDefault();
+          if (state.mode === "playing") playerAttack();
+        }
+        if (ev.code === "KeyQ") castWard();
+        if (ev.code === "Digit1") useItem("medkit");
+        if (ev.code === "Digit2") useItem("tonic");
+        if (ev.code === "Digit3") useItem("flare");
+      });
+
+      document.addEventListener("keyup", (ev) => {
+        keys.delete(ev.code);
+      });
+
+      document.addEventListener("mousedown", (ev) => {
+        if (state.mode !== "playing") return;
+        if (ev.button === 0) playerAttack();
+        if (ev.button === 2) castWard();
+      });
+
+      // Deterministic stepping hook for automation.
+      window.advanceTime = (ms) => {
+        const steps = Math.max(1, Math.round(ms / (1000 / 60)));
+        for (let i = 0; i < steps; i++) update(FIXED_STEP);
+        render();
+      };
+
+      // Text-mode snapshot for automated or headless play.
+      window.render_game_to_text = () => {
+        const p = state.player;
+        if (!p) {
+          return JSON.stringify({
+            coordinate_system: "map grid origin at top-left; +x right, +y down",
+            mode: state.mode,
+            floor: state.floor,
+            objective: "Start a run from menu",
+            run: { score: state.runScore, shards: state.runShards, kills: state.kills, elapsedSec: Number(state.elapsed.toFixed(1)) },
+            enemies_visible: [],
+            pickups_nearby: [],
+            projectiles: [],
+          });
+        }
+        const visibleEnemies = state.enemies
+          .filter((e) => Math.hypot(e.x - p.x, e.y - p.y) < 10)
+          .slice(0, 10)
+          .map((e) => ({
+            kind: e.kind,
+            x: Number(e.x.toFixed(2)),
+            y: Number(e.y.toFixed(2)),
+            hp: Number(e.hp.toFixed(1)),
+            dist: Number(Math.hypot(e.x - p.x, e.y - p.y).toFixed(2)),
+          }));
+
+        const pickups = state.pickups
+          .filter((it) => Math.hypot(it.x - p.x, it.y - p.y) < 8)
+          .slice(0, 14)
+          .map((it) => ({ type: it.type, x: Number(it.x.toFixed(2)), y: Number(it.y.toFixed(2)) }));
+
+        const payload = {
+          coordinate_system: "map grid origin at top-left; +x right, +y down; angles in radians (0 points +x, PI/2 points +y)",
+          mode: state.mode,
+          floor: state.floor,
+          objective: `Collect sigils (${state.sigilsCollected}/${state.sigilsRequired}) then reach stairs`,
+          player: {
+            x: Number(p.x.toFixed(2)),
+            y: Number(p.y.toFixed(2)),
+            dir: Number(p.dir.toFixed(3)),
+            hp: Number(p.hp.toFixed(1)),
+            maxHp: p.maxHp,
+            sanity: Number(p.sanity.toFixed(1)),
+            maxSanity: p.maxSanity,
+            mana: Number(p.mana.toFixed(1)),
+            lantern: Number(p.lantern.toFixed(1)),
+            level: p.level,
+            xp: Number(p.xp.toFixed(1)),
+            xpNeed: p.xpNeed,
+            cooldowns: {
+              attack: Number(p.attackCd.toFixed(2)),
+              ward: Number(p.castCd.toFixed(2)),
+            },
+            inventory: p.inventory,
+          },
+          stairs: {
+            x: Number(state.stairs.x.toFixed(2)),
+            y: Number(state.stairs.y.toFixed(2)),
+            active: state.stairs.active,
+            dist: Number(Math.hypot(state.stairs.x - p.x, state.stairs.y - p.y).toFixed(2)),
+          },
+          run: {
+            score: state.runScore,
+            shards: state.runShards,
+            kills: state.kills,
+            elapsedSec: Number(state.elapsed.toFixed(1)),
+          },
+          enemies_visible: visibleEnemies,
+          pickups_nearby: pickups,
+          projectiles: state.projectiles.map((pr) => ({ x: Number(pr.x.toFixed(2)), y: Number(pr.y.toFixed(2)), ttl: Number(pr.ttl.toFixed(2)) })),
+        };
+        return JSON.stringify(payload);
+      };
+
+      let lastTs = performance.now();
+      let accumulator = 0;
+
+      function frame(ts) {
+        const dt = Math.min(0.05, (ts - lastTs) / 1000);
+        lastTs = ts;
+        accumulator += dt;
+        while (accumulator >= FIXED_STEP) {
+          update(FIXED_STEP);
+          accumulator -= FIXED_STEP;
+        }
+        render();
+        requestAnimationFrame(frame);
+      }
+
+      resize();
+      updateOverlay();
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>

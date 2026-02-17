@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Deepest Corridor</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --text-color: #a0a0a0;
+            --accent-color: #8b0000;
+            --ui-font: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: var(--ui-font);
+            color: var(--text-color);
+            user-select: none;
+        }
+
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+            transition: opacity 0.5s ease;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 10px var(--accent-color);
+            animation: pulse 3s infinite;
+        }
+
+        button {
+            background: transparent;
+            border: 2px solid var(--text-color);
+            color: var(--text-color);
+            padding: 15px 30px;
+            font-family: var(--ui-font);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            background: var(--text-color);
+            color: var(--bg-color);
+            box-shadow: 0 0 15px var(--text-color);
+        }
+
+        .hud-element {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border: 1px solid #333;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.5;
+        }
+
+        /* Scanline effect */
+        .scanlines {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 100;
+            background: linear-gradient(to bottom,
+                    rgba(255, 255, 255, 0),
+                    rgba(255, 255, 255, 0) 50%,
+                    rgba(0, 0, 0, 0.1) 50%,
+                    rgba(0, 0, 0, 0.1));
+            background-size: 100% 4px;
+            animation: scanline 10s linear infinite;
+        }
+
+        .vignette {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 99;
+            background: radial-gradient(circle, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.8) 100%);
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.8;
+                text-shadow: 0 0 10px var(--accent-color);
+            }
+
+            50% {
+                opacity: 1;
+                text-shadow: 0 0 20px red;
+            }
+
+            100% {
+                opacity: 0.8;
+                text-shadow: 0 0 10px var(--accent-color);
+            }
+        }
+
+        @keyframes scanline {
+            0% {
+                background-position: 0 0;
+            }
+
+            100% {
+                background-position: 0 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="vignette"></div>
+    <div class="scanlines"></div>
+
+    <div id="game-container"></div>
+
+    <div id="ui-layer">
+        <div id="hud-top" style="display: flex; justify-content: space-between;">
+            <div class="hud-element" id="status-display">SANITY: 100%</div>
+            <div class="hud-element" id="time-display">DEPTH: 0</div>
+        </div>
+        <div id="hud-bottom" style="display: flex; justify-content: space-between;">
+            <div class="hud-element" id="message-log">System Initialized...</div>
+            <div class="hud-element" id="inventory-display">Slot: Empty</div>
+        </div>
+        <div id="crosshair"></div>
+    </div>
+
+    <div id="overlay">
+        <h1>The Deepest Corridor</h1>
+        <p style="margin-bottom: 30px; max-width: 600px; text-align: center;">
+            You have descended where no light dares to tread. <br>
+            Find the keys. Manage your sanity. Survive.
+        </p>
+        <button id="start-btn">Enter the Abyss</button>
+    </div>
+
+    <!-- Import Map for Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+        // --- Configuration & Constants ---
+        const CONFIG = {
+            fov: 75,
+            near: 0.1,
+            far: 1000,
+            gravity: 9.8,
+            moveSpeed: 5.0,
+            sprintMultiplier: 1.5,
+            playerHeight: 1.7,
+            mouseSensitivity: 0.002
+        };
+
+        // --- Game State ---
+        const state = {
+            isRunning: false,
+            lastTime: 0,
+            sanity: 100,
+            depth: 0,
+            player: {
+                velocity: new THREE.Vector3(),
+                direction: new THREE.Vector3(),
+                isGrounded: false,
+                canJump: false
+            }
+        };
+
+        // --- Game Classes ---
+        class Player {
+            constructor(camera) {
+                this.camera = camera;
+                this.stats = {
+                    health: 100,
+                    sanity: 100,
+                    stamina: 100,
+                    maxStamina: 100
+                };
+                this.inventory = [];
+                this.heldItem = null;
+
+                this.velocity = new THREE.Vector3();
+                this.direction = new THREE.Vector3();
+                this.isGrounded = false;
+                this.canJump = false;
+
+                // Interaction
+                this.raycaster = new THREE.Raycaster();
+                this.raycaster.far = 3.0; // Interaction distance
+                this.interactable = null;
+            }
+
+            update(dt, input, camera) {
+                // Stamina regeneration
+                if (!input.sprint && this.stats.stamina < this.stats.maxStamina) {
+                    this.stats.stamina += 10 * dt;
+                } else if (input.sprint && this.stats.stamina > 0 && (input.moveForward || input.moveBackward || input.moveLeft || input.moveRight)) {
+                    this.stats.stamina -= 20 * dt;
+                }
+
+                // Sanity decay (slowly in dark)
+                this.stats.sanity -= 0.1 * dt;
+
+                // Interaction Raycast
+                this.raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            }
+
+            checkInteraction(interactables) {
+                const intersects = this.raycaster.intersectObjects(interactables);
+                if (intersects.length > 0) {
+                    this.interactable = intersects[0].object;
+                    return this.interactable;
+                }
+                this.interactable = null;
+                return null;
+            }
+
+            addItem(item) {
+                this.inventory.push(item);
+                this.updateHUD();
+            }
+
+            updateHUD() {
+                const status = document.getElementById('status-display');
+                if (status) status.innerText = `HP: ${Math.floor(this.stats.health)} | SAN: ${Math.floor(this.stats.sanity)}%`;
+
+                const inv = document.getElementById('inventory-display');
+                if (inv) inv.innerText = `Items: ${this.inventory.map(i => i.name).join(', ') || 'Empty'}`;
+
+                if (this.stats.health <= 0) {
+                    // Die
+                }
+            }
+        }
+
+        class Item extends THREE.Mesh {
+            constructor(name, color, type) {
+                const geo = type === 'key' ? new THREE.TorusGeometry(0.1, 0.02, 8, 20) : new THREE.BoxGeometry(0.2, 0.1, 0.2);
+                const mat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.5 });
+                super(geo, mat);
+                this.name = name;
+                this.itemType = type;
+                this.castShadow = true;
+                this.userData = { isInteractable: true, type: type, name: name };
+            }
+
+            update(dt) {
+                this.rotation.y += dt;
+                this.position.y = 1 + Math.sin(Date.now() * 0.002) * 0.1;
+            }
+        }
+
+        class CombatSystem {
+            constructor(scene, camera) {
+                this.scene = scene;
+                this.camera = camera;
+                this.ammo = 12;
+                this.maxAmmo = 12;
+                this.isShooting = false;
+                this.canShoot = true;
+
+                // Muzzle Flash
+                this.muzzleFlash = new THREE.PointLight(0xffaa00, 0, 5);
+                this.scene.add(this.muzzleFlash);
+
+                this.gunPos = new THREE.Object3D();
+                this.gunPos.position.set(0.2, -0.2, -0.5);
+                this.camera.add(this.gunPos);
+            }
+
+            shoot(enemies) {
+                if (this.ammo <= 0 || !this.canShoot) return;
+
+                this.ammo--;
+                this.updateHUD();
+                this.canShoot = false;
+                setTimeout(() => this.canShoot = true, 400);
+
+                // Flash
+                this.muzzleFlash.intensity = 2;
+                this.muzzleFlash.position.copy(this.gunPos.getWorldPosition(new THREE.Vector3()));
+                setTimeout(() => this.muzzleFlash.intensity = 0, 50);
+
+                // Raycast
+                const raycaster = new THREE.Raycaster();
+                raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+
+                // Check intersection with enemies
+                const intersects = raycaster.intersectObjects(enemies);
+                if (intersects.length > 0) {
+                    const hit = intersects[0];
+                    if (hit.distance < 50 && hit.object.userData.isEnemy) {
+                        hit.object.takeDamage(1);
+                    }
+                }
+
+                // Recoil
+                this.camera.rotation.x += 0.02;
+                setTimeout(() => this.camera.rotation.x -= 0.02, 100);
+            }
+
+            update(dt) {
+                this.muzzleFlash.position.copy(this.gunPos.getWorldPosition(new THREE.Vector3()));
+            }
+
+            updateHUD() {
+                const el = document.getElementById('inventory-display');
+                if (el) el.innerText = `Ammo: ${this.ammo} | Items: ...`;
+            }
+        }
+
+        class Enemy extends THREE.Mesh {
+            constructor(pos) {
+                const geo = new THREE.CapsuleGeometry(0.5, 1.8, 4, 8);
+                const mat = new THREE.MeshStandardMaterial({ color: 0x111111, transparent: true, opacity: 0.9 });
+                super(geo, mat);
+                this.position.copy(pos);
+                this.position.y = 0.9; // Half height
+                this.health = 3;
+                this.userData = { isEnemy: true };
+                this.castShadow = true;
+                this.receiveShadow = true;
+            }
+
+            takeDamage(amount) {
+                this.health -= amount;
+                this.material.color.setHex(0x880000); // Red flash
+                setTimeout(() => this.material.color.setHex(0x111111), 100);
+
+                if (this.health <= 0) {
+                    this.visible = false;
+                    this.position.y = -1000; // Move away
+                }
+            }
+
+            update(dt, playerPos) {
+                if (!this.visible) return;
+                const dist = this.position.distanceTo(playerPos);
+                if (dist < 15 && dist > 1) {
+                    const dir = new THREE.Vector3().subVectors(playerPos, this.position).normalize();
+                    dir.y = 0;
+                    this.position.add(dir.multiplyScalar(3.5 * dt));
+                    this.lookAt(playerPos.x, this.position.y, playerPos.z);
+                }
+            }
+        }
+
+        // --- Core Systems ---
+        class Game {
+            constructor() {
+                this.container = document.getElementById('game-container');
+                this.overlay = document.getElementById('overlay');
+                this.startBtn = document.getElementById('start-btn');
+                this.hudMessage = document.getElementById('message-log');
+
+                this.initThree();
+                this.initInputs();
+
+                this.player = new Player(this.camera); // Initialize Player
+                this.interactables = []; // List of objects to interaction check
+                this.enemies = [];
+                this.combat = new CombatSystem(this.scene, this.camera);
+
+                this.initWorld();
+
+                this.startBtn.addEventListener('click', () => this.startGame());
+                window.addEventListener('resize', () => this.onWindowResize(), false);
+
+                this.clock = new THREE.Clock();
+                this.animate = this.animate.bind(this);
+            }
+
+            initThree() {
+                // Renderer
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.container.appendChild(this.renderer.domElement);
+
+                // Scene
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x020202);
+                this.scene.fog = new THREE.FogExp2(0x020202, 0.05);
+
+                // Camera
+                this.camera = new THREE.PerspectiveCamera(CONFIG.fov, window.innerWidth / window.innerHeight, CONFIG.near, CONFIG.far);
+
+                // Controls
+                this.controls = new PointerLockControls(this.camera, document.body);
+
+                this.controls.addEventListener('lock', () => {
+                    state.isRunning = true;
+                    this.overlay.style.opacity = '0';
+                    setTimeout(() => { if (state.isRunning) this.overlay.style.display = 'none'; }, 500);
+                });
+
+                this.controls.addEventListener('unlock', () => {
+                    state.isRunning = false;
+                    this.overlay.style.display = 'flex';
+                    setTimeout(() => { this.overlay.style.opacity = '1'; }, 10);
+                    this.startBtn.textContent = "Resume";
+                });
+
+                this.scene.add(this.controls.getObject());
+            }
+
+            initInputs() {
+                this.moveForward = false;
+                this.moveBackward = false;
+                this.moveLeft = false;
+                this.moveRight = false;
+                this.sprint = false;
+                this.interact = false;
+
+                const onKeyDown = (event) => {
+                    switch (event.code) {
+                        case 'ArrowUp':
+                        case 'KeyW': this.moveForward = true; break;
+                        case 'ArrowLeft':
+                        case 'KeyA': this.moveLeft = true; break;
+                        case 'ArrowDown':
+                        case 'KeyS': this.moveBackward = true; break;
+                        case 'ArrowRight':
+                        case 'KeyD': this.moveRight = true; break;
+                        case 'ShiftLeft': this.sprint = true; break;
+                        case 'KeyE': this.tryInteract(); break;
+                    }
+                };
+
+                const onKeyUp = (event) => {
+                    switch (event.code) {
+                        case 'ArrowUp':
+                        case 'KeyW': this.moveForward = false; break;
+                        case 'ArrowLeft':
+                        case 'KeyA': this.moveLeft = false; break;
+                        case 'ArrowDown':
+                        case 'KeyS': this.moveBackward = false; break;
+                        case 'ArrowRight':
+                        case 'KeyD': this.moveRight = false; break;
+                        case 'ShiftLeft': this.sprint = false; break;
+                    }
+                };
+
+                document.addEventListener('keydown', onKeyDown);
+                document.addEventListener('keyup', onKeyUp);
+                document.addEventListener('mousedown', () => {
+                    if (state.isRunning) this.combat.shoot(this.enemies);
+                });
+            }
+
+            tryInteract() {
+                if (this.player.interactable) {
+                    const obj = this.player.interactable;
+                    if (obj.userData.type === 'key' || obj.userData.type === 'battery') {
+                        this.player.addItem({ name: obj.userData.name, type: obj.userData.type });
+                        this.scene.remove(obj);
+                        this.interactables = this.interactables.filter(o => o !== obj);
+                        this.showMessage(`Picked up ${obj.userData.name}`);
+                    }
+                }
+            }
+
+            showMessage(msg) {
+                if (this.hudMessage) {
+                    this.hudMessage.innerText = msg;
+                    this.hudMessage.style.opacity = 1;
+                    clearTimeout(this.msgTimeout);
+                    this.msgTimeout = setTimeout(() => {
+                        this.hudMessage.style.opacity = 0.5;
+                    }, 3000);
+                }
+            }
+
+            initWorld() {
+                this.assetGen = new AssetGenerator();
+                this.dungeonGen = new DungeonGenerator(50, 50); // 50x50 grid
+
+                // Reset player spawn flag
+                this.playerSpawned = false;
+
+                const map = this.dungeonGen.generate();
+                this.buildLevel(map);
+
+                // Add some items
+                this.spawnItems(map);
+                this.spawnEnemies(map);
+
+                // Ambient Light
+                const ambientLight = new THREE.AmbientLight(0x101010, 0.2);
+                this.scene.add(ambientLight);
+
+                // Flashlight
+                this.flashlight = new THREE.SpotLight(0xffffee, 3, 25, Math.PI / 5, 0.5, 1);
+                this.flashlight.position.set(0, 0, 0);
+                this.flashlight.target.position.set(0, 0, -1);
+                this.flashlight.castShadow = true;
+                this.flashlight.shadow.mapSize.width = 1024;
+                this.flashlight.shadow.mapSize.height = 1024;
+                this.flashlight.shadow.bias = -0.0001;
+
+                this.camera.add(this.flashlight);
+                this.camera.add(this.flashlight.target);
+            }
+
+            spawnItems(map) {
+                let keyCount = 3;
+                let batteryCount = 5;
+
+                for (let z = 0; z < map.length; z++) {
+                    for (let x = 0; x < map[0].length; x++) {
+                        if (map[z][x] === 0 && Math.random() < 0.05) {
+                            if (keyCount > 0 && Math.random() < 0.3) {
+                                const key = new Item("Rusty Key", 0xffd700, "key");
+                                key.position.set(x * 2, 1, z * 2);
+                                this.scene.add(key);
+                                this.interactables.push(key);
+                                keyCount--;
+                            } else if (batteryCount > 0 && Math.random() < 0.3) {
+                                const batt = new Item("Battery", 0x00ff00, "battery");
+                                batt.position.set(x * 2, 1, z * 2);
+                                this.scene.add(batt);
+                                this.interactables.push(batt);
+                                batteryCount--;
+                            }
+                        }
+                    }
+                }
+            }
+
+            spawnEnemies(map) {
+                let enemyCount = 10;
+                for (let z = 0; z < map.length; z++) {
+                    for (let x = 0; x < map[0].length; x++) {
+                        if (map[z][x] === 0 && Math.random() < 0.02 && enemyCount > 0) {
+                            const enemy = new Enemy(new THREE.Vector3(x * 2, 0, z * 2));
+                            this.scene.add(enemy);
+                            this.enemies.push(enemy);
+                            enemyCount--;
+                        }
+                    }
+                }
+            }
+
+            buildLevel(map) {
+                const wallMat = this.assetGen.createWallMaterial();
+                const floorMat = this.assetGen.createFloorMaterial();
+                const ceilingMat = this.assetGen.createCeilingMaterial();
+
+                const geometry = new THREE.BoxGeometry(2, 4, 2); // Walls are 4 units high
+                const floorGeo = new THREE.PlaneGeometry(2, 2);
+
+                // Use InstancedMesh for performance
+                const wallCount = map.flat().filter(c => c === 1).length;
+                const floorCount = map.flat().filter(c => c === 0).length;
+
+                const wallMesh = new THREE.InstancedMesh(geometry, wallMat, wallCount);
+                const floorMesh = new THREE.InstancedMesh(floorGeo, floorMat, floorCount);
+                const ceilingMesh = new THREE.InstancedMesh(floorGeo, ceilingMat, floorCount);
+
+                wallMesh.castShadow = true;
+                wallMesh.receiveShadow = true;
+                floorMesh.receiveShadow = true;
+                ceilingMesh.receiveShadow = false;
+
+                let wallIdx = 0;
+                let floorIdx = 0;
+                const dummy = new THREE.Object3D();
+
+                for (let z = 0; z < map.length; z++) {
+                    for (let x = 0; x < map[0].length; x++) {
+                        const cell = map[z][x];
+                        const posX = x * 2;
+                        const posZ = z * 2;
+
+                        if (cell === 1) { // Wall
+                            dummy.position.set(posX, 2, posZ);
+                            dummy.rotation.set(0, 0, 0);
+                            dummy.updateMatrix();
+                            wallMesh.setMatrixAt(wallIdx++, dummy.matrix);
+                        } else { // Floor (Corridor/Room)
+                            // Floor
+                            dummy.position.set(posX, 0, posZ);
+                            dummy.rotation.set(-Math.PI / 2, 0, 0);
+                            dummy.updateMatrix();
+                            floorMesh.setMatrixAt(floorIdx, dummy.matrix);
+
+                            // Ceiling
+                            dummy.position.set(posX, 4, posZ);
+                            dummy.rotation.set(Math.PI / 2, 0, 0);
+                            dummy.updateMatrix();
+                            ceilingMesh.setMatrixAt(floorIdx, dummy.matrix); // Use same index
+
+                            floorIdx++;
+
+                            // Spawn player in the first empty cell found
+                            if (!this.playerSpawned) {
+                                this.controls.getObject().position.set(posX, 1.7, posZ);
+                                this.playerSpawned = true;
+                            }
+                        }
+                    }
+                }
+
+                this.scene.add(wallMesh);
+                this.scene.add(floorMesh);
+                this.scene.add(ceilingMesh);
+
+                // Collision map for reference
+                this.map = map;
+                this.scale = 2; // Grid cell size
+            }
+
+            checkCollisions() {
+                const playerPos = this.controls.getObject().position;
+                if (playerPos.y < CONFIG.playerHeight) {
+                    this.player.velocity.y = 0;
+                    playerPos.y = CONFIG.playerHeight;
+                    this.player.isGrounded = true;
+                    this.player.canJump = true;
+                } else {
+                    this.player.isGrounded = false;
+                }
+            }
+
+            update(dt) {
+                if (!this.controls.isLocked) return;
+
+                // Update Player Stats & Interaction
+                const input = {
+                    moveForward: this.moveForward,
+                    moveBackward: this.moveBackward,
+                    moveLeft: this.moveLeft,
+                    moveRight: this.moveRight,
+                    sprint: this.sprint
+                };
+
+                this.player.update(dt, input, this.camera);
+                this.player.updateHUD(); // Sync UI
+
+                // Interaction Check Prompt
+                const target = this.player.checkInteraction(this.interactables);
+                if (target) {
+                    this.showMessage(`E to pick up ${target.userData.name}`);
+                } else {
+                    if (this.hudMessage.innerText.startsWith('E to')) this.hudMessage.style.opacity = 0;
+                }
+
+                // Combat & Enemies
+                this.combat.update(dt);
+                this.enemies.forEach(e => e.update(dt, this.player.camera.position));
+
+                // Update Items (Animation)
+                this.interactables.forEach(item => item.update(dt));
+
+                // Physics / Movement
+                const velocity = this.player.velocity;
+                const direction = this.player.direction;
+
+                velocity.x -= velocity.x * 10.0 * dt;
+                velocity.z -= velocity.z * 10.0 * dt;
+                velocity.y -= CONFIG.gravity * dt;
+
+                direction.z = Number(this.moveForward) - Number(this.moveBackward);
+                direction.x = Number(this.moveRight) - Number(this.moveLeft);
+                direction.normalize();
+
+                // Stamina effect on speed
+                let currentSpeed = CONFIG.moveSpeed;
+                if (this.sprint && this.player.stats.stamina > 0) {
+                    currentSpeed *= CONFIG.sprintMultiplier;
+                } else if (this.player.stats.stamina <= 0) {
+                    currentSpeed *= 0.5; // Exhausted
+                }
+
+                if (this.moveForward || this.moveBackward) velocity.z -= direction.z * 100.0 * currentSpeed * dt;
+                if (this.moveLeft || this.moveRight) velocity.x -= direction.x * 100.0 * currentSpeed * dt;
+
+                // Predict next position
+                const deltaX = -velocity.x * dt;
+                const deltaZ = -velocity.z * dt;
+
+                const currentPos = this.controls.getObject().position.clone();
+                const nextX = currentPos.x + deltaX;
+                const nextZ = currentPos.z + deltaZ;
+
+                // Check wall collision
+                if (!this.isWall(nextX, currentPos.z)) {
+                    this.controls.moveRight(deltaX);
+                } else {
+                    velocity.x = 0;
+                }
+
+                if (!this.isWall(this.controls.getObject().position.x, nextZ)) {
+                    this.controls.moveForward(deltaZ);
+                } else {
+                    velocity.z = 0;
+                }
+
+                this.checkCollisions(); // Ground check
+                this.controls.getObject().position.y += (velocity.y * dt);
+
+                // Flashlight sway
+                if (this.moveForward || this.moveBackward || this.moveLeft || this.moveRight) {
+                    const time = Date.now() * 0.005;
+                    this.flashlight.target.position.y = Math.sin(time) * 0.1 - 1;
+                    this.flashlight.target.position.x = Math.cos(time) * 0.1;
+                }
+            }
+
+            isWall(x, z) {
+                if (!this.map) return false;
+                const gridX = Math.round(x / 2);
+                const gridZ = Math.round(z / 2);
+                if (gridX < 0 || gridX >= 50 || gridZ < 0 || gridZ >= 50) return true;
+                return this.map[gridZ][gridX] === 1;
+            }
+
+            startGame() {
+                this.overlay.style.opacity = '0';
+                setTimeout(() => {
+                    this.overlay.style.display = 'none';
+                    state.isRunning = true;
+                    this.controls.lock();
+                    if (!this.hasStarted) {
+                        this.hasStarted = true;
+                        this.animate();
+                    }
+                }, 500);
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            animate() {
+                requestAnimationFrame(this.animate);
+
+                const dt = Math.min(this.clock.getDelta(), 0.1);
+
+                if (state.isRunning) {
+                    this.update(dt);
+                }
+
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        class DungeonGenerator {
+            constructor(width, height) {
+                this.width = width;
+                this.height = height;
+                this.map = []; // 1: Wall, 0: Floor
+            }
+
+            generate() {
+                // Initialize full walls
+                for (let y = 0; y < this.height; y++) {
+                    this.map[y] = [];
+                    for (let x = 0; x < this.width; x++) {
+                        this.map[y][x] = 1;
+                    }
+                }
+
+                // Simple digger
+                const rooms = [];
+                const maxRooms = 15;
+                const minSize = 3;
+                const maxSize = 8;
+
+                for (let i = 0; i < maxRooms; i++) {
+                    const w = Math.floor(Math.random() * (maxSize - minSize + 1)) + minSize;
+                    const h = Math.floor(Math.random() * (maxSize - minSize + 1)) + minSize;
+                    const x = Math.floor(Math.random() * (this.width - w - 2)) + 1;
+                    const y = Math.floor(Math.random() * (this.height - h - 2)) + 1;
+
+                    const newRoom = { x, y, w, h };
+
+                    let failed = false;
+                    for (const other of rooms) {
+                        if (newRoom.x <= other.x + other.w && newRoom.x + newRoom.w >= other.x &&
+                            newRoom.y <= other.y + other.h && newRoom.y + newRoom.h >= other.y) {
+                            failed = true;
+                            break;
+                        }
+                    }
+
+                    if (!failed) {
+                        this.createRoom(newRoom);
+                        if (rooms.length > 0) {
+                            const prev = rooms[rooms.length - 1];
+                            const prevCenter = { x: Math.floor(prev.x + prev.w / 2), y: Math.floor(prev.y + prev.h / 2) };
+                            const newCenter = { x: Math.floor(newRoom.x + newRoom.w / 2), y: Math.floor(newRoom.y + newRoom.h / 2) };
+
+                            if (Math.random() > 0.5) {
+                                this.createHKorridor(prevCenter.x, newCenter.x, prevCenter.y);
+                                this.createVKorridor(prevCenter.y, newCenter.y, newCenter.x);
+                            } else {
+                                this.createVKorridor(prevCenter.y, newCenter.y, prevCenter.x);
+                                this.createHKorridor(prevCenter.x, newCenter.x, newCenter.y);
+                            }
+                        }
+                        rooms.push(newRoom);
+                    }
+                }
+
+                return this.map;
+            }
+
+            createRoom(room) {
+                for (let y = room.y; y < room.y + room.h; y++) {
+                    for (let x = room.x; x < room.x + room.w; x++) {
+                        this.map[y][x] = 0;
+                    }
+                }
+            }
+
+            createHKorridor(x1, x2, y) {
+                for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) {
+                    this.map[y][x] = 0;
+                }
+            }
+
+            createVKorridor(y1, y2, x) {
+                for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) {
+                    this.map[y][x] = 0;
+                }
+            }
+        }
+
+        class AssetGenerator {
+            createWallMaterial() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512;
+                canvas.height = 512;
+                const ctx = canvas.getContext('2d');
+
+                // Dark Grunge Texture
+                ctx.fillStyle = '#222';
+                ctx.fillRect(0, 0, 512, 512);
+
+                // Noise
+                for (let i = 0; i < 50000; i++) {
+                    ctx.fillStyle = Math.random() > 0.5 ? '#111' : '#333';
+                    const x = Math.random() * 512;
+                    const y = Math.random() * 512;
+                    const size = Math.random() * 3 + 1;
+                    ctx.fillRect(x, y, size, size);
+                }
+
+                // Blood stains (Horror element)
+                for (let i = 0; i < 5; i++) {
+                    ctx.fillStyle = 'rgba(100, 0, 0, 0.4)';
+                    const cx = Math.random() * 512;
+                    const cy = Math.random() * 512;
+                    const r = Math.random() * 50 + 20;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                const texture = new THREE.CanvasTexture(canvas);
+                return new THREE.MeshStandardMaterial({
+                    map: texture,
+                    roughness: 0.9,
+                    color: 0x888888
+                });
+            }
+
+            createFloorMaterial() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512;
+                canvas.height = 512;
+                const ctx = canvas.getContext('2d');
+
+                ctx.fillStyle = '#111';
+                ctx.fillRect(0, 0, 512, 512);
+
+                // Tiles
+                ctx.strokeStyle = '#222';
+                ctx.lineWidth = 2;
+                for (let i = 0; i <= 512; i += 64) {
+                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 512); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(512, i); ctx.stroke();
+                }
+
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.wrapS = THREE.RepeatWrapping;
+                texture.wrapT = THREE.RepeatWrapping;
+
+                return new THREE.MeshStandardMaterial({
+                    map: texture,
+                    roughness: 0.8,
+                    metalness: 0.1
+                });
+            }
+
+            createCeilingMaterial() {
+                return new THREE.MeshBasicMaterial({ color: 0x050505 });
+            }
+
+
+            animate() {
+                requestAnimationFrame(this.animate);
+
+                const dt = this.clock.getDelta();
+
+                if (state.isRunning) {
+                    this.update(dt);
+                }
+
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // --- Bootstrap ---
+        window.addEventListener('load', () => {
+            window.game = new Game();
+            window.game.animate();
+        });
+
+    </script>
+</body>
+
+</html>
