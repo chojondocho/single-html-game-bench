@@ -24,9 +24,9 @@ As of **February 17, 2026**, based on direct hands-on play testing:
 | ---- | ------------------------------- | -------------------------------------------------------------------------------------------- |
 | 1    | Claude Code - Opus 4.6          | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-opus-4-6.html)        |
 | 2    | ChatGPT - GPT-5.2 Pro           | [Play](https://chojondocho.github.io/single-html-game-bench/chatgpt-gpt-5-2-pro.html)        |
-| 3    | Claude Code - Sonnet 4.6        | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-sonnet-4-6.html)       |
-| 4    | Gemini Web - Gemini 3.1 Pro Deepthink | [Play](https://chojondocho.github.io/single-html-game-bench/geminiweb-gemini-3-1-pro-deepthink.html)  |
-| 5    | Codex - GPT-5.3 Codex High      | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-5-3-codex-high.html)   |
+| 3    | Gemini Web - Gemini 3.1 Pro Deepthink | [Play](https://chojondocho.github.io/single-html-game-bench/geminiweb-gemini-3-1-pro-deepthink.html)  |
+| 4    | Codex - GPT-5.3 Codex High      | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-5-3-codex-high.html)   |
+| 5    | Claude Code - Sonnet 4.6        | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-sonnet-4-6.html)       |
 | 6    | Antigravity - Opus 4.6          | [Play](https://chojondocho.github.io/single-html-game-bench/antigravity-opus-4-6.html)       |
 | 7    | Antigravity - Gemini 3 Pro      | [Play](https://chojondocho.github.io/single-html-game-bench/antigravity-gemini-3-pro.html)   |
 | 8    | Codex - GPT-5.3 Codex XHigh     | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-5-3-codex-xhigh.html)  |
