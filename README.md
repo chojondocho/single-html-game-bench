@@ -30,6 +30,7 @@ As of **February 17, 2026**, based on direct hands-on play testing:
 | 6    | Codex - GPT-5.3 Codex XHigh     | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-5-3-codex-xhigh.html)  |
 | 7    | Antigravity - Gemini 3 Flash    | [Play](https://chojondocho.github.io/single-html-game-bench/antigravity-gemini-3-flash.html) |
 | 8    | Grok Web - Grok 4.20 (4 Agents) | [Play](https://chojondocho.github.io/single-html-game-bench/grokweb-grok-4-20-4agents.html)  |
+| 9    | Gemini Web - Gemini 3.1 Pro Deepthink | [Play](https://chojondocho.github.io/single-html-game-bench/geminiweb-gemini-3-1-pro-deepthink.html)  |
 
 ## All Playable Builds (Direct Links)
 
@@ -41,6 +42,7 @@ As of **February 17, 2026**, based on direct hands-on play testing:
 - [codex-gpt-5-3-codex-xhigh](https://chojondocho.github.io/single-html-game-bench/codex-gpt-5-3-codex-xhigh.html)
 - [antigravity-gemini-3-flash](https://chojondocho.github.io/single-html-game-bench/antigravity-gemini-3-flash.html)
 - [grokweb-grok-4-20-4agents](https://chojondocho.github.io/single-html-game-bench/grokweb-grok-4-20-4agents.html)
+- [geminiweb-gemini-3-1-pro-deepthink](https://chojondocho.github.io/single-html-game-bench/geminiweb-gemini-3-1-pro-deepthink.html)
 
 ## Benchmark Rules
 

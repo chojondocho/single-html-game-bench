@@ -1,0 +1,1199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>THE ABERRANT ARCHIVE</title>
+    <style>
+      :root {
+        --red: #d32f2f;
+        --blue: #0288d1;
+        --purple: #7b1fa2;
+        --yellow: #fbc02d;
+        --green: #388e3c;
+      }
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #000;
+        font-family: "Courier New", Courier, monospace;
+        color: #fff;
+        user-select: none;
+      }
+      #gl {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      /* Cinematic Overlays */
+      .crt {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 20;
+        opacity: 0.5;
+        mix-blend-mode: overlay;
+        background: linear-gradient(
+            rgba(18, 16, 16, 0) 50%,
+            rgba(0, 0, 0, 0.25) 50%
+          ),
+          linear-gradient(
+            90deg,
+            rgba(255, 0, 0, 0.06),
+            rgba(0, 255, 0, 0.02),
+            rgba(0, 0, 255, 0.06)
+          );
+        background-size:
+          100% 4px,
+          4px 100%;
+      }
+      .vignette {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 19;
+        box-shadow: inset 0 0 250px rgba(0, 0, 0, 0.95);
+      }
+      #damage-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(
+          circle,
+          transparent 20%,
+          rgba(255, 0, 0, 0.6) 100%
+        );
+        opacity: 0;
+        pointer-events: none;
+        z-index: 18;
+        transition: opacity 0.1s;
+      }
+
+      #crosshair {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 4px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 15;
+        mix-blend-mode: difference;
+        pointer-events: none;
+      }
+      #weapon {
+        position: absolute;
+        bottom: -10%;
+        right: 10%;
+        width: 50vh;
+        height: 50vh;
+        transform-origin: bottom center;
+        filter: drop-shadow(0 0 15px rgba(0, 0, 0, 0.9));
+        pointer-events: none;
+        z-index: 15;
+      }
+      .swing {
+        animation: swingAnim 0.3s ease-in-out;
+      }
+      @keyframes swingAnim {
+        0% {
+          transform: rotate(0deg) translate(0, 0);
+        }
+        50% {
+          transform: rotate(-50deg) translate(-20%, 10%);
+        }
+        100% {
+          transform: rotate(0deg) translate(0, 0);
+        }
+      }
+
+      /* Heads Up Display */
+      #ui {
+        position: absolute;
+        bottom: 30px;
+        left: 30px;
+        z-index: 10;
+        width: 320px;
+        text-shadow: 2px 2px 0 #000;
+        font-weight: bold;
+      }
+      .stat-header {
+        font-size: 1.2rem;
+        margin-bottom: 15px;
+        letter-spacing: 2px;
+      }
+      .bar-wrap {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid #333;
+        height: 20px;
+      }
+      .label {
+        width: 90px;
+        padding-left: 10px;
+        font-size: 0.9rem;
+      }
+      .bar-bg {
+        flex-grow: 1;
+        height: 100%;
+        position: relative;
+      }
+      .bar {
+        height: 100%;
+        width: 100%;
+        transition: width 0.2s ease-out;
+      }
+
+      /* Screens & Menus */
+      .screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(5, 0, 0, 0.95);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+        text-align: center;
+      }
+      .hidden {
+        display: none !important;
+      }
+      h1 {
+        font-size: 5rem;
+        color: var(--red);
+        text-shadow: 0 0 30px var(--red);
+        margin: 0;
+        letter-spacing: 10px;
+      }
+      h2 {
+        font-size: 1.2rem;
+        color: #aaa;
+        margin: 20px 0;
+        max-width: 700px;
+        line-height: 1.6;
+        font-weight: normal;
+      }
+      .controls-box {
+        border: 1px solid #333;
+        padding: 20px;
+        background: rgba(0, 0, 0, 0.5);
+        color: #888;
+        margin-top: 20px;
+        font-size: 1.1rem;
+      }
+      .controls-box b {
+        color: #ccc;
+      }
+
+      button {
+        padding: 15px 50px;
+        font-size: 1.5rem;
+        background: transparent;
+        color: #fff;
+        border: 2px solid var(--red);
+        cursor: pointer;
+        font-family: inherit;
+        font-weight: bold;
+        transition: all 0.3s;
+        text-transform: uppercase;
+        margin-top: 40px;
+        letter-spacing: 3px;
+      }
+      button:hover {
+        background: var(--red);
+        color: #000;
+        box-shadow: 0 0 25px var(--red);
+        transform: scale(1.05);
+      }
+
+      .cards {
+        display: flex;
+        gap: 20px;
+        margin-top: 40px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .card {
+        border: 1px solid #555;
+        padding: 30px 20px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.05);
+        transition: 0.2s;
+        width: 200px;
+        text-align: center;
+      }
+      .card:hover {
+        background: var(--blue);
+        color: #000;
+        border-color: var(--blue);
+        transform: translateY(-10px);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="gl"></canvas>
+    <div class="crt"></div>
+    <div class="vignette"></div>
+    <div id="damage-overlay"></div>
+
+    <svg id="weapon" class="hidden" viewBox="0 0 100 100">
+      <path
+        d="M40,100 L45,30 L35,10 L50,0 L65,10 L55,30 L60,100 Z"
+        fill="#222"
+        stroke="#111"
+        stroke-width="2"
+      />
+      <path d="M45,30 L45,10 L50,0 L55,10 L55,30 Z" fill="#700" opacity="0.8" />
+    </svg>
+    <div id="crosshair" class="hidden"></div>
+
+    <div id="ui" class="hidden">
+      <div class="stat-header">
+        FLOOR <span id="lbl-floor">1</span> &nbsp;|&nbsp; LVL
+        <span id="lbl-lvl">1</span>
+      </div>
+      <div class="bar-wrap">
+        <div class="label">VITALITY</div>
+        <div class="bar-bg">
+          <div class="bar" id="bar-hp" style="background: var(--red)"></div>
+        </div>
+      </div>
+      <div class="bar-wrap">
+        <div class="label">LUCIDITY</div>
+        <div class="bar-bg">
+          <div class="bar" id="bar-san" style="background: var(--purple)"></div>
+        </div>
+      </div>
+      <div class="bar-wrap">
+        <div class="label">ENERGY</div>
+        <div class="bar-bg">
+          <div class="bar" id="bar-bat" style="background: var(--yellow)"></div>
+        </div>
+      </div>
+      <div class="bar-wrap">
+        <div class="label">STAMINA</div>
+        <div class="bar-bg">
+          <div class="bar" id="bar-sta" style="background: var(--green)"></div>
+        </div>
+      </div>
+      <div class="bar-wrap" style="height: 10px">
+        <div class="label" style="font-size: 0.7rem">ESSENCE</div>
+        <div class="bar-bg">
+          <div
+            class="bar"
+            id="bar-xp"
+            style="background: var(--blue); width: 0%"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-title" class="screen">
+      <h1>THE ABERRANT ARCHIVE</h1>
+      <h2>A Procedural Psychological Descent</h2>
+      <div class="controls-box">
+        <b>[WASD]</b> Move &nbsp;|&nbsp; <b>[MOUSE]</b> Look &nbsp;|&nbsp;
+        <b>[SHIFT]</b> Sprint<br /><br />
+        <b>[F]</b> Toggle Flashlight (Saves Energy, but Darkness fractures the
+        Mind)<br />
+        <b>[CLICK]</b> Attack (Consumes 20 Stamina)<br /><br />
+        <i
+          >Find the glowing white pillar to descend. Do not let your mind
+          shatter.</i
+        >
+      </div>
+      <button onclick="initGame()">ENTER THE ABYSS</button>
+    </div>
+
+    <div
+      id="screen-pause"
+      class="screen hidden"
+      style="background: rgba(0, 0, 0, 0.8)"
+    >
+      <h1 style="color: #fff; text-shadow: none">PROTOCOL PAUSED</h1>
+      <button
+        style="border-color: #fff; color: #fff"
+        onclick="document.body.requestPointerLock()"
+      >
+        RESUME
+      </button>
+    </div>
+
+    <div id="screen-lvl" class="screen hidden">
+      <h1 style="color: var(--blue); text-shadow: 0 0 30px var(--blue)">
+        SYSTEM MUTATION
+      </h1>
+      <h2>
+        Your essence expands. Choose an augmentation to survive the depths.
+      </h2>
+      <div class="cards">
+        <div class="card" onclick="upgrade('hp')">
+          <b>VITALITY</b><br /><br />+25 Max Health<br />Full Heal
+        </div>
+        <div class="card" onclick="upgrade('san')">
+          <b>LUCIDITY</b><br /><br />+25 Max Mind<br />Full Restore
+        </div>
+        <div class="card" onclick="upgrade('bat')">
+          <b>EFFICIENCY</b><br /><br />+50 Max Energy<br />Full Charge
+        </div>
+        <div class="card" onclick="upgrade('dmg')">
+          <b>BRUTALITY</b><br /><br />+15 Attack Damage
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-death" class="screen hidden">
+      <h1>CONSCIOUSNESS LOST</h1>
+      <h2>Your physical and mental forms have succumbed to the labyrinth.</h2>
+      <h3 style="color: #ccc; font-size: 1.5rem">
+        FLOORS SURVIVED: <span id="lbl-death-floor"></span>
+      </h3>
+      <button onclick="location.reload()">REAWAKEN ANEW</button>
+    </div>
+
+    <script>
+      /**
+       * THE ABERRANT ARCHIVE - Core Engine
+       * 100% Vanilla ES6 / WebGL2.
+       */
+
+      // --- 1. MATH LIBRARY ---
+      const Math3D = {
+        normalize: (v) => {
+          let l = Math.hypot(v[0], v[1], v[2]);
+          return l ? [v[0] / l, v[1] / l, v[2] / l] : [0, 0, 0];
+        },
+        cross: (a, b) => [
+          a[1] * b[2] - a[2] * b[1],
+          a[2] * b[0] - a[0] * b[2],
+          a[0] * b[1] - a[1] * b[0],
+        ],
+        sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+        perspective: (fov, aspect, n, f) => {
+          let t = Math.tan(fov * 0.5),
+            r = new Float32Array(16);
+          r[0] = 1 / (aspect * t);
+          r[5] = 1 / t;
+          r[10] = -(f + n) / (f - n);
+          r[11] = -1;
+          r[14] = -(2 * f * n) / (f - n);
+          return r;
+        },
+        lookAt: (eye, center, up) => {
+          let z = Math3D.normalize(Math3D.sub(eye, center));
+          let x = Math3D.normalize(Math3D.cross(up, z));
+          let y = Math3D.normalize(Math3D.cross(z, x));
+          let r = new Float32Array(16);
+          r[0] = x[0];
+          r[4] = x[1];
+          r[8] = x[2];
+          r[12] = -(x[0] * eye[0] + x[1] * eye[1] + x[2] * eye[2]);
+          r[1] = y[0];
+          r[5] = y[1];
+          r[9] = y[2];
+          r[13] = -(y[0] * eye[0] + y[1] * eye[1] + y[2] * eye[2]);
+          r[2] = z[0];
+          r[6] = z[1];
+          r[10] = z[2];
+          r[14] = -(z[0] * eye[0] + z[1] * eye[1] + z[2] * eye[2]);
+          r[3] = 0;
+          r[7] = 0;
+          r[11] = 0;
+          r[15] = 1;
+          return r;
+        },
+        multiply: (a, b) => {
+          let r = new Float32Array(16);
+          for (let i = 0; i < 4; i++)
+            for (let j = 0; j < 4; j++)
+              r[j * 4 + i] =
+                a[i] * b[j * 4] +
+                a[i + 4] * b[j * 4 + 1] +
+                a[i + 8] * b[j * 4 + 2] +
+                a[i + 12] * b[j * 4 + 3];
+          return r;
+        },
+      };
+
+      // --- 2. AUDIO SYNTHESIZER ---
+      const Audio = {
+        ctx: null,
+        master: null,
+        droneOsc: null,
+        droneGain: null,
+        lastBeat: 0,
+        init() {
+          if (this.ctx) return;
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+          this.master = this.ctx.createGain();
+          this.master.gain.value = 0.3;
+          this.master.connect(this.ctx.destination);
+
+          this.droneOsc = this.ctx.createOscillator();
+          this.droneOsc.type = "sawtooth";
+          this.droneOsc.frequency.value = 35;
+          this.droneGain = this.ctx.createGain();
+          this.droneGain.gain.value = 0.1;
+
+          let lfo = this.ctx.createOscillator();
+          lfo.frequency.value = 0.1;
+          let lfoGain = this.ctx.createGain();
+          lfoGain.gain.value = 5;
+          lfo.connect(lfoGain);
+          lfoGain.connect(this.droneOsc.frequency);
+
+          let filter = this.ctx.createBiquadFilter();
+          filter.type = "lowpass";
+          filter.frequency.value = 150;
+
+          this.droneOsc.connect(filter);
+          filter.connect(this.droneGain);
+          this.droneGain.connect(this.master);
+          this.droneOsc.start();
+          lfo.start();
+        },
+        play(freq, type, dur, vol, slide = false) {
+          if (!this.ctx) return;
+          let osc = this.ctx.createOscillator(),
+            gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          if (slide)
+            osc.frequency.exponentialRampToValueAtTime(
+              Math.max(1, freq / 4),
+              this.ctx.currentTime + dur,
+            );
+          gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(
+            0.01,
+            this.ctx.currentTime + dur,
+          );
+          osc.connect(gain);
+          gain.connect(this.master);
+          osc.start();
+          osc.stop(this.ctx.currentTime + dur);
+        },
+        heartbeat(hp, san) {
+          if (!this.ctx) return;
+          let stress = 200 - (hp + san);
+          let rate = Math.max(0.3, 1.2 - stress / 200);
+
+          this.droneGain.gain.setTargetAtTime(
+            0.1 + (stress / 200) * 0.3,
+            this.ctx.currentTime,
+            0.5,
+          );
+          this.droneOsc.frequency.setTargetAtTime(
+            35 + (stress / 200) * 25,
+            this.ctx.currentTime,
+            0.5,
+          );
+
+          if (this.ctx.currentTime - this.lastBeat > rate) {
+            this.lastBeat = this.ctx.currentTime;
+            this.play(45, "sine", 0.4, 0.6 + (stress / 200) * 0.4);
+            setTimeout(
+              () => this.play(50, "sine", 0.3, 0.4 + (stress / 200) * 0.4),
+              180,
+            );
+          }
+        },
+      };
+
+      // --- 3. WEBGL2 SHADERS ---
+      const vertSrc = `#version 300 es
+layout(location=0) in vec3 a_pos;
+layout(location=1) in vec3 a_norm;
+layout(location=2) in vec3 a_instPos;
+layout(location=3) in float a_type;
+uniform mat4 u_vp; uniform float u_time;
+out vec3 v_worldPos; out vec3 v_norm; out float v_type;
+
+void main() {
+    v_type = a_type;
+    vec3 pos = a_pos;
+    vec3 norm = a_norm;
+
+    if(v_type >= 3.0) {
+        float scale = (v_type == 3.0) ? 0.4 : 0.15;
+        if(v_type == 7.0) { scale = 0.5; pos.y *= 3.0; } // Exit Pillar
+        pos *= scale;
+        
+        float t = u_time * (v_type == 3.0 ? 2.0 : 1.0) + a_instPos.x;
+        float s = sin(t), c = cos(t);
+        pos = vec3(pos.x*c - pos.z*s, pos.y, pos.x*s + pos.z*c);
+        norm = vec3(norm.x*c - norm.z*s, norm.y, norm.x*s + norm.z*c);
+        pos.y += sin(u_time * 3.0 + a_instPos.z) * 0.2;
+    }
+
+    v_worldPos = pos + a_instPos; v_norm = norm;
+    gl_Position = u_vp * vec4(v_worldPos, 1.0);
+}`;
+
+      const fragSrc = `#version 300 es
+precision highp float;
+in vec3 v_worldPos; in vec3 v_norm; in float v_type;
+out vec4 outColor;
+uniform vec3 u_viewPos; uniform vec3 u_viewDir;
+uniform float u_time; uniform float u_sanity;
+uniform float u_battery; uniform float u_flashOn;
+
+float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+float noise(vec2 p) {
+    vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3.0-2.0*f);
+    return mix(mix(hash(i), hash(i + vec2(1.0,0.0)), u.x), mix(hash(i + vec2(0.0,1.0)), hash(i + vec2(1.0,1.0)), u.x), u.y);
+}
+float fbm(vec2 p) { float v = 0.0, a = 0.5; for(int i=0; i<3; i++) { v += a * noise(p); p *= 2.0; a *= 0.5; } return v; }
+
+void main() {
+    vec3 baseColor = vec3(0.1); float emissive = 0.0;
+    vec2 wp = v_worldPos.xz;
+
+    if(v_type == 0.0) { 
+        baseColor = mix(vec3(0.05), vec3(0.12, 0.15, 0.12), fbm(wp * 4.0));
+        vec2 grid = fract(wp * 0.5); if(grid.x < 0.05 || grid.y < 0.05) baseColor *= 0.3;
+    } else if(v_type == 1.0) { 
+        baseColor = mix(vec3(0.12, 0.1, 0.1), vec3(0.03), fbm(vec2(v_worldPos.x*3.0 + v_worldPos.z*3.0, v_worldPos.y*3.0)));
+        float timeFactor = u_time * (u_sanity < 0.2 ? 3.0 : 0.1);
+        float blood = fbm(vec2(v_worldPos.x*2.0 + v_worldPos.z*2.0, v_worldPos.y*2.0 - timeFactor));
+        if(blood > 0.6 && v_worldPos.y < 1.5) baseColor = mix(baseColor, vec3(0.4, 0.0, 0.0), (blood-0.6)*2.5);
+    } else if(v_type == 2.0) { 
+        baseColor = mix(vec3(0.03), vec3(0.01), fbm(wp * 5.0));
+    } else if(v_type == 3.0) { 
+        baseColor = mix(vec3(0.2, 0.0, 0.0), vec3(1.0, 0.0, 0.0), sin(u_time * 5.0 + v_worldPos.y * 10.0) * 0.5 + 0.5); emissive = 0.8;
+    } else if(v_type == 4.0) { baseColor = vec3(0.1, 1.0, 0.1); emissive = 1.0; } 
+    else if(v_type == 5.0) { baseColor = vec3(0.5, 0.1, 1.0); emissive = 1.0; } 
+    else if(v_type == 6.0) { baseColor = vec3(1.0, 0.8, 0.1); emissive = 1.0; } 
+    else if(v_type == 7.0) { baseColor = vec3(1.0, 1.0, 1.0); emissive = max(0.2, sin(u_time*3.0)); } 
+    
+    vec3 lDir = normalize(u_viewPos - v_worldPos);
+    float dist = length(u_viewPos - v_worldPos);
+    float spot = smoothstep(0.8, 0.95, dot(-lDir, u_viewDir));
+    
+    float flicker = 1.0;
+    if(u_battery < 20.0 && u_battery > 0.0) flicker = noise(vec2(u_time*20.0, 0.0)) > 0.4 ? 1.0 : 0.2;
+    if(u_battery <= 0.0) spot = 0.0;
+    
+    vec3 diffuse = baseColor * max(dot(normalize(v_norm), lDir), 0.0) * (1.0 / (1.0 + 0.05 * dist + 0.01 * dist * dist)) * spot * flicker * u_flashOn * 3.0;
+    vec3 finalColor = (baseColor * 0.015) + diffuse + (baseColor * emissive * exp(-dist*0.15));
+    
+    float fog = exp(-pow(dist * (0.12 - u_sanity * 0.05), 2.0));
+    vec3 fogColor = vec3(0.0);
+    
+    if(u_sanity < 0.4) {
+        finalColor.r += fbm(gl_FragCoord.xy * 0.01 + u_time) * (0.4 - u_sanity);
+        fogColor.r = (0.4 - u_sanity) * 0.8;
+    }
+    
+    finalColor = mix(fogColor, finalColor, fog) - (sin(v_worldPos.y * 50.0) * 0.05);
+    outColor = vec4(finalColor, 1.0);
+}`;
+
+      // --- 4. GAME VARIABLES & DOM ---
+      let gl, prog, locs, instBuffer;
+      let mapW,
+        mapH,
+        map,
+        floor = 1,
+        currentFov = 70,
+        staticInstCount = 0;
+      let player = {},
+        entities = [],
+        keys = {},
+        state = "MENU",
+        lastTime = 0,
+        moving = false;
+      let instData = new Float32Array(15000 * 4); // Max 15k instances
+
+      const UI = {
+        hp: null,
+        san: null,
+        bat: null,
+        sta: null,
+        xp: null,
+        floor: null,
+        lvl: null,
+        init() {
+          ["hp", "san", "bat", "sta", "xp"].forEach(
+            (k) => (this[k] = document.getElementById(`bar-${k}`)),
+          );
+          this.floor = document.getElementById("lbl-floor");
+          this.lvl = document.getElementById("lbl-lvl");
+        },
+        update() {
+          this.hp.style.width = (player.hp / player.maxHp) * 100 + "%";
+          this.san.style.width = (player.san / player.maxSan) * 100 + "%";
+          this.bat.style.width = (player.bat / player.maxBat) * 100 + "%";
+          this.sta.style.width = (player.sta / player.maxSta) * 100 + "%";
+          this.xp.style.width = (player.xp / (player.lvl * 100)) * 100 + "%";
+          this.floor.innerText = floor;
+          this.lvl.innerText = player.lvl;
+        },
+      };
+
+      // --- 5. GAME LOGIC ---
+      function isWall(x, z) {
+        let cx = Math.floor(x / 2 + 0.5),
+          cz = Math.floor(z / 2 + 0.5);
+        if (cx < 0 || cx >= mapW || cz < 0 || cz >= mapH) return true;
+        return map[cz][cx] === 1;
+      }
+
+      function generateMap() {
+        mapW = 15 + floor * 3;
+        mapH = mapW;
+        map = Array.from({ length: mapH }, () => Array(mapW).fill(1));
+        let px = Math.floor(mapW / 2),
+          pz = Math.floor(mapH / 2);
+        map[pz][px] = 0;
+        let empty = [[px, pz]],
+          carved = 1,
+          target = mapW * mapH * 0.4;
+
+        while (carved < target) {
+          let d = [
+            [0, 1],
+            [0, -1],
+            [1, 0],
+            [-1, 0],
+          ][Math.floor(Math.random() * 4)];
+          let nx = px + d[0],
+            nz = pz + d[1];
+          if (nx > 1 && nx < mapW - 2 && nz > 1 && nz < mapH - 2) {
+            px = nx;
+            pz = nz;
+            if (map[pz][px] === 1) {
+              map[pz][px] = 0;
+              carved++;
+              empty.push([px, pz]);
+            }
+          } else {
+            let r = empty[Math.floor(Math.random() * empty.length)];
+            px = r[0];
+            pz = r[1];
+          }
+        }
+        return empty;
+      }
+
+      function startFloor() {
+        let empty = generateMap();
+        let start = empty.shift();
+        player.x = start[0] * 2;
+        player.z = start[1] * 2;
+
+        let exit = empty.pop();
+        entities = [{ type: 7, x: exit[0] * 2, y: 0, z: exit[1] * 2 }];
+
+        for (let i = 0; i < floor * 2 + 2; i++) {
+          let r = empty[Math.floor(Math.random() * empty.length)];
+          entities.push({
+            type: 3,
+            x: r[0] * 2,
+            y: 0.5,
+            z: r[1] * 2,
+            hp: 40 + floor * 15,
+            speed: 2.5 + floor * 0.2,
+            cooldown: 0,
+            dmg: 15 + floor * 5,
+          });
+        }
+
+        for (let i = 0; i < 4 + Math.floor(floor / 2); i++) {
+          let r = empty[Math.floor(Math.random() * empty.length)];
+          entities.push({
+            type: 4 + Math.floor(Math.random() * 3),
+            x: r[0] * 2,
+            y: 0.15,
+            z: r[1] * 2,
+          });
+        }
+
+        let i = 0;
+        for (let z = 0; z < mapH; z++) {
+          for (let x = 0; x < mapW; x++) {
+            instData[i++] = x * 2;
+            instData[i++] = -1.0;
+            instData[i++] = z * 2;
+            instData[i++] = 0; // Floor
+            instData[i++] = x * 2;
+            instData[i++] = 3.0;
+            instData[i++] = z * 2;
+            instData[i++] = 2; // Ceiling
+            if (map[z][x] === 1) {
+              instData[i++] = x * 2;
+              instData[i++] = 1.0;
+              instData[i++] = z * 2;
+              instData[i++] = 1;
+            } // Wall
+          }
+        }
+        staticInstCount = i / 4;
+      }
+
+      function resetPlayer() {
+        player = {
+          x: 0,
+          y: 0.5,
+          z: 0,
+          yaw: 0,
+          pitch: 0,
+          bob: 0,
+          hp: 100,
+          maxHp: 100,
+          san: 100,
+          maxSan: 100,
+          bat: 100,
+          maxBat: 100,
+          sta: 100,
+          maxSta: 100,
+          xp: 0,
+          lvl: 1,
+          dmg: 35,
+          flashlight: true,
+          attackCooldown: 0,
+        };
+        currentFov = 70;
+      }
+
+      function checkLevelUp() {
+        if (player.xp >= player.lvl * 100) {
+          player.xp -= player.lvl * 100;
+          player.lvl++;
+          state = "LEVELUP";
+          document.exitPointerLock();
+          document.getElementById("screen-lvl").classList.remove("hidden");
+          Audio.play(600, "sine", 0.6, 0.5);
+        }
+      }
+
+      window.upgrade = function (stat) {
+        if (stat === "hp") {
+          player.maxHp += 25;
+          player.hp = player.maxHp;
+        }
+        if (stat === "san") {
+          player.maxSan += 25;
+          player.san = player.maxSan;
+        }
+        if (stat === "bat") {
+          player.maxBat += 50;
+          player.bat = player.maxBat;
+        }
+        if (stat === "dmg") {
+          player.dmg += 15;
+        }
+        document.body.requestPointerLock();
+      };
+
+      function flashDamage() {
+        let el = document.getElementById("damage-overlay");
+        el.style.opacity = "1";
+        setTimeout(() => (el.style.opacity = "0"), 150);
+      }
+
+      function attack() {
+        if (player.sta < 20) return;
+        player.sta -= 20;
+        player.attackCooldown = 0.4;
+
+        document.getElementById("weapon").classList.add("swing");
+        setTimeout(
+          () => document.getElementById("weapon").classList.remove("swing"),
+          200,
+        );
+        Audio.play(120, "square", 0.2, 0.4, true);
+
+        for (let i = 0; i < entities.length; i++) {
+          let e = entities[i];
+          if (e.type === 3) {
+            let dx = e.x - player.x,
+              dz = e.z - player.z,
+              dist = Math.hypot(dx, dz);
+            if (
+              dist < 5.0 &&
+              (dx / dist) * Math.sin(player.yaw) +
+                (dz / dist) * Math.cos(player.yaw) >
+                0.7
+            ) {
+              e.hp -= player.dmg;
+              e.x += (dx / dist) * 1.5;
+              e.z += (dz / dist) * 1.5;
+              Audio.play(80, "sawtooth", 0.1, 0.6);
+              if (e.hp <= 0) {
+                player.xp += 50 + floor * 20;
+                entities.splice(i, 1);
+                i--;
+                Audio.play(40, "sawtooth", 0.5, 0.8, true);
+                checkLevelUp();
+              }
+            }
+          }
+        }
+      }
+
+      function updateEntities(dt) {
+        for (let i = 0; i < entities.length; i++) {
+          let e = entities[i];
+          let dx = player.x - e.x,
+            dz = player.z - e.z,
+            dist = Math.hypot(dx, dz);
+
+          if (e.type === 3) {
+            if (dist < 20) {
+              let speed = e.speed;
+              if (
+                player.flashlight &&
+                player.bat > 0 &&
+                (-dx / dist) * Math.sin(player.yaw) +
+                  (-dz / dist) * Math.cos(player.yaw) >
+                  0.8
+              )
+                speed *= 0.2;
+              speed *= dt;
+
+              let mx = (dx / dist) * speed,
+                mz = (dz / dist) * speed,
+                moved = false;
+              if (!isWall(e.x + mx, e.z)) {
+                e.x += mx;
+                moved = true;
+              }
+              if (!isWall(e.x, e.z + mz)) {
+                e.z += mz;
+                moved = true;
+              }
+              if (!moved) {
+                e.x += (Math.random() - 0.5) * speed * 2;
+                e.z += (Math.random() - 0.5) * speed * 2;
+              }
+
+              if (dist < 1.5 && e.cooldown <= 0) {
+                player.hp -= e.dmg;
+                e.cooldown = 1.0;
+                flashDamage();
+                Audio.play(150, "sawtooth", 0.5, 0.8, true);
+                player.x += (dx / dist) * 0.5;
+                player.z += (dz / dist) * 0.5;
+              }
+            }
+            if (e.cooldown > 0) e.cooldown -= dt;
+            if (dist < 8) player.san -= dt * 3.0 * (1.0 - dist / 8.0);
+          } else if (dist < 1.5) {
+            if (e.type === 4) {
+              player.hp = Math.min(player.maxHp, player.hp + 50);
+              Audio.play(600, "sine", 0.2, 0.4);
+              entities.splice(i, 1);
+              i--;
+            } else if (e.type === 5) {
+              player.san = Math.min(player.maxSan, player.san + 50);
+              Audio.play(800, "sine", 0.2, 0.4);
+              entities.splice(i, 1);
+              i--;
+            } else if (e.type === 6) {
+              player.bat = Math.min(player.maxBat, player.bat + 60);
+              Audio.play(1000, "sine", 0.2, 0.4);
+              entities.splice(i, 1);
+              i--;
+            } else if (e.type === 7) {
+              floor++;
+              Audio.play(300, "square", 1.0, 0.5);
+              startFloor();
+              return;
+            }
+          }
+        }
+      }
+
+      // --- 6. CORE LOOP & INPUT ---
+      window.initGame = function () {
+        Audio.init();
+        floor = 1;
+        resetPlayer();
+        startFloor();
+        document.getElementById("screen-title").classList.add("hidden");
+        document.getElementById("ui").classList.remove("hidden");
+        document.getElementById("weapon").classList.remove("hidden");
+        document.getElementById("crosshair").classList.remove("hidden");
+        document.body.requestPointerLock();
+        state = "PLAY";
+        lastTime = performance.now();
+        requestAnimationFrame(loop);
+      };
+
+      window.onkeydown = (e) => {
+        keys[e.code] = true;
+        if (e.code === "KeyF" && state === "PLAY") {
+          player.flashlight = !player.flashlight;
+          Audio.play(800, "square", 0.1, 0.1);
+        }
+      };
+      window.onkeyup = (e) => (keys[e.code] = false);
+      document.onmousemove = (e) => {
+        if (document.pointerLockElement) {
+          player.yaw -= e.movementX * 0.002;
+          player.pitch -= e.movementY * 0.002;
+          player.pitch = Math.max(-1.5, Math.min(1.5, player.pitch));
+        }
+      };
+      document.onmousedown = () => {
+        if (
+          document.pointerLockElement &&
+          state === "PLAY" &&
+          player.attackCooldown <= 0
+        )
+          attack();
+      };
+
+      document.addEventListener("pointerlockchange", () => {
+        if (!document.pointerLockElement) {
+          if (state === "PLAY") {
+            state = "PAUSE";
+            document.getElementById("screen-pause").classList.remove("hidden");
+          }
+        } else {
+          if (state === "PAUSE") {
+            state = "PLAY";
+            document.getElementById("screen-pause").classList.add("hidden");
+            lastTime = performance.now();
+          } else if (state === "LEVELUP") {
+            state = "PLAY";
+            document.getElementById("screen-lvl").classList.add("hidden");
+            lastTime = performance.now();
+          }
+        }
+      });
+
+      function loop(time) {
+        let dt = (time - lastTime) / 1000;
+        lastTime = time;
+        if (dt > 0.1) dt = 0.1;
+
+        if (state === "PLAY") {
+          let speed = 4.0 * dt;
+          if (keys["ShiftLeft"] && player.sta > 0) {
+            speed *= 1.6;
+            player.sta -= 25 * dt;
+          } else player.sta = Math.min(player.maxSta, player.sta + 15 * dt);
+
+          let mx = 0,
+            mz = 0;
+          if (keys["KeyW"]) {
+            mx += Math.sin(player.yaw);
+            mz += Math.cos(player.yaw);
+          }
+          if (keys["KeyS"]) {
+            mx -= Math.sin(player.yaw);
+            mz -= Math.cos(player.yaw);
+          }
+          if (keys["KeyA"]) {
+            mx -= Math.cos(player.yaw);
+            mz += Math.sin(player.yaw);
+          }
+          if (keys["KeyD"]) {
+            mx += Math.cos(player.yaw);
+            mz -= Math.sin(player.yaw);
+          }
+
+          let len = Math.hypot(mx, mz);
+          if (len > 0) {
+            mx = (mx / len) * speed;
+            mz = (mz / len) * speed;
+            if (!isWall(player.x + mx, player.z)) player.x += mx;
+            if (!isWall(player.x, player.z + mz)) player.z += mz;
+            player.bob += dt * (keys["ShiftLeft"] && player.sta > 0 ? 12 : 8);
+            moving = true;
+          } else {
+            player.bob += dt * 2;
+            moving = false;
+          }
+
+          player.y = 0.5 + Math.sin(player.bob) * (moving ? 0.08 : 0.02);
+          currentFov +=
+            ((keys["ShiftLeft"] && player.sta > 0 && moving ? 85 : 70) -
+              currentFov) *
+            10 *
+            dt;
+          if (player.attackCooldown > 0) player.attackCooldown -= dt;
+
+          if (player.flashlight && player.bat > 0) {
+            player.bat -= dt * 1.5;
+            if (player.bat <= 0) {
+              player.bat = 0;
+              player.flashlight = false;
+            }
+            player.san = Math.min(player.maxSan, player.san + dt * 1.0);
+          } else player.san -= dt * 4.0;
+
+          if (player.san <= 0) player.hp -= dt * 3.0;
+
+          if (player.hp <= 0) {
+            state = "DEATH";
+            document.exitPointerLock();
+            document.getElementById("screen-death").classList.remove("hidden");
+            document.getElementById("lbl-death-floor").innerText = floor;
+            document.getElementById("ui").classList.add("hidden");
+            document.getElementById("weapon").classList.add("hidden");
+            document.getElementById("crosshair").classList.add("hidden");
+          }
+
+          updateEntities(dt);
+          Audio.heartbeat(player.hp, player.san);
+          UI.update();
+          render(time / 1000);
+        }
+        requestAnimationFrame(loop);
+      }
+
+      // --- 7. RENDERER ---
+      function render(timeSec) {
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.enable(gl.DEPTH_TEST);
+        gl.enable(gl.CULL_FACE);
+
+        let proj = Math3D.perspective(
+          (currentFov * Math.PI) / 180,
+          canvas.width / canvas.height,
+          0.1,
+          100.0,
+        );
+        let center = [
+          player.x + Math.sin(player.yaw) * Math.cos(player.pitch),
+          player.y + Math.sin(player.pitch),
+          player.z + Math.cos(player.yaw) * Math.cos(player.pitch),
+        ];
+        let viewProj = Math3D.multiply(
+          proj,
+          Math3D.lookAt([player.x, player.y, player.z], center, [0, 1, 0]),
+        );
+
+        gl.useProgram(prog);
+        gl.uniformMatrix4fv(locs.vp, false, viewProj);
+        gl.uniform3f(locs.viewPos, player.x, player.y, player.z);
+        gl.uniform3f(
+          locs.viewDir,
+          Math.sin(player.yaw) * Math.cos(player.pitch),
+          Math.sin(player.pitch),
+          Math.cos(player.yaw) * Math.cos(player.pitch),
+        );
+        gl.uniform1f(locs.time, timeSec);
+        gl.uniform1f(locs.sanity, player.san / player.maxSan);
+        gl.uniform1f(locs.battery, player.bat);
+        gl.uniform1f(locs.flashOn, player.flashlight ? 1.0 : 0.0);
+
+        let dynI = staticInstCount * 4;
+        for (let e of entities) {
+          instData[dynI++] = e.x;
+          instData[dynI++] = e.y;
+          instData[dynI++] = e.z;
+          instData[dynI++] = e.type;
+        }
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, instBuffer);
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, instData.subarray(0, dynI));
+        gl.drawArraysInstanced(gl.TRIANGLES, 0, 36, dynI / 4);
+      }
+
+      // --- 8. INITIALIZATION ---
+      window.onload = () => {
+        canvas = document.getElementById("gl");
+        gl = canvas.getContext("webgl2", { antialias: false });
+        if (!gl) {
+          alert("WebGL2 required.");
+          return;
+        }
+
+        UI.init();
+
+        let compile = (type, src) => {
+          let s = gl.createShader(type);
+          gl.shaderSource(s, src);
+          gl.compileShader(s);
+          if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+            console.error(gl.getShaderInfoLog(s));
+          return s;
+        };
+        prog = gl.createProgram();
+        gl.attachShader(prog, compile(gl.VERTEX_SHADER, vertSrc));
+        gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fragSrc));
+        gl.linkProgram(prog);
+
+        locs = {
+          vp: gl.getUniformLocation(prog, "u_vp"),
+          viewPos: gl.getUniformLocation(prog, "u_viewPos"),
+          viewDir: gl.getUniformLocation(prog, "u_viewDir"),
+          time: gl.getUniformLocation(prog, "u_time"),
+          sanity: gl.getUniformLocation(prog, "u_sanity"),
+          battery: gl.getUniformLocation(prog, "u_battery"),
+          flashOn: gl.getUniformLocation(prog, "u_flashOn"),
+        };
+
+        const cV = new Float32Array([
+          -1, -1, 1, 1, -1, 1, 1, 1, 1, 1, 1, 1, -1, 1, 1, -1, -1, 1, -1, -1,
+          -1, -1, 1, -1, 1, 1, -1, 1, 1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1,
+          -1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1, -1, 1, -1, -1, -1, -1, 1, -1,
+          -1, 1, -1, 1, 1, -1, 1, -1, -1, 1, -1, -1, -1, 1, -1, -1, 1, 1, -1, 1,
+          1, 1, 1, 1, 1, 1, -1, 1, 1, -1, -1, -1, -1, -1, -1, -1, 1, -1, 1, 1,
+          -1, 1, 1, -1, 1, -1, -1, -1, -1,
+        ]);
+        const cN = new Float32Array([
+          0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0,
+          -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 1, 0, 0, 1, 0, 0, 1, 0,
+          0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0,
+          -1, 0, 0, -1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
+          -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0,
+        ]);
+
+        let vao = gl.createVertexArray();
+        gl.bindVertexArray(vao);
+        let vbo = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+        gl.bufferData(gl.ARRAY_BUFFER, cV, gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+        let nbo = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, nbo);
+        gl.bufferData(gl.ARRAY_BUFFER, cN, gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(1);
+        gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+
+        instBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, instBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, 15000 * 16, gl.DYNAMIC_DRAW);
+        gl.enableVertexAttribArray(2);
+        gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 16, 0);
+        gl.vertexAttribDivisor(2, 1);
+        gl.enableVertexAttribArray(3);
+        gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 16, 12);
+        gl.vertexAttribDivisor(3, 1);
+
+        window.onresize = () => {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+        };
+        window.onresize();
+      };
+    </script>
+  </body>
+</html>
