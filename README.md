@@ -72,3 +72,8 @@ Then open:
 ## Why This Exists
 
 The goal is simple: make generated game artifacts publicly playable and easy to compare, so anyone can judge quality hands-on rather than by screenshots or claims.
+
+## License and Disclaimer
+
+- Licensed under the [MIT License](./LICENSE).
+- This repository contains AI-generated benchmark outputs and is provided **as is**, without warranty of any kind.
