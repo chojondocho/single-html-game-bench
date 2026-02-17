@@ -24,13 +24,13 @@ As of **February 17, 2026**, based on direct hands-on play testing:
 | ---- | ------------------------------- | -------------------------------------------------------------------------------------------- |
 | 1    | Claude Code - Opus 4.6          | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-opus-4-6.html)        |
 | 2    | ChatGPT - GPT-5.2 Pro           | [Play](https://chojondocho.github.io/single-html-game-bench/chatgpt-gpt-5-2-pro.html)        |
-| 3    | Codex - GPT-5.3 Codex High      | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-5-3-codex-high.html)   |
-| 4    | Antigravity - Opus 4.6          | [Play](https://chojondocho.github.io/single-html-game-bench/antigravity-opus-4-6.html)       |
-| 5    | Antigravity - Gemini 3 Pro      | [Play](https://chojondocho.github.io/single-html-game-bench/antigravity-gemini-3-pro.html)   |
-| 6    | Codex - GPT-5.3 Codex XHigh     | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-5-3-codex-xhigh.html)  |
-| 7    | Antigravity - Gemini 3 Flash    | [Play](https://chojondocho.github.io/single-html-game-bench/antigravity-gemini-3-flash.html) |
-| 8    | Grok Web - Grok 4.20 (4 Agents) | [Play](https://chojondocho.github.io/single-html-game-bench/grokweb-grok-4-20-4agents.html)  |
-| 9    | Gemini Web - Gemini 3.1 Pro Deepthink | [Play](https://chojondocho.github.io/single-html-game-bench/geminiweb-gemini-3-1-pro-deepthink.html)  |
+| 3    | Gemini Web - Gemini 3.1 Pro Deepthink | [Play](https://chojondocho.github.io/single-html-game-bench/geminiweb-gemini-3-1-pro-deepthink.html)  |
+| 4    | Codex - GPT-5.3 Codex High      | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-5-3-codex-high.html)   |
+| 5    | Antigravity - Opus 4.6          | [Play](https://chojondocho.github.io/single-html-game-bench/antigravity-opus-4-6.html)       |
+| 6    | Antigravity - Gemini 3 Pro      | [Play](https://chojondocho.github.io/single-html-game-bench/antigravity-gemini-3-pro.html)   |
+| 7    | Codex - GPT-5.3 Codex XHigh     | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-5-3-codex-xhigh.html)  |
+| 8    | Antigravity - Gemini 3 Flash    | [Play](https://chojondocho.github.io/single-html-game-bench/antigravity-gemini-3-flash.html) |
+| 9    | Grok Web - Grok 4.20 (4 Agents) | [Play](https://chojondocho.github.io/single-html-game-bench/grokweb-grok-4-20-4agents.html)  |
 
 ## All Playable Builds (Direct Links)
 
