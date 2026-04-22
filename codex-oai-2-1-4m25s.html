@@ -1,0 +1,2828 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Echoes Beneath the Chancel</title>
+  <style>
+    :root {
+      --bg: #040507;
+      --panel: rgba(10, 12, 18, 0.78);
+      --panel-strong: rgba(18, 20, 28, 0.92);
+      --line: rgba(255, 255, 255, 0.14);
+      --text: #f2ede1;
+      --muted: #9c9485;
+      --gold: #c7a56a;
+      --crimson: #cf5454;
+      --teal: #78c7ca;
+      --lime: #9ac48a;
+      --shadow: 0 24px 90px rgba(0, 0, 0, 0.5);
+      --font-head: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+      --font-ui: "Trebuchet MS", "Avenir Next", Verdana, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background:
+        radial-gradient(circle at 20% 15%, rgba(122, 23, 23, 0.22), transparent 32%),
+        radial-gradient(circle at 80% 10%, rgba(20, 72, 76, 0.18), transparent 25%),
+        linear-gradient(180deg, #090b10 0%, #030405 100%);
+      color: var(--text);
+      overflow: hidden;
+      font-family: var(--font-ui);
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    #game {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      image-rendering: auto;
+      background: #020304;
+      display: block;
+    }
+
+    #frame {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 16%, transparent 84%, rgba(0, 0, 0, 0.2)),
+        radial-gradient(circle at center, transparent 45%, rgba(0, 0, 0, 0.72) 100%);
+      mix-blend-mode: screen;
+      opacity: 0.5;
+    }
+
+    #hud {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: minmax(220px, 300px) 1fr minmax(240px, 320px);
+      gap: 18px;
+      padding: 18px;
+      pointer-events: none;
+    }
+
+    .panel {
+      align-self: start;
+      padding: 16px 16px 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(15, 17, 23, 0.86), rgba(7, 8, 11, 0.72));
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+    }
+
+    #hud-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #objective {
+      margin-top: 4px;
+      width: min(720px, 100%);
+      padding: 14px 20px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: linear-gradient(180deg, rgba(18, 21, 28, 0.78), rgba(8, 9, 13, 0.68));
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.5;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      box-shadow: var(--shadow);
+    }
+
+    #prompt {
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.48);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+      transition: opacity 0.2s ease;
+    }
+
+    .eyebrow {
+      color: var(--gold);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .title-lg {
+      font-family: var(--font-head);
+      font-size: 22px;
+      line-height: 1.05;
+      margin: 0 0 10px;
+      letter-spacing: 0.04em;
+      text-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+      font-size: 13px;
+    }
+
+    .stat-card {
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .stat-card strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 16px;
+      color: var(--text);
+      letter-spacing: 0.04em;
+    }
+
+    .bars {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .bar-row {
+      display: grid;
+      gap: 6px;
+    }
+
+    .bar-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .bar {
+      height: 11px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .fill {
+      height: 100%;
+      border-radius: inherit;
+      transition: width 0.1s linear;
+    }
+
+    .fill.hp {
+      background: linear-gradient(90deg, #6d1d22, #d06d62);
+    }
+
+    .fill.sanity {
+      background: linear-gradient(90deg, #0b5561, #72d1d1);
+    }
+
+    .fill.xp {
+      background: linear-gradient(90deg, #73531d, #d8b66c);
+    }
+
+    #minimap-wrap {
+      display: grid;
+      gap: 12px;
+    }
+
+    #minimap {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.22);
+    }
+
+    #messages {
+      display: grid;
+      gap: 8px;
+      min-height: 140px;
+    }
+
+    .message {
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 12px;
+      line-height: 1.45;
+      color: #d9d2c6;
+    }
+
+    .message.bad {
+      border-color: rgba(207, 84, 84, 0.24);
+      color: #f1b0ad;
+    }
+
+    .message.good {
+      border-color: rgba(154, 196, 138, 0.28);
+      color: #cde8c3;
+    }
+
+    .message.ritual {
+      border-color: rgba(199, 165, 106, 0.24);
+      color: #ead7ae;
+    }
+
+    .small-note {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    #overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      background:
+        radial-gradient(circle at center, rgba(12, 14, 20, 0.36), rgba(2, 3, 4, 0.82)),
+        linear-gradient(180deg, rgba(0, 0, 0, 0.24), rgba(0, 0, 0, 0.66));
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    #overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .overlay-card {
+      width: min(980px, 100%);
+      max-height: 90vh;
+      overflow: auto;
+      padding: 28px;
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background:
+        linear-gradient(180deg, rgba(16, 19, 26, 0.98), rgba(6, 7, 10, 0.95)),
+        radial-gradient(circle at top, rgba(207, 84, 84, 0.12), transparent 35%);
+      box-shadow: var(--shadow);
+    }
+
+    .overlay-card h1,
+    .overlay-card h2 {
+      margin: 0 0 10px;
+      font-family: var(--font-head);
+      letter-spacing: 0.04em;
+    }
+
+    .overlay-card h1 {
+      font-size: clamp(34px, 6vw, 72px);
+      line-height: 0.92;
+    }
+
+    .overlay-card h2 {
+      font-size: clamp(24px, 4vw, 38px);
+      line-height: 1;
+    }
+
+    .subtitle {
+      color: #cdc3b4;
+      max-width: 740px;
+      font-size: 16px;
+      line-height: 1.7;
+      margin: 0 0 22px;
+    }
+
+    .class-grid,
+    .choice-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin: 20px 0 26px;
+    }
+
+    .class-card,
+    .choice-card {
+      position: relative;
+      padding: 18px 18px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      text-align: left;
+      cursor: pointer;
+      color: var(--text);
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .class-card:hover,
+    .choice-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.24);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .class-card.selected {
+      border-color: rgba(199, 165, 106, 0.62);
+      box-shadow: inset 0 0 0 1px rgba(199, 165, 106, 0.32), 0 18px 45px rgba(0, 0, 0, 0.18);
+      background:
+        linear-gradient(180deg, rgba(199, 165, 106, 0.08), rgba(255, 255, 255, 0.02));
+    }
+
+    .card-name {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-family: var(--font-head);
+      margin-bottom: 8px;
+    }
+
+    .card-tag {
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 10px;
+      font-family: var(--font-ui);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .card-desc {
+      color: #c8c0b0;
+      font-size: 13px;
+      line-height: 1.55;
+      margin-bottom: 14px;
+    }
+
+    .card-bullets {
+      display: grid;
+      gap: 6px;
+      color: #d9d2c6;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 14px 22px;
+      font: inherit;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease, filter 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    .btn-primary {
+      color: #170d08;
+      background: linear-gradient(180deg, #d9b26b, #9b6b2a);
+      box-shadow: 0 12px 28px rgba(155, 107, 42, 0.35);
+    }
+
+    .btn-secondary {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin: 20px 0 26px;
+    }
+
+    .summary-card {
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .summary-card .k {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .summary-card .v {
+      margin-top: 8px;
+      font-size: 28px;
+      font-family: var(--font-head);
+    }
+
+    .controls {
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 1100px) {
+      #hud {
+        grid-template-columns: 1fr;
+        align-content: start;
+      }
+
+      #hud-left,
+      #hud-right {
+        max-width: 420px;
+      }
+
+      #objective {
+        margin-top: 0;
+      }
+
+      .panel {
+        backdrop-filter: blur(8px);
+      }
+    }
+
+    @media (max-width: 700px) {
+      #hud {
+        padding: 10px;
+        gap: 10px;
+      }
+
+      .overlay-card {
+        padding: 20px;
+        border-radius: 20px;
+      }
+
+      #objective {
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="game" width="480" height="270"></canvas>
+    <div id="frame" aria-hidden="true"></div>
+    <div id="hud">
+      <div id="hud-left" class="panel"></div>
+      <div id="hud-center">
+        <div id="objective"></div>
+        <div id="prompt"></div>
+      </div>
+      <div id="hud-right" class="panel">
+        <div id="minimap-wrap">
+          <canvas id="minimap" width="160" height="160"></canvas>
+          <div id="messages"></div>
+          <div class="small-note">
+            WASD move · Mouse / arrows turn · Click or Space strike · Right click / F lantern burst · E interact · Q salve · R tonic
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="overlay"></div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const GAME_W = 480;
+      const GAME_H = 270;
+      const TEX_SIZE = 64;
+      const FINAL_FLOOR = 4;
+      const STORAGE_KEY = "echoes-beneath-the-chancel-meta-v1";
+      const FLOOR_NAMES = [
+        "The Bone Vestibule",
+        "The Ward of Sleepless Bells",
+        "The Root Crypt",
+        "The Red Choir"
+      ];
+      const FLOOR_FOG = [
+        [18, 20, 30],
+        [22, 18, 26],
+        [20, 16, 18],
+        [42, 10, 12]
+      ];
+      const FLOOR_TINT = [
+        [1.0, 1.0, 1.0],
+        [0.98, 0.92, 0.95],
+        [0.96, 0.88, 0.84],
+        [1.02, 0.85, 0.85]
+      ];
+      const WHISPERS = [
+        "A choir you cannot see is matching your breathing.",
+        "Something just behind you knows your true name.",
+        "The stones keep the taste of everyone who prayed here.",
+        "You hear your own footsteps returning a second late.",
+        "The chapel wants your pulse to fit its rhythm.",
+        "Someone under the floor has begun to hum back."
+      ];
+      const ECHO_TEXT = {
+        1: [
+          "The novices burned the lanterns when the bells began to answer.",
+          "The first lock was not for demons. It was for the choir.",
+          "No one buried the bones here. The walls grew around them."
+        ],
+        2: [
+          "Patients woke with hymns on their tongues and salt in their lungs.",
+          "Every confession in this ward was collected in brass jars.",
+          "A surgeon promised pain would leave. It only learned to sing."
+        ],
+        3: [
+          "Roots entered through the crypt and learned the map of our veins.",
+          "The sacrament below asked for blood, but never whose.",
+          "The deeper doors are carved from things that once remembered light."
+        ],
+        4: [
+          "The Mother does not eat flesh. She eats the part that hopes.",
+          "When the last seal breaks, she remembers every voice you still carry.",
+          "The exit is real. So is everything waiting beside it."
+        ]
+      };
+      const CLASSES = [
+        {
+          id: "hunter",
+          name: "Votive Hunter",
+          title: "Balanced",
+          desc: "A blade-hand and a steady lantern. Built to survive long enough to finish the work.",
+          bullets: ["100 vigor", "100 sanity", "10 steel damage", "1 salve · 1 tonic"],
+          stats: {
+            maxHp: 100,
+            maxSanity: 100,
+            damage: 10,
+            speed: 2.25,
+            crit: 0.1,
+            ward: 0.06,
+            lifesteal: 0.0,
+            salves: 1,
+            tonics: 1
+          }
+        },
+        {
+          id: "keeper",
+          name: "Lantern Keeper",
+          title: "Control",
+          desc: "A ritualist trained to scour the dark with borrowed light and leave enemies reeling.",
+          bullets: ["86 vigor", "122 sanity", "8 steel damage", "Cheaper lantern burst"],
+          stats: {
+            maxHp: 86,
+            maxSanity: 122,
+            damage: 8,
+            speed: 2.18,
+            crit: 0.08,
+            ward: 0.1,
+            lifesteal: 0.0,
+            burstCost: 14,
+            burstDamage: 11,
+            salves: 1,
+            tonics: 2
+          }
+        },
+        {
+          id: "penitent",
+          name: "Marrow Penitent",
+          title: "Aggression",
+          desc: "A self-mortifying zealot. Harder hits, blood for medicine, and very little room to fail.",
+          bullets: ["82 vigor", "90 sanity", "13 steel damage", "8% lifesteal"],
+          stats: {
+            maxHp: 82,
+            maxSanity: 90,
+            damage: 13,
+            speed: 2.32,
+            crit: 0.14,
+            ward: 0.0,
+            lifesteal: 0.08,
+            salves: 1,
+            tonics: 0
+          }
+        }
+      ];
+      const BOON_POOL = [
+        {
+          id: "iron-prayer",
+          name: "Iron Prayer",
+          desc: "+20 max vigor and restore 20 health.",
+          apply(player) {
+            player.maxHp += 20;
+            player.hp = Math.min(player.maxHp, player.hp + 20);
+          }
+        },
+        {
+          id: "candle-blood",
+          name: "Candle Blood",
+          desc: "+16 max sanity and restore 16 sanity.",
+          apply(player) {
+            player.maxSanity += 16;
+            player.sanity = Math.min(player.maxSanity, player.sanity + 16);
+          }
+        },
+        {
+          id: "serrated-liturgy",
+          name: "Serrated Liturgy",
+          desc: "+3 steel damage.",
+          apply(player) {
+            player.damage += 3;
+          }
+        },
+        {
+          id: "silent-footing",
+          name: "Silent Footing",
+          desc: "+10% movement speed and a calmer step.",
+          apply(player) {
+            player.speed += 0.22;
+          }
+        },
+        {
+          id: "mercy-after",
+          name: "Mercy After",
+          desc: "+5% lifesteal when your blade lands.",
+          apply(player) {
+            player.lifesteal += 0.05;
+          }
+        },
+        {
+          id: "white-flame",
+          name: "White Flame",
+          desc: "Lantern burst gains damage and costs 2 less sanity.",
+          apply(player) {
+            player.burstDamage += 3;
+            player.burstCost = Math.max(8, player.burstCost - 2);
+          }
+        },
+        {
+          id: "fever-gilt",
+          name: "Fever Gilt",
+          desc: "+6% critical chance.",
+          apply(player) {
+            player.crit += 0.06;
+          }
+        },
+        {
+          id: "grave-pocket",
+          name: "Grave Pocket",
+          desc: "Gain 1 salve, 1 tonic, and 10 sanity now.",
+          apply(player) {
+            player.salves += 1;
+            player.tonics += 1;
+            player.sanity = Math.min(player.maxSanity, player.sanity + 10);
+          }
+        }
+      ];
+
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d", { alpha: false });
+      ctx.imageSmoothingEnabled = false;
+
+      const frameCanvas = document.createElement("canvas");
+      frameCanvas.width = GAME_W;
+      frameCanvas.height = GAME_H;
+      const frameCtx = frameCanvas.getContext("2d", { alpha: false });
+      const frameImage = frameCtx.createImageData(GAME_W, GAME_H);
+      const framePixels = new Uint32Array(frameImage.data.buffer);
+      const zBuffer = new Float32Array(GAME_W);
+
+      const mini = document.getElementById("minimap");
+      const miniCtx = mini.getContext("2d", { alpha: false });
+
+      const hudLeft = document.getElementById("hud-left");
+      const objectiveEl = document.getElementById("objective");
+      const promptEl = document.getElementById("prompt");
+      const messagesEl = document.getElementById("messages");
+      const overlay = document.getElementById("overlay");
+
+      const input = Object.create(null);
+      const assets = { walls: {}, floors: {}, sprites: {} };
+
+      const game = {
+        state: "title",
+        floor: 1,
+        seed: 0,
+        rng: Math.random,
+        selectedClass: CLASSES[0].id,
+        player: null,
+        map: null,
+        props: [],
+        enemies: [],
+        pickups: [],
+        messages: [],
+        time: 0,
+        timer: 0,
+        damageFlash: 0,
+        lightFlash: 0,
+        shake: 0,
+        whisperCd: 0,
+        cleanseCount: 0,
+        cleanseGoal: 3,
+        bossAwake: false,
+        pendingChoices: 0,
+        currentChoices: [],
+        runScore: 0,
+        kills: 0,
+        bestMeta: loadMeta(),
+        audio: null
+      };
+
+      function loadMeta() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) {
+            return { bestScore: 0, deepestFloor: 0, runs: 0, wins: 0 };
+          }
+          const parsed = JSON.parse(raw);
+          return {
+            bestScore: parsed.bestScore || 0,
+            deepestFloor: parsed.deepestFloor || 0,
+            runs: parsed.runs || 0,
+            wins: parsed.wins || 0
+          };
+        } catch (err) {
+          return { bestScore: 0, deepestFloor: 0, runs: 0, wins: 0 };
+        }
+      }
+
+      function saveMeta() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(game.bestMeta));
+      }
+
+      function mulberry32(seed) {
+        let a = seed >>> 0;
+        return function() {
+          a += 0x6D2B79F5;
+          let t = a;
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function rand(min, max) {
+        return game.rng() * (max - min) + min;
+      }
+
+      function randInt(min, max) {
+        return Math.floor(rand(min, max + 1));
+      }
+
+      function pick(arr) {
+        return arr[Math.floor(game.rng() * arr.length)];
+      }
+
+      function shuffle(list) {
+        const out = list.slice();
+        for (let i = out.length - 1; i > 0; i--) {
+          const j = Math.floor(game.rng() * (i + 1));
+          [out[i], out[j]] = [out[j], out[i]];
+        }
+        return out;
+      }
+
+      function clamp(v, lo, hi) {
+        return v < lo ? lo : v > hi ? hi : v;
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function dist(ax, ay, bx, by) {
+        const dx = bx - ax;
+        const dy = by - ay;
+        return Math.hypot(dx, dy);
+      }
+
+      function angleDiff(a, b) {
+        let d = a - b;
+        while (d < -Math.PI) d += Math.PI * 2;
+        while (d > Math.PI) d -= Math.PI * 2;
+        return d;
+      }
+
+      function pack(r, g, b, a = 255) {
+        return ((a & 255) << 24) | ((b & 255) << 16) | ((g & 255) << 8) | (r & 255);
+      }
+
+      function shadeFog(color, shade, fogAmt, tintMul) {
+        const a = color & 0xff000000;
+        const r = ((color & 255) * shade * tintMul[0]) | 0;
+        const g = (((color >>> 8) & 255) * shade * tintMul[1]) | 0;
+        const b = (((color >>> 16) & 255) * shade * tintMul[2]) | 0;
+        const fog = FLOOR_FOG[game.floor - 1];
+        const fr = (r * (1 - fogAmt) + fog[0] * fogAmt) | 0;
+        const fg = (g * (1 - fogAmt) + fog[1] * fogAmt) | 0;
+        const fb = (b * (1 - fogAmt) + fog[2] * fogAmt) | 0;
+        return a | (fb << 16) | (fg << 8) | fr;
+      }
+
+      function blend(dst, src) {
+        const alpha = src >>> 24;
+        if (alpha >= 255) return src;
+        if (alpha <= 0) return dst;
+        const inv = 255 - alpha;
+        const sr = src & 255;
+        const sg = (src >>> 8) & 255;
+        const sb = (src >>> 16) & 255;
+        const dr = dst & 255;
+        const dg = (dst >>> 8) & 255;
+        const db = (dst >>> 16) & 255;
+        const r = ((sr * alpha + dr * inv) / 255) | 0;
+        const g = ((sg * alpha + dg * inv) / 255) | 0;
+        const b = ((sb * alpha + db * inv) / 255) | 0;
+        return 0xff000000 | (b << 16) | (g << 8) | r;
+      }
+
+      function makeTexture(painter) {
+        const c = document.createElement("canvas");
+        c.width = TEX_SIZE;
+        c.height = TEX_SIZE;
+        const g = c.getContext("2d");
+        painter(g, TEX_SIZE);
+        return new Uint32Array(g.getImageData(0, 0, TEX_SIZE, TEX_SIZE).data.buffer.slice(0));
+      }
+
+      function makeSprite(size, painter) {
+        const c = document.createElement("canvas");
+        c.width = size;
+        c.height = size;
+        const g = c.getContext("2d");
+        painter(g, size);
+        return { size, data: new Uint32Array(g.getImageData(0, 0, size, size).data.buffer.slice(0)) };
+      }
+
+      function buildAssets() {
+        assets.walls.stone = makeTexture((g, s) => {
+          g.fillStyle = "#41454f";
+          g.fillRect(0, 0, s, s);
+          for (let i = 0; i < 260; i++) {
+            const shade = 64 + Math.random() * 55;
+            g.fillStyle = `rgba(${shade + 6}, ${shade + 10}, ${shade + 16}, 0.32)`;
+            g.fillRect(Math.random() * s, Math.random() * s, 2 + Math.random() * 10, 2 + Math.random() * 10);
+          }
+          g.strokeStyle = "rgba(20, 24, 30, 0.45)";
+          g.lineWidth = 2;
+          for (let y = 8; y < s; y += 12) {
+            g.beginPath();
+            g.moveTo(0, y);
+            g.lineTo(s, y + Math.sin(y) * 2);
+            g.stroke();
+          }
+          g.strokeStyle = "rgba(220, 230, 240, 0.08)";
+          for (let x = 10; x < s; x += 14) {
+            g.beginPath();
+            g.moveTo(x, 0);
+            g.lineTo(x + Math.sin(x) * 2, s);
+            g.stroke();
+          }
+        });
+
+        assets.walls.chapel = makeTexture((g, s) => {
+          g.fillStyle = "#524a43";
+          g.fillRect(0, 0, s, s);
+          g.fillStyle = "rgba(90, 26, 28, 0.16)";
+          for (let i = 0; i < 12; i++) {
+            g.fillRect(i * 5, 0, 3, s);
+          }
+          g.strokeStyle = "rgba(200, 174, 116, 0.2)";
+          g.lineWidth = 2;
+          for (let i = 0; i < 5; i++) {
+            const x = 8 + i * 12;
+            g.beginPath();
+            g.moveTo(x, 4);
+            g.lineTo(x + 3, 16);
+            g.lineTo(x, 28);
+            g.lineTo(x + 2, 40);
+            g.lineTo(x - 2, 58);
+            g.stroke();
+          }
+          g.strokeStyle = "rgba(255, 255, 255, 0.07)";
+          for (let y = 10; y < s; y += 14) {
+            g.beginPath();
+            g.moveTo(0, y);
+            g.lineTo(s, y);
+            g.stroke();
+          }
+        });
+
+        assets.walls.flesh = makeTexture((g, s) => {
+          const grad = g.createLinearGradient(0, 0, s, s);
+          grad.addColorStop(0, "#5f2024");
+          grad.addColorStop(1, "#2a090d");
+          g.fillStyle = grad;
+          g.fillRect(0, 0, s, s);
+          g.strokeStyle = "rgba(220, 90, 92, 0.18)";
+          g.lineWidth = 2.5;
+          for (let i = 0; i < 9; i++) {
+            g.beginPath();
+            g.moveTo(Math.random() * s, 0);
+            g.bezierCurveTo(Math.random() * s, s * 0.3, Math.random() * s, s * 0.7, Math.random() * s, s);
+            g.stroke();
+          }
+          g.fillStyle = "rgba(255, 210, 190, 0.06)";
+          for (let i = 0; i < 220; i++) {
+            g.beginPath();
+            g.arc(Math.random() * s, Math.random() * s, Math.random() * 2 + 1, 0, Math.PI * 2);
+            g.fill();
+          }
+        });
+
+        assets.floors.stone = makeTexture((g, s) => {
+          g.fillStyle = "#242831";
+          g.fillRect(0, 0, s, s);
+          g.strokeStyle = "rgba(255, 255, 255, 0.05)";
+          g.lineWidth = 1;
+          for (let x = 0; x <= s; x += 8) {
+            g.beginPath();
+            g.moveTo(x, 0);
+            g.lineTo(x, s);
+            g.stroke();
+          }
+          for (let y = 0; y <= s; y += 8) {
+            g.beginPath();
+            g.moveTo(0, y);
+            g.lineTo(s, y);
+            g.stroke();
+          }
+          g.fillStyle = "rgba(30, 35, 42, 0.4)";
+          for (let i = 0; i < 300; i++) {
+            g.fillRect(Math.random() * s, Math.random() * s, 1, 1);
+          }
+        });
+
+        assets.floors.ward = makeTexture((g, s) => {
+          g.fillStyle = "#312c2a";
+          g.fillRect(0, 0, s, s);
+          g.fillStyle = "rgba(110, 22, 22, 0.12)";
+          for (let i = 0; i < 10; i++) {
+            g.fillRect(0, Math.random() * s, s, 1 + Math.random() * 3);
+          }
+          g.strokeStyle = "rgba(255, 255, 255, 0.04)";
+          for (let i = 0; i < 8; i++) {
+            g.beginPath();
+            g.moveTo(0, i * 8 + Math.random() * 2);
+            g.lineTo(s, i * 8 + Math.random() * 2);
+            g.stroke();
+          }
+        });
+
+        assets.floors.crypt = makeTexture((g, s) => {
+          const grad = g.createRadialGradient(s * 0.4, s * 0.35, 2, s * 0.5, s * 0.5, s * 0.7);
+          grad.addColorStop(0, "#3a2022");
+          grad.addColorStop(1, "#14080a");
+          g.fillStyle = grad;
+          g.fillRect(0, 0, s, s);
+          g.strokeStyle = "rgba(255, 120, 120, 0.08)";
+          for (let i = 0; i < 7; i++) {
+            g.beginPath();
+            g.moveTo(Math.random() * s, 0);
+            g.lineTo(Math.random() * s, s);
+            g.stroke();
+          }
+        });
+
+        assets.sprites.seal = makeSprite(48, (g, s) => {
+          g.translate(s / 2, s / 2);
+          const ring = g.createRadialGradient(0, 0, 3, 0, 0, s * 0.38);
+          ring.addColorStop(0, "rgba(255, 255, 225, 0.92)");
+          ring.addColorStop(0.3, "rgba(235, 200, 120, 0.9)");
+          ring.addColorStop(0.7, "rgba(180, 40, 50, 0.24)");
+          ring.addColorStop(1, "rgba(180, 40, 50, 0)");
+          g.fillStyle = ring;
+          g.beginPath();
+          g.arc(0, 0, s * 0.34, 0, Math.PI * 2);
+          g.fill();
+          g.strokeStyle = "rgba(246, 217, 149, 0.95)";
+          g.lineWidth = 3;
+          g.beginPath();
+          g.arc(0, 0, s * 0.24, 0, Math.PI * 2);
+          g.stroke();
+          g.strokeStyle = "rgba(246, 217, 149, 0.45)";
+          for (let i = 0; i < 6; i++) {
+            const a = (Math.PI * 2 * i) / 6;
+            g.beginPath();
+            g.moveTo(Math.cos(a) * 4, Math.sin(a) * 4);
+            g.lineTo(Math.cos(a) * 14, Math.sin(a) * 14);
+            g.stroke();
+          }
+          g.resetTransform();
+        });
+
+        assets.sprites.stairs = makeSprite(48, (g, s) => {
+          g.fillStyle = "rgba(0,0,0,0)";
+          g.fillRect(0, 0, s, s);
+          g.strokeStyle = "rgba(210, 180, 110, 0.8)";
+          g.lineWidth = 3;
+          g.beginPath();
+          g.moveTo(8, s - 10);
+          g.lineTo(s - 8, s - 10);
+          g.stroke();
+          for (let i = 0; i < 5; i++) {
+            g.beginPath();
+            g.moveTo(10 + i * 5, s - 12 - i * 5);
+            g.lineTo(s - 10 - i * 5, s - 12 - i * 5);
+            g.stroke();
+          }
+          g.fillStyle = "rgba(255, 220, 170, 0.18)";
+          g.fillRect(10, 8, s - 20, s - 16);
+        });
+
+        assets.sprites.shrine = makeSprite(48, (g, s) => {
+          g.fillStyle = "rgba(80, 50, 35, 0.86)";
+          g.fillRect(14, 18, s - 28, 20);
+          g.fillRect(10, 30, s - 20, 8);
+          g.fillStyle = "rgba(235, 185, 110, 0.92)";
+          g.beginPath();
+          g.arc(s / 2, 14, 8, 0, Math.PI * 2);
+          g.fill();
+          g.fillStyle = "rgba(255, 255, 220, 0.96)";
+          g.beginPath();
+          g.moveTo(s / 2, 4);
+          g.lineTo(s / 2 + 4, 14);
+          g.lineTo(s / 2, 22);
+          g.lineTo(s / 2 - 4, 14);
+          g.closePath();
+          g.fill();
+        });
+
+        assets.sprites.echo = makeSprite(32, (g, s) => {
+          g.fillStyle = "rgba(224, 210, 188, 0.88)";
+          g.fillRect(9, 8, 14, 16);
+          g.strokeStyle = "rgba(120, 85, 56, 0.6)";
+          for (let i = 0; i < 4; i++) {
+            g.beginPath();
+            g.moveTo(12, 12 + i * 3);
+            g.lineTo(20, 12 + i * 3);
+            g.stroke();
+          }
+        });
+
+        assets.sprites.relic = makeSprite(36, (g, s) => {
+          g.fillStyle = "rgba(72, 44, 28, 0.94)";
+          g.fillRect(7, 13, 22, 14);
+          g.fillRect(5, 17, 26, 10);
+          g.strokeStyle = "rgba(215, 180, 100, 0.7)";
+          g.strokeRect(8, 14, 20, 12);
+          g.fillStyle = "rgba(255, 225, 165, 0.95)";
+          g.beginPath();
+          g.arc(18, 20, 2.5, 0, Math.PI * 2);
+          g.fill();
+        });
+
+        assets.sprites.salve = makeSprite(28, (g, s) => {
+          g.fillStyle = "rgba(160, 34, 40, 0.9)";
+          g.fillRect(10, 6, 8, 15);
+          g.fillStyle = "rgba(235, 224, 210, 0.9)";
+          g.fillRect(11, 4, 6, 4);
+        });
+
+        assets.sprites.tonic = makeSprite(28, (g, s) => {
+          g.fillStyle = "rgba(30, 140, 140, 0.9)";
+          g.fillRect(9, 6, 10, 15);
+          g.fillStyle = "rgba(230, 240, 240, 0.9)";
+          g.fillRect(10, 4, 8, 4);
+        });
+
+        assets.sprites.ember = makeSprite(22, (g, s) => {
+          const grad = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+          grad.addColorStop(0, "rgba(255, 255, 210, 1)");
+          grad.addColorStop(0.4, "rgba(255, 210, 90, 0.95)");
+          grad.addColorStop(1, "rgba(255, 120, 40, 0)");
+          g.fillStyle = grad;
+          g.beginPath();
+          g.arc(s / 2, s / 2, s / 2, 0, Math.PI * 2);
+          g.fill();
+        });
+
+        assets.sprites.stalker = makeSprite(56, (g, s) => {
+          const body = g.createLinearGradient(0, 0, 0, s);
+          body.addColorStop(0, "rgba(24, 28, 34, 0.1)");
+          body.addColorStop(0.2, "rgba(38, 42, 48, 0.95)");
+          body.addColorStop(1, "rgba(6, 8, 10, 0.98)");
+          g.fillStyle = body;
+          g.beginPath();
+          g.moveTo(s * 0.3, s * 0.1);
+          g.quadraticCurveTo(s * 0.45, 0, s * 0.5, s * 0.14);
+          g.quadraticCurveTo(s * 0.7, s * 0.25, s * 0.68, s * 0.92);
+          g.lineTo(s * 0.34, s * 0.92);
+          g.quadraticCurveTo(s * 0.3, s * 0.45, s * 0.3, s * 0.1);
+          g.closePath();
+          g.fill();
+          g.fillStyle = "rgba(220, 60, 70, 0.92)";
+          g.fillRect(s * 0.41, s * 0.28, 5, 3);
+          g.fillRect(s * 0.52, s * 0.28, 5, 3);
+        });
+
+        assets.sprites.wailer = makeSprite(56, (g, s) => {
+          const halo = g.createRadialGradient(s / 2, s * 0.34, 4, s / 2, s * 0.34, s * 0.45);
+          halo.addColorStop(0, "rgba(255, 255, 255, 0.95)");
+          halo.addColorStop(0.35, "rgba(210, 230, 255, 0.65)");
+          halo.addColorStop(1, "rgba(160, 190, 230, 0)");
+          g.fillStyle = halo;
+          g.beginPath();
+          g.arc(s / 2, s * 0.34, s * 0.38, 0, Math.PI * 2);
+          g.fill();
+          g.fillStyle = "rgba(236, 240, 246, 0.86)";
+          g.beginPath();
+          g.moveTo(s * 0.36, s * 0.18);
+          g.quadraticCurveTo(s * 0.5, s * 0.06, s * 0.64, s * 0.18);
+          g.quadraticCurveTo(s * 0.72, s * 0.48, s * 0.62, s * 0.92);
+          g.quadraticCurveTo(s * 0.5, s * 0.82, s * 0.38, s * 0.92);
+          g.quadraticCurveTo(s * 0.28, s * 0.48, s * 0.36, s * 0.18);
+          g.fill();
+          g.fillStyle = "rgba(30, 12, 16, 0.95)";
+          g.fillRect(s * 0.44, s * 0.34, 4, 2);
+          g.fillRect(s * 0.52, s * 0.34, 4, 2);
+        });
+
+        assets.sprites.brute = makeSprite(64, (g, s) => {
+          g.fillStyle = "rgba(82, 20, 24, 0.9)";
+          g.beginPath();
+          g.moveTo(s * 0.26, s * 0.1);
+          g.lineTo(s * 0.74, s * 0.14);
+          g.lineTo(s * 0.8, s * 0.92);
+          g.lineTo(s * 0.22, s * 0.92);
+          g.closePath();
+          g.fill();
+          g.strokeStyle = "rgba(220, 110, 90, 0.42)";
+          g.lineWidth = 2;
+          for (let i = 0; i < 4; i++) {
+            g.beginPath();
+            g.moveTo(s * 0.32 + i * 6, s * 0.2);
+            g.lineTo(s * 0.44 + i * 5, s * 0.88);
+            g.stroke();
+          }
+          g.fillStyle = "rgba(255, 225, 210, 0.9)";
+          g.beginPath();
+          g.arc(s * 0.46, s * 0.28, 3, 0, Math.PI * 2);
+          g.arc(s * 0.6, s * 0.3, 3, 0, Math.PI * 2);
+          g.fill();
+        });
+
+        assets.sprites.boss = makeSprite(80, (g, s) => {
+          const aura = g.createRadialGradient(s / 2, s / 2, 8, s / 2, s / 2, s / 2);
+          aura.addColorStop(0, "rgba(255, 250, 220, 0.96)");
+          aura.addColorStop(0.24, "rgba(222, 74, 74, 0.74)");
+          aura.addColorStop(1, "rgba(70, 8, 10, 0)");
+          g.fillStyle = aura;
+          g.beginPath();
+          g.arc(s / 2, s / 2, s / 2, 0, Math.PI * 2);
+          g.fill();
+          g.fillStyle = "rgba(72, 10, 14, 0.95)";
+          g.beginPath();
+          g.moveTo(s * 0.28, s * 0.08);
+          g.quadraticCurveTo(s * 0.5, -4, s * 0.72, s * 0.08);
+          g.quadraticCurveTo(s * 0.9, s * 0.42, s * 0.72, s * 0.94);
+          g.quadraticCurveTo(s * 0.5, s * 0.86, s * 0.28, s * 0.94);
+          g.quadraticCurveTo(s * 0.1, s * 0.42, s * 0.28, s * 0.08);
+          g.fill();
+          g.strokeStyle = "rgba(230, 122, 118, 0.56)";
+          g.lineWidth = 2.5;
+          for (let i = 0; i < 6; i++) {
+            g.beginPath();
+            g.moveTo(s * 0.34 + i * 4, s * 0.2);
+            g.lineTo(s * 0.28 + i * 6, s * 0.82);
+            g.stroke();
+          }
+          g.fillStyle = "rgba(255, 235, 232, 0.95)";
+          g.fillRect(s * 0.4, s * 0.34, 5, 5);
+          g.fillRect(s * 0.55, s * 0.34, 5, 5);
+        });
+      }
+
+      function pushMessage(text, kind = "") {
+        game.messages.unshift({
+          text,
+          kind,
+          ttl: 7
+        });
+        game.messages = game.messages.slice(0, 5);
+      }
+
+      function updateMessages(dt) {
+        for (const m of game.messages) {
+          m.ttl -= dt;
+        }
+        game.messages = game.messages.filter(m => m.ttl > 0);
+      }
+
+      function createPlayer(classId) {
+        const def = CLASSES.find(entry => entry.id === classId) || CLASSES[0];
+        return {
+          classId,
+          className: def.name,
+          x: 0,
+          y: 0,
+          dir: Math.PI * 1.5,
+          hp: def.stats.maxHp,
+          maxHp: def.stats.maxHp,
+          sanity: def.stats.maxSanity,
+          maxSanity: def.stats.maxSanity,
+          damage: def.stats.damage,
+          speed: def.stats.speed,
+          crit: def.stats.crit,
+          ward: def.stats.ward,
+          lifesteal: def.stats.lifesteal,
+          salves: def.stats.salves,
+          tonics: def.stats.tonics,
+          burstCost: def.stats.burstCost || 18,
+          burstDamage: def.stats.burstDamage || 9,
+          attackCd: 0,
+          burstCd: 0,
+          hurtCd: 0,
+          level: 1,
+          xp: 0,
+          xpNeed: 30,
+          stepBob: 0,
+          relics: 0
+        };
+      }
+
+      function idx(map, x, y) {
+        return y * map.size + x;
+      }
+
+      function inBounds(map, x, y) {
+        return x >= 0 && y >= 0 && x < map.size && y < map.size;
+      }
+
+      function isWall(map, x, y) {
+        const xi = x | 0;
+        const yi = y | 0;
+        if (!inBounds(map, xi, yi)) return true;
+        return map.walls[idx(map, xi, yi)] !== 0;
+      }
+
+      function canOccupy(x, y, radius) {
+        const map = game.map;
+        const points = [
+          [x - radius, y - radius],
+          [x + radius, y - radius],
+          [x - radius, y + radius],
+          [x + radius, y + radius]
+        ];
+        for (const p of points) {
+          if (isWall(map, p[0], p[1])) return false;
+        }
+        return true;
+      }
+
+      function carveRect(map, x, y, w, h, wallTex, floorTex) {
+        for (let yy = y; yy < y + h; yy++) {
+          for (let xx = x; xx < x + w; xx++) {
+            map.walls[idx(map, xx, yy)] = 0;
+            map.floors[idx(map, xx, yy)] = floorTex;
+            map.wallTheme[idx(map, xx, yy)] = wallTex;
+          }
+        }
+      }
+
+      function carveH(map, x0, x1, y, wallTex, floorTex) {
+        const minX = Math.min(x0, x1);
+        const maxX = Math.max(x0, x1);
+        for (let x = minX; x <= maxX; x++) {
+          map.walls[idx(map, x, y)] = 0;
+          map.floors[idx(map, x, y)] = floorTex;
+          map.wallTheme[idx(map, x, y)] = wallTex;
+        }
+      }
+
+      function carveV(map, y0, y1, x, wallTex, floorTex) {
+        const minY = Math.min(y0, y1);
+        const maxY = Math.max(y0, y1);
+        for (let y = minY; y <= maxY; y++) {
+          map.walls[idx(map, x, y)] = 0;
+          map.floors[idx(map, x, y)] = floorTex;
+          map.wallTheme[idx(map, x, y)] = wallTex;
+        }
+      }
+
+      function setOuterWalls(map, wallTex) {
+        for (let x = 0; x < map.size; x++) {
+          map.walls[idx(map, x, 0)] = wallTex;
+          map.walls[idx(map, x, map.size - 1)] = wallTex;
+        }
+        for (let y = 0; y < map.size; y++) {
+          map.walls[idx(map, 0, y)] = wallTex;
+          map.walls[idx(map, map.size - 1, y)] = wallTex;
+        }
+      }
+
+      function roomIntersects(room, other) {
+        return !(
+          room.x + room.w + 1 < other.x ||
+          other.x + other.w + 1 < room.x ||
+          room.y + room.h + 1 < other.y ||
+          other.y + other.h + 1 < room.y
+        );
+      }
+
+      function proceduralFloor(level) {
+        const size = level === FINAL_FLOOR ? 41 : 39;
+        const map = {
+          size,
+          walls: new Uint8Array(size * size),
+          floors: new Uint8Array(size * size),
+          wallTheme: new Uint8Array(size * size),
+          explored: new Uint8Array(size * size),
+          props: [],
+          wallTex: level === 1 ? 1 : level === 2 ? 2 : 3,
+          floorTex: level === 1 ? 1 : level === 2 ? 2 : 3
+        };
+
+        map.walls.fill(level === 1 ? 1 : level === 2 ? 2 : 3);
+        setOuterWalls(map, map.wallTex);
+
+        if (level === FINAL_FLOOR) {
+          carveRect(map, 16, 16, 9, 9, 3, 3);
+          carveH(map, 20, 20, 16, 3, 3);
+          carveV(map, 16, 20, 20, 3, 3);
+          const wings = [
+            { x: 4, y: 16, w: 8, h: 7 },
+            { x: 29, y: 16, w: 8, h: 7 },
+            { x: 16, y: 4, w: 7, h: 8 },
+            { x: 16, y: 29, w: 7, h: 8 }
+          ];
+          for (const wing of wings) {
+            carveRect(map, wing.x, wing.y, wing.w, wing.h, 3, 3);
+          }
+          carveH(map, 12, 16, 19, 3, 3);
+          carveH(map, 24, 29, 19, 3, 3);
+          carveV(map, 12, 16, 19, 3, 3);
+          carveV(map, 24, 29, 19, 3, 3);
+          map.spawn = { x: 20.5, y: 34.5 };
+          map.exit = { x: 20.5, y: 7.5 };
+          map.sealRooms = [
+            { x: 8.5, y: 19.5 },
+            { x: 32.5, y: 19.5 },
+            { x: 19.5, y: 8.5 },
+            { x: 19.5, y: 32.5 }
+          ];
+          return map;
+        }
+
+        const rooms = [];
+        for (let attempts = 0; attempts < 90 && rooms.length < 11 + level; attempts++) {
+          const w = randInt(5, 9);
+          const h = randInt(5, 9);
+          const x = randInt(2, size - w - 3);
+          const y = randInt(2, size - h - 3);
+          const room = { x, y, w, h, cx: x + (w >> 1), cy: y + (h >> 1) };
+          if (rooms.some(existing => roomIntersects(room, existing))) continue;
+          rooms.push(room);
+          carveRect(map, x, y, w, h, map.wallTex, map.floorTex);
+        }
+
+        rooms.sort((a, b) => a.x + a.y - (b.x + b.y));
+        for (let i = 1; i < rooms.length; i++) {
+          const prev = rooms[i - 1];
+          const next = rooms[i];
+          if (game.rng() < 0.5) {
+            carveH(map, prev.cx, next.cx, prev.cy, map.wallTex, map.floorTex);
+            carveV(map, prev.cy, next.cy, next.cx, map.wallTex, map.floorTex);
+          } else {
+            carveV(map, prev.cy, next.cy, prev.cx, map.wallTex, map.floorTex);
+            carveH(map, prev.cx, next.cx, next.cy, map.wallTex, map.floorTex);
+          }
+        }
+
+        for (let i = 0; i < 5; i++) {
+          const room = pick(rooms);
+          carveRect(
+            map,
+            room.cx - 1,
+            room.cy - 1,
+            3,
+            3,
+            map.wallTex,
+            map.floorTex
+          );
+        }
+
+        const spawnRoom = rooms[0];
+        let exitRoom = rooms[rooms.length - 1];
+        let bestDist = 0;
+        for (const room of rooms) {
+          const d = dist(spawnRoom.cx, spawnRoom.cy, room.cx, room.cy);
+          if (d > bestDist) {
+            bestDist = d;
+            exitRoom = room;
+          }
+        }
+
+        map.spawn = { x: spawnRoom.cx + 0.5, y: spawnRoom.cy + 0.5 };
+        map.exit = { x: exitRoom.cx + 0.5, y: exitRoom.cy + 0.5 };
+
+        const farRooms = rooms
+          .slice()
+          .sort((a, b) => dist(map.spawn.x, map.spawn.y, b.cx, b.cy) - dist(map.spawn.x, map.spawn.y, a.cx, a.cy));
+        map.sealRooms = farRooms.slice(0, 3).map(room => ({ x: room.cx + 0.5, y: room.cy + 0.5 }));
+        map.shrineRoom = farRooms[Math.min(farRooms.length - 1, 4)];
+        map.echoRooms = farRooms.slice(3, 6);
+        map.relicRooms = shuffle(rooms).slice(1, 4);
+        return map;
+      }
+
+      function spawnRunObjects() {
+        game.props = [];
+        game.pickups = [];
+        game.enemies = [];
+        game.cleanseCount = 0;
+        game.bossAwake = false;
+        const map = game.map;
+
+        game.cleanseGoal = map.sealRooms.length;
+        for (const room of map.sealRooms) {
+          game.props.push({
+            type: "seal",
+            x: room.x,
+            y: room.y,
+            active: true,
+            cleansed: false,
+            bob: rand(0, Math.PI * 2)
+          });
+        }
+
+        game.props.push({
+          type: "stairs",
+          x: map.exit.x,
+          y: map.exit.y,
+          active: true,
+          locked: true,
+          bob: rand(0, Math.PI * 2)
+        });
+
+        if (game.floor < FINAL_FLOOR) {
+          game.props.push({
+            type: "shrine",
+            x: map.shrineRoom.cx + 0.5,
+            y: map.shrineRoom.cy + 0.5,
+            active: true,
+            used: false,
+            bob: rand(0, Math.PI * 2)
+          });
+          for (const room of map.echoRooms) {
+            game.props.push({
+              type: "echo",
+              x: room.cx + rand(-0.4, 0.4),
+              y: room.cy + rand(-0.4, 0.4),
+              active: true,
+              text: pick(ECHO_TEXT[game.floor]),
+              bob: rand(0, Math.PI * 2)
+            });
+          }
+          for (const room of map.relicRooms) {
+            game.props.push({
+              type: "relic",
+              x: room.cx + rand(-0.35, 0.35),
+              y: room.cy + rand(-0.35, 0.35),
+              active: true,
+              bob: rand(0, Math.PI * 2)
+            });
+          }
+        }
+
+        const initialCount = game.floor === FINAL_FLOOR ? 6 : 8 + game.floor * 3;
+        for (let i = 0; i < initialCount; i++) {
+          const spot = findOpenSpot(6);
+          if (!spot) continue;
+          game.enemies.push(createEnemy(enemyTypeForFloor(game.floor), spot.x, spot.y));
+        }
+      }
+
+      function enemyTypeForFloor(level) {
+        const roll = game.rng();
+        if (level === 1) {
+          return roll < 0.65 ? "stalker" : "wailer";
+        }
+        if (level === 2) {
+          return roll < 0.45 ? "stalker" : roll < 0.8 ? "wailer" : "brute";
+        }
+        if (level === 3) {
+          return roll < 0.35 ? "wailer" : roll < 0.7 ? "stalker" : "brute";
+        }
+        return roll < 0.55 ? "wailer" : "brute";
+      }
+
+      function createEnemy(type, x, y) {
+        const floorScale = 1 + (game.floor - 1) * 0.18;
+        if (type === "wailer") {
+          return {
+            type,
+            name: "Wailer",
+            x,
+            y,
+            hp: Math.round(22 * floorScale),
+            maxHp: Math.round(22 * floorScale),
+            dmg: Math.round(7 * floorScale),
+            speed: 0.95 + game.floor * 0.05,
+            sight: 8.5,
+            range: 0.9,
+            radius: 0.2,
+            sprite: "wailer",
+            alert: 0,
+            attackCd: rand(0.3, 1.4),
+            phase: rand(0, Math.PI * 2),
+            flash: 0,
+            stun: 0,
+            xp: 12 + game.floor * 3
+          };
+        }
+        if (type === "brute") {
+          return {
+            type,
+            name: "Butcher",
+            x,
+            y,
+            hp: Math.round(34 * floorScale),
+            maxHp: Math.round(34 * floorScale),
+            dmg: Math.round(12 * floorScale),
+            speed: 0.74 + game.floor * 0.04,
+            sight: 7.5,
+            range: 0.95,
+            radius: 0.25,
+            sprite: "brute",
+            alert: 0,
+            attackCd: rand(0.6, 1.6),
+            phase: rand(0, Math.PI * 2),
+            flash: 0,
+            stun: 0,
+            xp: 18 + game.floor * 4
+          };
+        }
+        return {
+          type,
+          name: "Stalker",
+          x,
+          y,
+          hp: Math.round(26 * floorScale),
+          maxHp: Math.round(26 * floorScale),
+          dmg: Math.round(9 * floorScale),
+          speed: 0.86 + game.floor * 0.05,
+          sight: 9,
+          range: 0.85,
+          radius: 0.22,
+          sprite: "stalker",
+          alert: 0,
+          attackCd: rand(0.4, 1.2),
+          phase: rand(0, Math.PI * 2),
+          flash: 0,
+          stun: 0,
+          xp: 14 + game.floor * 4
+        };
+      }
+
+      function createBoss() {
+        return {
+          type: "boss",
+          name: "The Red Mother",
+          x: 20.5,
+          y: 20.5,
+          hp: 250,
+          maxHp: 250,
+          dmg: 18,
+          speed: 0.72,
+          sight: 14,
+          range: 1.2,
+          radius: 0.42,
+          sprite: "boss",
+          alert: 999,
+          attackCd: 2,
+          summonCd: 5.5,
+          phase: 0,
+          flash: 0,
+          stun: 0,
+          xp: 120,
+          boss: true,
+          enraged: false
+        };
+      }
+
+      function findOpenSpot(minFromPlayer = 4) {
+        const map = game.map;
+        for (let tries = 0; tries < 300; tries++) {
+          const x = rand(2.5, map.size - 2.5);
+          const y = rand(2.5, map.size - 2.5);
+          if (isWall(map, x, y)) continue;
+          if (dist(x, y, game.player.x, game.player.y) < minFromPlayer) continue;
+          if (game.props.some(prop => prop.active && dist(x, y, prop.x, prop.y) < 1.2)) continue;
+          if (game.enemies.some(enemy => dist(x, y, enemy.x, enemy.y) < 1.0)) continue;
+          return { x, y };
+        }
+        return null;
+      }
+
+      function resetRun(classId) {
+        game.seed = (Date.now() ^ ((Math.random() * 0x7fffffff) | 0)) >>> 0;
+        game.rng = mulberry32(game.seed);
+        game.player = createPlayer(classId);
+        game.floor = 1;
+        game.pendingChoices = 0;
+        game.runScore = 0;
+        game.kills = 0;
+        game.messages = [];
+        game.damageFlash = 0;
+        game.lightFlash = 0;
+        game.shake = 0;
+        game.time = 0;
+        game.timer = 0;
+        game.whisperCd = 4;
+        game.bestMeta.runs += 1;
+        saveMeta();
+        startFloor(1);
+        pushMessage("You descend under the chancel with your lantern lit.", "ritual");
+      }
+
+      function startFloor(level) {
+        game.floor = level;
+        game.map = proceduralFloor(level);
+        spawnRunObjects();
+        game.player.x = game.map.spawn.x;
+        game.player.y = game.map.spawn.y;
+        game.player.dir = level === FINAL_FLOOR ? -Math.PI / 2 : Math.PI * 1.5;
+        game.player.attackCd = 0;
+        game.player.burstCd = 0;
+        game.player.hurtCd = 0;
+        revealAround(game.player.x, game.player.y, 5);
+        pushMessage(`${FLOOR_NAMES[level - 1]} opens around you.`, "ritual");
+      }
+
+      function beginGame() {
+        unlockAudio();
+        overlay.classList.remove("visible");
+        game.state = "playing";
+        resetRun(game.selectedClass);
+        canvas.requestPointerLock?.();
+      }
+
+      function revealAround(x, y, radius) {
+        const map = game.map;
+        const minX = Math.max(0, Math.floor(x - radius));
+        const maxX = Math.min(map.size - 1, Math.ceil(x + radius));
+        const minY = Math.max(0, Math.floor(y - radius));
+        const maxY = Math.min(map.size - 1, Math.ceil(y + radius));
+        for (let yy = minY; yy <= maxY; yy++) {
+          for (let xx = minX; xx <= maxX; xx++) {
+            if (dist(x, y, xx + 0.5, yy + 0.5) <= radius + 0.25) {
+              map.explored[idx(map, xx, yy)] = 1;
+            }
+          }
+        }
+      }
+
+      function nextXpNeed(level) {
+        return 30 + (level - 1) * 16;
+      }
+
+      function gainXp(amount) {
+        const p = game.player;
+        p.xp += amount;
+        while (p.xp >= p.xpNeed) {
+          p.xp -= p.xpNeed;
+          p.level += 1;
+          p.xpNeed = nextXpNeed(p.level);
+          game.pendingChoices += 1;
+          pushMessage(`Your will hardens. Level ${p.level}.`, "good");
+        }
+      }
+
+      function openChoiceOverlay(source = "level") {
+        game.state = "choice";
+        const choices = shuffle(BOON_POOL).slice(0, 3);
+        game.currentChoices = choices;
+        overlay.classList.add("visible");
+        overlay.innerHTML = `
+          <div class="overlay-card">
+            <div class="eyebrow">${source === "shrine" ? "Consecrated Offering" : "Level Up"}</div>
+            <h2>${source === "shrine" ? "The shrine accepts your name." : "Choose a boon."}</h2>
+            <p class="subtitle">${source === "shrine"
+              ? "A clean flame rises from the altar and offers one intact promise."
+              : "The chapel has marked your ascent. Accept one power and keep moving."
+            }</p>
+            <div class="choice-grid">
+              ${choices.map((choice, index) => `
+                <button class="choice-card" data-choice="${index}">
+                  <div class="card-name">${choice.name}<span class="card-tag">Boon</span></div>
+                  <div class="card-desc">${choice.desc}</div>
+                </button>
+              `).join("")}
+            </div>
+            <div class="button-row">
+              <button class="btn-secondary" data-close-choice="1">Decide later is not allowed</button>
+            </div>
+          </div>
+        `;
+        overlay.querySelectorAll("[data-choice]").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const choice = choices[Number(btn.dataset.choice)];
+            choice.apply(game.player);
+            game.player.relics += 1;
+            game.currentChoices = [];
+            game.pendingChoices = Math.max(0, game.pendingChoices - (source === "shrine" ? 0 : 1));
+            pushMessage(`${choice.name} settles into your bones.`, "good");
+            closeOverlayResume();
+          });
+        });
+        overlay.querySelector("[data-close-choice]").addEventListener("click", () => {});
+      }
+
+      function closeOverlayResume() {
+        overlay.classList.remove("visible");
+        if (game.pendingChoices > 0) {
+          openChoiceOverlay("level");
+          return;
+        }
+        game.state = "playing";
+        canvas.requestPointerLock?.();
+      }
+
+      function showTitle() {
+        game.state = "title";
+        overlay.classList.add("visible");
+        const best = game.bestMeta;
+        const selected = CLASSES.find(c => c.id === game.selectedClass) || CLASSES[0];
+        overlay.innerHTML = `
+          <div class="overlay-card">
+            <div class="eyebrow">Single-File Horror Action RPG</div>
+            <h1>Echoes Beneath<br>the Chancel</h1>
+            <p class="subtitle">
+              A procedurally haunted descent through a cathedral’s buried wards. Cleanse each seal, level into stronger liturgies,
+              survive the roguelike run, and cut your way to the final choir before it learns how to sing with your voice.
+            </p>
+            <div class="class-grid">
+              ${CLASSES.map(entry => `
+                <button class="class-card ${entry.id === selected.id ? "selected" : ""}" data-class="${entry.id}">
+                  <div class="card-name">${entry.name}<span class="card-tag">${entry.title}</span></div>
+                  <div class="card-desc">${entry.desc}</div>
+                  <div class="card-bullets">${entry.bullets.map(line => `<div>${line}</div>`).join("")}</div>
+                </button>
+              `).join("")}
+            </div>
+            <div class="button-row">
+              <button class="btn-primary" id="begin-run">Commence Descent</button>
+              <button class="btn-secondary" id="how-to-play">How to Survive</button>
+            </div>
+            <div class="summary-grid">
+              <div class="summary-card"><div class="k">Best score</div><div class="v">${best.bestScore}</div></div>
+              <div class="summary-card"><div class="k">Deepest floor</div><div class="v">${best.deepestFloor}</div></div>
+              <div class="summary-card"><div class="k">Completed runs</div><div class="v">${best.wins}</div></div>
+              <div class="summary-card"><div class="k">Seeded runs</div><div class="v">${best.runs}</div></div>
+            </div>
+            <div class="controls">
+              Every run is lethal and self-contained. Mouse movement or arrow keys turn. Click or space attacks. Lantern bursts control crowds but burn sanity. Cleanse all seals before the stair will open. On the final floor, the choir wakes.
+            </div>
+          </div>
+        `;
+        overlay.querySelectorAll("[data-class]").forEach(btn => {
+          btn.addEventListener("click", () => {
+            game.selectedClass = btn.dataset.class;
+            showTitle();
+          });
+        });
+        overlay.querySelector("#begin-run").addEventListener("click", beginGame);
+        overlay.querySelector("#how-to-play").addEventListener("click", () => {
+          pushMessage("Cleanse seals. Kill what hunts you. Escape only when the chapel stops singing.", "ritual");
+        });
+      }
+
+      function showEndScreen(victory) {
+        const p = game.player;
+        game.state = victory ? "victory" : "dead";
+        overlay.classList.add("visible");
+        const score = scoreRun(victory);
+        overlay.innerHTML = `
+          <div class="overlay-card">
+            <div class="eyebrow">${victory ? "Escaped the Red Choir" : "Run Ended"}</div>
+            <h1>${victory ? "The hymn<br>is broken." : "The chapel<br>kept you."}</h1>
+            <p class="subtitle">
+              ${victory
+                ? "You severed the Mother’s cadence and reached the light carrying a silence no one asked you to bring."
+                : "Your body remained below. The chapel files all failed prayers under perfect stone."
+              }
+            </p>
+            <div class="summary-grid">
+              <div class="summary-card"><div class="k">Score</div><div class="v">${score}</div></div>
+              <div class="summary-card"><div class="k">Level</div><div class="v">${p.level}</div></div>
+              <div class="summary-card"><div class="k">Kills</div><div class="v">${game.kills}</div></div>
+              <div class="summary-card"><div class="k">Floor</div><div class="v">${game.floor}</div></div>
+            </div>
+            <div class="button-row">
+              <button class="btn-primary" id="play-again">Another descent</button>
+              <button class="btn-secondary" id="back-title">Title</button>
+            </div>
+          </div>
+        `;
+        overlay.querySelector("#play-again").addEventListener("click", beginGame);
+        overlay.querySelector("#back-title").addEventListener("click", showTitle);
+      }
+
+      function scoreRun(victory) {
+        const p = game.player;
+        const score = Math.round(
+          game.floor * 160 +
+          p.level * 95 +
+          game.kills * 14 +
+          p.hp * 2 +
+          p.sanity * 0.5 +
+          (victory ? 600 : 0)
+        );
+        game.runScore = score;
+        game.bestMeta.bestScore = Math.max(game.bestMeta.bestScore, score);
+        game.bestMeta.deepestFloor = Math.max(game.bestMeta.deepestFloor, game.floor);
+        if (victory) game.bestMeta.wins += 1;
+        saveMeta();
+        return score;
+      }
+
+      function unlockAudio() {
+        if (game.audio) {
+          if (game.audio.ctx.state === "suspended") {
+            game.audio.ctx.resume();
+          }
+          return;
+        }
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          const audioCtx = new AudioCtx();
+          const master = audioCtx.createGain();
+          master.gain.value = 0.06;
+          master.connect(audioCtx.destination);
+
+          const drone = audioCtx.createOscillator();
+          drone.type = "sawtooth";
+          drone.frequency.value = 52;
+          const droneGain = audioCtx.createGain();
+          droneGain.gain.value = 0.018;
+          drone.connect(droneGain).connect(master);
+          drone.start();
+
+          const overtone = audioCtx.createOscillator();
+          overtone.type = "triangle";
+          overtone.frequency.value = 103;
+          const overtoneGain = audioCtx.createGain();
+          overtoneGain.gain.value = 0.006;
+          overtone.connect(overtoneGain).connect(master);
+          overtone.start();
+
+          const lfo = audioCtx.createOscillator();
+          lfo.type = "sine";
+          lfo.frequency.value = 0.11;
+          const lfoGain = audioCtx.createGain();
+          lfoGain.gain.value = 10;
+          lfo.connect(lfoGain);
+          lfoGain.connect(drone.frequency);
+          lfo.start();
+
+          game.audio = {
+            ctx: audioCtx,
+            master,
+            droneGain,
+            overtoneGain
+          };
+        } catch (err) {
+          game.audio = null;
+        }
+      }
+
+      function playTone(freq, duration, type, volume, sweep = 0) {
+        if (!game.audio) return;
+        const now = game.audio.ctx.currentTime;
+        const osc = game.audio.ctx.createOscillator();
+        const gain = game.audio.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        if (sweep !== 0) {
+          osc.frequency.exponentialRampToValueAtTime(Math.max(20, freq + sweep), now + duration);
+        }
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+        osc.connect(gain).connect(game.audio.master);
+        osc.start(now);
+        osc.stop(now + duration + 0.05);
+      }
+
+      function audioTick() {
+        if (!game.audio || !game.player) return;
+        const low = 1 - game.player.hp / game.player.maxHp;
+        const stress = clamp(
+          0.06 +
+          low * 0.04 +
+          clamp(1 - game.player.sanity / game.player.maxSanity, 0, 1) * 0.03 +
+          Math.min(0.025, game.enemies.length * 0.0015),
+          0.03,
+          0.12
+        );
+        game.audio.droneGain.gain.setTargetAtTime(stress * 0.35, game.audio.ctx.currentTime, 0.25);
+        game.audio.overtoneGain.gain.setTargetAtTime(stress * 0.12, game.audio.ctx.currentTime, 0.2);
+      }
+
+      function attackMelee() {
+        if (game.state !== "playing") return;
+        const p = game.player;
+        if (p.attackCd > 0) return;
+        p.attackCd = 0.34;
+        playTone(240, 0.12, "sawtooth", 0.035, -120);
+        let best = null;
+        let bestDist = 999;
+        for (const enemy of game.enemies) {
+          const d = dist(p.x, p.y, enemy.x, enemy.y) - enemy.radius;
+          if (d > 1.45) continue;
+          const ang = Math.abs(angleDiff(Math.atan2(enemy.y - p.y, enemy.x - p.x), p.dir));
+          if (ang > 0.74) continue;
+          if (d < bestDist) {
+            best = enemy;
+            bestDist = d;
+          }
+        }
+        if (!best) {
+          pushMessage("The blade hisses through empty dark.", "");
+          return;
+        }
+        const crit = game.rng() < p.crit;
+        let damage = p.damage + randInt(0, 2);
+        if (crit) damage = Math.round(damage * 1.6);
+        damageEnemy(best, damage, crit ? "critical" : "steel");
+        if (p.lifesteal > 0) {
+          p.hp = Math.min(p.maxHp, p.hp + damage * p.lifesteal);
+        }
+        pushMessage(`${crit ? "Critical cut" : "Steel lands"} on ${best.name}.`, crit ? "good" : "");
+      }
+
+      function lanternBurst() {
+        if (game.state !== "playing") return;
+        const p = game.player;
+        if (p.burstCd > 0 || p.sanity < p.burstCost) {
+          pushMessage("Your lantern refuses a larger flame.", "bad");
+          return;
+        }
+        p.burstCd = 1.6;
+        p.sanity = Math.max(0, p.sanity - p.burstCost);
+        game.lightFlash = 1;
+        playTone(310, 0.18, "triangle", 0.05, -180);
+        let hits = 0;
+        for (const enemy of game.enemies) {
+          const d = dist(p.x, p.y, enemy.x, enemy.y);
+          if (d > 3.6) continue;
+          const ang = Math.abs(angleDiff(Math.atan2(enemy.y - p.y, enemy.x - p.x), p.dir));
+          if (ang > 1.1) continue;
+          enemy.stun = Math.max(enemy.stun, 0.6);
+          damageEnemy(enemy, p.burstDamage + randInt(0, 4), "light");
+          hits += 1;
+        }
+        pushMessage(hits > 0 ? `White flame tears through ${hits} shape${hits > 1 ? "s" : ""}.` : "The white flame finds only dust.", hits > 0 ? "ritual" : "");
+      }
+
+      function useSalve() {
+        const p = game.player;
+        if (game.state !== "playing") return;
+        if (p.salves <= 0) {
+          pushMessage("No salves left.", "bad");
+          return;
+        }
+        p.salves -= 1;
+        p.hp = Math.min(p.maxHp, p.hp + 32);
+        playTone(180, 0.08, "triangle", 0.03, 30);
+        pushMessage("You bind your wounds with consecrated cloth.", "good");
+      }
+
+      function useTonic() {
+        const p = game.player;
+        if (game.state !== "playing") return;
+        if (p.tonics <= 0) {
+          pushMessage("No tonic remains.", "bad");
+          return;
+        }
+        p.tonics -= 1;
+        p.sanity = Math.min(p.maxSanity, p.sanity + 28);
+        playTone(420, 0.08, "sine", 0.025, -40);
+        pushMessage("A bitter tonic steadies your thoughts.", "good");
+      }
+
+      function damageEnemy(enemy, amount, source) {
+        enemy.hp -= amount;
+        enemy.flash = 1;
+        if (source === "light" && enemy.type === "wailer") {
+          enemy.hp -= 4;
+        }
+        if (enemy.hp <= 0) {
+          killEnemy(enemy);
+        } else {
+          enemy.alert = 4;
+          playTone(120, 0.07, "square", 0.02, -10);
+        }
+      }
+
+      function killEnemy(enemy) {
+        enemy.dead = true;
+        game.kills += 1;
+        game.player.sanity = Math.min(game.player.maxSanity, game.player.sanity + 4);
+        gainXp(enemy.xp);
+        playTone(enemy.boss ? 62 : 90, enemy.boss ? 0.5 : 0.12, "triangle", enemy.boss ? 0.06 : 0.028, -25);
+        if (!enemy.boss && game.rng() < 0.24) {
+          spawnPickup(enemy.x, enemy.y, pick(["salve", "tonic", "ember"]));
+        }
+        if (enemy.boss) {
+          pushMessage("The Red Mother collapses into a silence that burns.", "good");
+          const stairs = game.props.find(prop => prop.type === "stairs");
+          if (stairs) stairs.locked = false;
+          game.bossAwake = false;
+        }
+      }
+
+      function spawnPickup(x, y, type) {
+        game.pickups.push({
+          type,
+          x,
+          y,
+          active: true,
+          bob: rand(0, Math.PI * 2)
+        });
+      }
+
+      function damagePlayer(amount, source) {
+        const p = game.player;
+        if (p.hurtCd > 0) return;
+        const mitigated = Math.max(1, Math.round(amount * (1 - p.ward)));
+        p.hp -= mitigated;
+        p.sanity = Math.max(0, p.sanity - 5);
+        p.hurtCd = 0.35;
+        game.damageFlash = 1;
+        game.shake = Math.min(2, game.shake + 0.8);
+        playTone(110, 0.16, "sawtooth", 0.045, -90);
+        pushMessage(`${source} tears into you for ${mitigated}.`, "bad");
+        if (p.hp <= 0) {
+          showEndScreen(false);
+        }
+      }
+
+      function findInteractable() {
+        let best = null;
+        let bestDist = 999;
+        const px = game.player.x;
+        const py = game.player.y;
+        for (const prop of game.props) {
+          if (!prop.active) continue;
+          const d = dist(px, py, prop.x, prop.y);
+          if (d < 1.35 && d < bestDist) {
+            best = prop;
+            bestDist = d;
+          }
+        }
+        return best;
+      }
+
+      function interact() {
+        if (game.state !== "playing") return;
+        const target = findInteractable();
+        if (!target) {
+          pushMessage("Your hand finds only cold air.", "");
+          return;
+        }
+        if (target.type === "seal" && !target.cleansed) {
+          target.cleansed = true;
+          game.cleanseCount += 1;
+          game.player.sanity = Math.min(game.player.maxSanity, game.player.sanity + 10);
+          game.player.hp = Math.min(game.player.maxHp, game.player.hp + 8);
+          pushMessage("A seal breaks and the air screams wider.", "ritual");
+          playTone(520, 0.35, "sine", 0.05, -280);
+          for (let i = 0; i < 2 + game.floor; i++) {
+            const spot = findOpenSpot(4);
+            if (spot) game.enemies.push(createEnemy(enemyTypeForFloor(game.floor), spot.x, spot.y));
+          }
+          if (game.cleanseCount >= game.cleanseGoal) {
+            const stairs = game.props.find(prop => prop.type === "stairs");
+            if (stairs) stairs.locked = game.floor === FINAL_FLOOR;
+            pushMessage(
+              game.floor === FINAL_FLOOR
+                ? "All seals are broken. The choir hears you."
+                : "The stair accepts your name and unlocks below.",
+              "good"
+            );
+            if (game.floor === FINAL_FLOOR) {
+              game.bossAwake = true;
+              game.enemies.push(createBoss());
+            }
+          }
+          return;
+        }
+        if (target.type === "stairs") {
+          if (target.locked) {
+            pushMessage(
+              game.floor === FINAL_FLOOR
+                ? "The exit stays shut while the Mother still breathes."
+                : "The stair is sealed. Cleanse the choir sigils first.",
+              "bad"
+            );
+            return;
+          }
+          if (game.floor >= FINAL_FLOOR) {
+            playTone(160, 0.2, "triangle", 0.04, 40);
+            showEndScreen(true);
+          } else {
+            playTone(160, 0.2, "triangle", 0.04, 40);
+            startFloor(game.floor + 1);
+          }
+          return;
+        }
+        if (target.type === "shrine" && !target.used) {
+          target.used = true;
+          game.player.sanity = Math.min(game.player.maxSanity, game.player.sanity + 16);
+          game.player.hp = Math.min(game.player.maxHp, game.player.hp + 10);
+          openChoiceOverlay("shrine");
+          playTone(340, 0.2, "sine", 0.04, 30);
+          return;
+        }
+        if (target.type === "echo") {
+          target.active = false;
+          game.player.sanity = Math.min(game.player.maxSanity, game.player.sanity + 6);
+          pushMessage(target.text, "ritual");
+          return;
+        }
+        if (target.type === "relic") {
+          target.active = false;
+          gainXp(12 + game.floor * 5);
+          if (game.rng() < 0.5) {
+            game.player.salves += 1;
+            pushMessage("The reliquary yields a hidden salve.", "good");
+          } else {
+            game.player.tonics += 1;
+            pushMessage("The reliquary yields a clear tonic.", "good");
+          }
+          return;
+        }
+      }
+
+      function updatePickups(dt) {
+        for (const item of game.pickups) {
+          item.bob += dt * 3;
+          if (!item.active) continue;
+          if (dist(game.player.x, game.player.y, item.x, item.y) < 0.75) {
+            item.active = false;
+            if (item.type === "salve") {
+              game.player.salves += 1;
+              pushMessage("You salvage a wrapped salve.", "good");
+            } else if (item.type === "tonic") {
+              game.player.tonics += 1;
+              pushMessage("A tonic vial remains unbroken.", "good");
+            } else {
+              game.player.sanity = Math.min(game.player.maxSanity, game.player.sanity + 8);
+              gainXp(4);
+              pushMessage("A hot ember steadies your mind.", "good");
+            }
+          }
+        }
+        game.pickups = game.pickups.filter(item => item.active);
+      }
+
+      function updateEnemies(dt) {
+        const p = game.player;
+        const survivors = [];
+        for (const enemy of game.enemies) {
+          if (enemy.dead) continue;
+          enemy.phase += dt * 3.5;
+          enemy.flash = Math.max(0, enemy.flash - dt * 4);
+          enemy.attackCd = Math.max(0, enemy.attackCd - dt);
+          enemy.stun = Math.max(0, enemy.stun - dt);
+          if (enemy.stun > 0) {
+            survivors.push(enemy);
+            continue;
+          }
+
+          const dx = p.x - enemy.x;
+          const dy = p.y - enemy.y;
+          const d = Math.hypot(dx, dy);
+          const sees = d < enemy.sight && hasLineOfSight(enemy.x, enemy.y, p.x, p.y, enemy.type === "wailer" ? 14 : 10);
+          if (sees) enemy.alert = 4;
+          enemy.alert = Math.max(0, enemy.alert - dt);
+
+          let moveX = 0;
+          let moveY = 0;
+          if (enemy.alert > 0 || d < 2.6) {
+            const nx = dx / Math.max(d, 0.0001);
+            const ny = dy / Math.max(d, 0.0001);
+            moveX = -nx * enemy.speed * dt;
+            moveY = -ny * enemy.speed * dt;
+            enemy.x += Math.cos(Math.atan2(dy, dx)) * enemy.speed * dt;
+            enemy.y += Math.sin(Math.atan2(dy, dx)) * enemy.speed * dt;
+            if (!canOccupy(enemy.x, enemy.y, enemy.radius)) {
+              enemy.x -= Math.cos(Math.atan2(dy, dx)) * enemy.speed * dt;
+              enemy.y -= Math.sin(Math.atan2(dy, dx)) * enemy.speed * dt;
+            }
+          } else {
+            enemy.x += Math.cos(enemy.phase) * enemy.speed * 0.22 * dt;
+            enemy.y += Math.sin(enemy.phase * 0.7) * enemy.speed * 0.22 * dt;
+            if (!canOccupy(enemy.x, enemy.y, enemy.radius)) {
+              enemy.x -= Math.cos(enemy.phase) * enemy.speed * 0.22 * dt;
+              enemy.y -= Math.sin(enemy.phase * 0.7) * enemy.speed * 0.22 * dt;
+              enemy.phase += 1.5;
+            }
+          }
+
+          if (enemy.type === "wailer" && p.sanity < p.maxSanity * 0.34 && game.rng() < dt * 0.65) {
+            const bx = enemy.x + rand(-2.2, 2.2);
+            const by = enemy.y + rand(-2.2, 2.2);
+            if (!isWall(game.map, bx, by) && dist(bx, by, p.x, p.y) > 1.5) {
+              enemy.x = bx;
+              enemy.y = by;
+            }
+          }
+
+          if (enemy.boss) {
+            enemy.summonCd -= dt;
+            if (!enemy.enraged && enemy.hp < enemy.maxHp * 0.5) {
+              enemy.enraged = true;
+              enemy.speed += 0.16;
+              enemy.dmg += 3;
+              pushMessage("The Mother opens its second mouth.", "bad");
+            }
+            if (enemy.summonCd <= 0) {
+              enemy.summonCd = enemy.enraged ? 3.7 : 5.6;
+              const spawn = findOpenSpot(3);
+              if (spawn) {
+                game.enemies.push(createEnemy(pick(["wailer", "stalker"]), spawn.x, spawn.y));
+                pushMessage("Fresh shapes spill from the hymn.", "bad");
+              }
+            }
+          }
+
+          if (d < enemy.range + 0.18 && enemy.attackCd <= 0) {
+            enemy.attackCd = enemy.boss ? 1.2 : rand(0.75, 1.4);
+            damagePlayer(enemy.dmg, enemy.name);
+          }
+
+          survivors.push(enemy);
+        }
+        game.enemies = survivors;
+      }
+
+      function hasLineOfSight(ax, ay, bx, by, maxSteps = 12) {
+        const dx = bx - ax;
+        const dy = by - ay;
+        const len = Math.hypot(dx, dy);
+        const steps = Math.min(maxSteps, Math.ceil(len / 0.2));
+        const stepX = dx / steps;
+        const stepY = dy / steps;
+        let x = ax;
+        let y = ay;
+        for (let i = 0; i < steps; i++) {
+          x += stepX;
+          y += stepY;
+          if (isWall(game.map, x, y)) return false;
+        }
+        return true;
+      }
+
+      function updatePlayer(dt) {
+        const p = game.player;
+        p.attackCd = Math.max(0, p.attackCd - dt);
+        p.burstCd = Math.max(0, p.burstCd - dt);
+        p.hurtCd = Math.max(0, p.hurtCd - dt);
+
+        let forward = 0;
+        let strafe = 0;
+        let turn = 0;
+        if (input.KeyW || input.ArrowUp) forward += 1;
+        if (input.KeyS || input.ArrowDown) forward -= 1;
+        if (input.KeyA) strafe -= 1;
+        if (input.KeyD) strafe += 1;
+        if (input.ArrowLeft) turn -= 1;
+        if (input.ArrowRight) turn += 1;
+
+        p.dir += turn * dt * 1.9;
+        const dirX = Math.cos(p.dir);
+        const dirY = Math.sin(p.dir);
+        const rightX = -dirY;
+        const rightY = dirX;
+        let mvX = dirX * forward + rightX * strafe;
+        let mvY = dirY * forward + rightY * strafe;
+        const length = Math.hypot(mvX, mvY);
+        if (length > 0.001) {
+          mvX /= length;
+          mvY /= length;
+          const speed = p.speed * dt;
+          const nx = p.x + mvX * speed;
+          const ny = p.y + mvY * speed;
+          if (canOccupy(nx, p.y, 0.22)) p.x = nx;
+          if (canOccupy(p.x, ny, 0.22)) p.y = ny;
+          p.stepBob += dt * 8;
+        }
+
+        revealAround(p.x, p.y, 5);
+
+        const threat = game.enemies.reduce((sum, enemy) => {
+          const d = dist(enemy.x, enemy.y, p.x, p.y);
+          return sum + (d < 4 ? (4 - d) / 4 : 0);
+        }, 0);
+        let drain = 0.012 * game.floor + threat * 0.05;
+        if (p.sanity < p.maxSanity * 0.25) drain += 0.03;
+        p.sanity = clamp(p.sanity - drain * dt * 4, 0, p.maxSanity);
+        if (p.sanity <= 0) {
+          p.hp -= dt * 4;
+          game.damageFlash = Math.max(game.damageFlash, 0.28);
+          if (p.hp <= 0) {
+            showEndScreen(false);
+          }
+        }
+        if (game.whisperCd <= 0 && p.sanity < p.maxSanity * 0.45) {
+          pushMessage(pick(WHISPERS), "");
+          game.whisperCd = rand(4.5, 7.5);
+        }
+        game.whisperCd -= dt;
+      }
+
+      function update(dt) {
+        if (game.state !== "playing") return;
+        game.time += dt;
+        game.timer += dt;
+        game.damageFlash = Math.max(0, game.damageFlash - dt * 2.2);
+        game.lightFlash = Math.max(0, game.lightFlash - dt * 2.4);
+        game.shake = Math.max(0, game.shake - dt * 2.8);
+        updatePlayer(dt);
+        updateEnemies(dt);
+        updatePickups(dt);
+        updateMessages(dt);
+        audioTick();
+        if (game.pendingChoices > 0) {
+          openChoiceOverlay("level");
+        }
+      }
+
+      function renderWorld() {
+        const p = game.player;
+        const map = game.map;
+        const insanity = 1 - p.sanity / p.maxSanity;
+        const dirX = Math.cos(p.dir);
+        const dirY = Math.sin(p.dir);
+        const fovScale = 0.66 + Math.sin(game.time * 2.1) * insanity * 0.02;
+        const planeX = -dirY * fovScale;
+        const planeY = dirX * fovScale;
+        const tint = FLOOR_TINT[game.floor - 1];
+
+        const topFog = FLOOR_FOG[game.floor - 1];
+        for (let y = 0; y < GAME_H / 2; y++) {
+          const t = y / (GAME_H / 2);
+          const r = lerp(topFog[0] * 0.2, topFog[0], t);
+          const g = lerp(topFog[1] * 0.22, topFog[1], t);
+          const b = lerp(topFog[2] * 0.28, topFog[2], t);
+          const veil = insanity > 0.5 ? Math.sin(y * 0.15 + game.time * 5) * insanity * 4 : 0;
+          const color = pack(r + veil, g + veil, b + veil * 0.6, 255);
+          const start = y * GAME_W;
+          framePixels.fill(color, start, start + GAME_W);
+        }
+
+        const rayDirX0 = dirX - planeX;
+        const rayDirY0 = dirY - planeY;
+        const rayDirX1 = dirX + planeX;
+        const rayDirY1 = dirY + planeY;
+        const half = GAME_H / 2;
+        for (let y = half; y < GAME_H; y++) {
+          const pRow = y - half + 0.001;
+          const rowDistance = (0.5 * GAME_H) / pRow;
+          let floorStepX = rowDistance * (rayDirX1 - rayDirX0) / GAME_W;
+          let floorStepY = rowDistance * (rayDirY1 - rayDirY0) / GAME_W;
+          let floorX = p.x + rowDistance * rayDirX0;
+          let floorY = p.y + rowDistance * rayDirY0;
+          const base = y * GAME_W;
+          for (let x = 0; x < GAME_W; x++) {
+            const cellX = floorX | 0;
+            const cellY = floorY | 0;
+            const cellIndex = inBounds(map, cellX, cellY) ? idx(map, cellX, cellY) : 0;
+            const floorTexId = map.floors[cellIndex] || 1;
+            const tex =
+              floorTexId === 1
+                ? assets.floors.stone
+                : floorTexId === 2
+                ? assets.floors.ward
+                : assets.floors.crypt;
+            const tx = (Math.floor(TEX_SIZE * (floorX - cellX)) & (TEX_SIZE - 1));
+            const ty = (Math.floor(TEX_SIZE * (floorY - cellY)) & (TEX_SIZE - 1));
+            const color = tex[ty * TEX_SIZE + tx];
+            const distFog = clamp(rowDistance * 0.075 + insanity * 0.12, 0, 0.92);
+            const shade = clamp(1.2 - rowDistance * 0.08 + game.lightFlash * 0.4, 0.18, 1);
+            framePixels[base + x] = shadeFog(color, shade, distFog, tint);
+            floorX += floorStepX;
+            floorY += floorStepY;
+          }
+        }
+
+        for (let x = 0; x < GAME_W; x++) {
+          const cameraX = (2 * x) / GAME_W - 1;
+          const rayX = dirX + planeX * cameraX;
+          const rayY = dirY + planeY * cameraX;
+          let mapX = p.x | 0;
+          let mapY = p.y | 0;
+          const deltaX = Math.abs(1 / rayX);
+          const deltaY = Math.abs(1 / rayY);
+          let stepX;
+          let stepY;
+          let sideDistX;
+          let sideDistY;
+
+          if (rayX < 0) {
+            stepX = -1;
+            sideDistX = (p.x - mapX) * deltaX;
+          } else {
+            stepX = 1;
+            sideDistX = (mapX + 1 - p.x) * deltaX;
+          }
+          if (rayY < 0) {
+            stepY = -1;
+            sideDistY = (p.y - mapY) * deltaY;
+          } else {
+            stepY = 1;
+            sideDistY = (mapY + 1 - p.y) * deltaY;
+          }
+
+          let hit = 0;
+          let side = 0;
+          while (!hit) {
+            if (sideDistX < sideDistY) {
+              sideDistX += deltaX;
+              mapX += stepX;
+              side = 0;
+            } else {
+              sideDistY += deltaY;
+              mapY += stepY;
+              side = 1;
+            }
+            if (!inBounds(map, mapX, mapY)) {
+              hit = 1;
+              break;
+            }
+            if (map.walls[idx(map, mapX, mapY)] !== 0) hit = 1;
+          }
+
+          const perp = side === 0
+            ? (mapX - p.x + (1 - stepX) / 2) / rayX
+            : (mapY - p.y + (1 - stepY) / 2) / rayY;
+          const wallDist = Math.max(0.001, perp);
+          const lineHeight = (GAME_H / wallDist) | 0;
+          let drawStart = ((GAME_H - lineHeight) >> 1);
+          let drawEnd = drawStart + lineHeight;
+          drawStart = Math.max(0, drawStart);
+          drawEnd = Math.min(GAME_H - 1, drawEnd);
+          let wallX = side === 0 ? p.y + wallDist * rayY : p.x + wallDist * rayX;
+          wallX -= Math.floor(wallX);
+          let texX = (wallX * TEX_SIZE) | 0;
+          if (side === 0 && rayX > 0) texX = TEX_SIZE - texX - 1;
+          if (side === 1 && rayY < 0) texX = TEX_SIZE - texX - 1;
+
+          const cellTex = map.walls[idx(map, mapX, mapY)] || map.wallTex;
+          const wallTex =
+            cellTex === 1
+              ? assets.walls.stone
+              : cellTex === 2
+              ? assets.walls.chapel
+              : assets.walls.flesh;
+          const fogAmt = clamp(wallDist * 0.09 + insanity * 0.12, 0, 0.94);
+          for (let y = drawStart; y <= drawEnd; y++) {
+            const d = (y * 256 - GAME_H * 128 + lineHeight * 128);
+            let texY = ((d * TEX_SIZE) / lineHeight) / 256;
+            texY = texY | 0;
+            const color = wallTex[(texY & (TEX_SIZE - 1)) * TEX_SIZE + texX];
+            const shade = clamp((side === 1 ? 0.72 : 0.9) / (1 + wallDist * 0.08) + game.lightFlash * 0.18, 0.15, 1);
+            framePixels[y * GAME_W + x] = shadeFog(color, shade, fogAmt, tint);
+          }
+          zBuffer[x] = wallDist;
+        }
+
+        const spriteEntries = [];
+        for (const prop of game.props) {
+          if (!prop.active) continue;
+          spriteEntries.push(prop);
+        }
+        for (const item of game.pickups) {
+          if (!item.active) continue;
+          spriteEntries.push(item);
+        }
+        for (const enemy of game.enemies) {
+          if (!enemy.dead) spriteEntries.push(enemy);
+        }
+
+        spriteEntries.sort((a, b) => dist(p.x, p.y, b.x, b.y) - dist(p.x, p.y, a.x, a.y));
+        for (const sprite of spriteEntries) {
+          const spriteX = sprite.x - p.x;
+          const spriteY = sprite.y - p.y;
+          const invDet = 1 / (planeX * dirY - dirX * planeY);
+          const transformX = invDet * (dirY * spriteX - dirX * spriteY);
+          const transformY = invDet * (-planeY * spriteX + planeX * spriteY);
+          if (transformY <= 0.1) continue;
+          const screenX = ((GAME_W / 2) * (1 + transformX / transformY)) | 0;
+          const spriteScale = sprite.type === "boss" ? 1.55 : sprite.type === "stairs" ? 1.12 : sprite.type === "seal" ? 1.0 : 0.95;
+          const height = Math.abs((GAME_H / transformY) * spriteScale) | 0;
+          const width = height;
+          let drawStartY = ((GAME_H - height) >> 1) + (sprite.type === "stairs" ? 30 : 0);
+          let drawEndY = drawStartY + height;
+          let drawStartX = screenX - (width >> 1);
+          let drawEndX = drawStartX + width;
+          if (drawEndX < 0 || drawStartX >= GAME_W) continue;
+          const bob = Math.sin(game.time * 2.6 + (sprite.bob || sprite.phase || 0)) * 6;
+          drawStartY = (drawStartY + bob) | 0;
+          drawEndY = (drawEndY + bob) | 0;
+          const tex =
+            sprite.sprite === "stalker" ? assets.sprites.stalker :
+            sprite.sprite === "wailer" ? assets.sprites.wailer :
+            sprite.sprite === "brute" ? assets.sprites.brute :
+            sprite.sprite === "boss" ? assets.sprites.boss :
+            sprite.type === "seal" ? assets.sprites.seal :
+            sprite.type === "stairs" ? assets.sprites.stairs :
+            sprite.type === "shrine" ? assets.sprites.shrine :
+            sprite.type === "echo" ? assets.sprites.echo :
+            sprite.type === "relic" ? assets.sprites.relic :
+            sprite.type === "salve" ? assets.sprites.salve :
+            sprite.type === "tonic" ? assets.sprites.tonic :
+            assets.sprites.ember;
+          for (let stripe = Math.max(0, drawStartX); stripe < Math.min(GAME_W, drawEndX); stripe++) {
+            const texX = (((stripe - drawStartX) * tex.size) / width) | 0;
+            if (transformY >= zBuffer[stripe]) continue;
+            for (let y = Math.max(0, drawStartY); y < Math.min(GAME_H, drawEndY); y++) {
+              const texY = (((y - drawStartY) * tex.size) / height) | 0;
+              const src = tex.data[texY * tex.size + texX];
+              if ((src >>> 24) === 0) continue;
+              let shade = clamp(1 / (1 + transformY * 0.28) + game.lightFlash * 0.18, 0.2, 1.1);
+              let fogAmt = clamp(transformY * 0.08 + insanity * 0.12, 0, 0.9);
+              let tinted = shadeFog(src, shade, fogAmt, tint);
+              if ((sprite.type === "seal" && sprite.cleansed) || sprite.used) {
+                tinted = shadeFog(src, shade * 0.45, Math.min(0.96, fogAmt + 0.2), [0.7, 0.8, 0.75]);
+              } else if (sprite.flash > 0) {
+                tinted = blend(tinted, pack(255, 245, 225, (sprite.flash * 180) | 0));
+              }
+              if (sprite.type === "wailer" || sprite.type === "seal") {
+                framePixels[y * GAME_W + stripe] = blend(framePixels[y * GAME_W + stripe], tinted);
+              } else {
+                framePixels[y * GAME_W + stripe] = blend(framePixels[y * GAME_W + stripe], tinted);
+              }
+            }
+          }
+        }
+
+        frameCtx.putImageData(frameImage, 0, 0);
+
+        const shakeX = game.shake ? Math.sin(game.time * 80) * game.shake * 2.2 : 0;
+        const shakeY = game.shake ? Math.cos(game.time * 55) * game.shake * 1.6 : 0;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (insanity > 0.5) {
+          ctx.globalAlpha = insanity * 0.15;
+          ctx.drawImage(frameCanvas, shakeX + 2, shakeY - 1, GAME_W, GAME_H);
+          ctx.globalAlpha = 1;
+        }
+        ctx.drawImage(frameCanvas, shakeX, shakeY, GAME_W, GAME_H);
+
+        if (game.damageFlash > 0) {
+          ctx.fillStyle = `rgba(160, 22, 28, ${game.damageFlash * 0.28})`;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        if (game.lightFlash > 0) {
+          ctx.fillStyle = `rgba(255, 235, 180, ${game.lightFlash * 0.18})`;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        ctx.strokeStyle = "rgba(255,255,255,0.65)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(GAME_W / 2 - 4, GAME_H / 2);
+        ctx.lineTo(GAME_W / 2 + 4, GAME_H / 2);
+        ctx.moveTo(GAME_W / 2, GAME_H / 2 - 4);
+        ctx.lineTo(GAME_W / 2, GAME_H / 2 + 4);
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(255,255,255,0.04)";
+        for (let y = 0; y < GAME_H; y += 3) {
+          ctx.fillRect(0, y, GAME_W, 1);
+        }
+
+        if (insanity > 0.42) {
+          for (let i = 0; i < 12; i++) {
+            const alpha = (0.01 + insanity * 0.03) * Math.random();
+            ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+            const h = 1 + Math.random() * 2;
+            ctx.fillRect(0, Math.random() * GAME_H, GAME_W, h);
+          }
+        }
+      }
+
+      function renderMinimap() {
+        const map = game.map;
+        const scale = mini.width / map.size;
+        miniCtx.fillStyle = "#0a0b0d";
+        miniCtx.fillRect(0, 0, mini.width, mini.height);
+        for (let y = 0; y < map.size; y++) {
+          for (let x = 0; x < map.size; x++) {
+            const explored = map.explored[idx(map, x, y)];
+            const screenX = x * scale;
+            const screenY = y * scale;
+            if (!explored) {
+              miniCtx.fillStyle = "#070809";
+              miniCtx.fillRect(screenX, screenY, scale + 0.5, scale + 0.5);
+              continue;
+            }
+            const wall = map.walls[idx(map, x, y)];
+            if (wall) {
+              miniCtx.fillStyle = wall === 1 ? "#505560" : wall === 2 ? "#5f4b45" : "#5d2328";
+            } else {
+              miniCtx.fillStyle = wall === 0 && game.floor < FINAL_FLOOR ? "#12161b" : "#1a1114";
+            }
+            miniCtx.fillRect(screenX, screenY, scale + 0.5, scale + 0.5);
+          }
+        }
+        for (const prop of game.props) {
+          if (!prop.active) continue;
+          miniCtx.fillStyle =
+            prop.type === "seal" ? (prop.cleansed ? "#677a6b" : "#d6b06a") :
+            prop.type === "stairs" ? (prop.locked ? "#8b2e33" : "#7fc0a4") :
+            prop.type === "shrine" ? "#74c8c8" :
+            "#d9d9d9";
+          miniCtx.fillRect(prop.x * scale - 2, prop.y * scale - 2, 4, 4);
+        }
+        for (const enemy of game.enemies) {
+          miniCtx.fillStyle = enemy.boss ? "#ff8a8a" : "#d55a52";
+          miniCtx.fillRect(enemy.x * scale - 1.5, enemy.y * scale - 1.5, 3, 3);
+        }
+        const p = game.player;
+        miniCtx.save();
+        miniCtx.translate(p.x * scale, p.y * scale);
+        miniCtx.rotate(p.dir);
+        miniCtx.fillStyle = "#f5ece3";
+        miniCtx.beginPath();
+        miniCtx.moveTo(4, 0);
+        miniCtx.lineTo(-3, -3);
+        miniCtx.lineTo(-3, 3);
+        miniCtx.closePath();
+        miniCtx.fill();
+        miniCtx.restore();
+      }
+
+      function currentObjective() {
+        if (game.floor === FINAL_FLOOR) {
+          if (game.cleanseCount < game.cleanseGoal) {
+            return `Cleanse ${game.cleanseGoal - game.cleanseCount} choir seals to wake the heart of the chapel.`;
+          }
+          const boss = game.enemies.find(enemy => enemy.boss);
+          if (boss) {
+            return `The Red Mother is awake. End the hymn and claim the stair.`;
+          }
+          return "The choir is broken. Reach the unlocked stair and escape.";
+        }
+        if (game.cleanseCount < game.cleanseGoal) {
+          return `Cleanse ${game.cleanseGoal - game.cleanseCount} sigil${game.cleanseGoal - game.cleanseCount > 1 ? "s" : ""} to unlock the descent.`;
+        }
+        return "The stair is open. Descend before the ward resets around you.";
+      }
+
+      function currentPrompt() {
+        const target = findInteractable();
+        if (!target) return "Listen to the breathing stone. Keep moving.";
+        if (target.type === "seal" && !target.cleansed) return "Press E to break the sigil seal.";
+        if (target.type === "stairs") return target.locked ? "The stair is sealed." : "Press E to descend.";
+        if (target.type === "shrine" && !target.used) return "Press E to accept the shrine’s bargain.";
+        if (target.type === "echo") return "Press E to read the echo.";
+        if (target.type === "relic") return "Press E to prise open the reliquary.";
+        return "The chapel is listening.";
+      }
+
+      function renderHud() {
+        const p = game.player;
+        const boss = game.enemies.find(enemy => enemy.boss);
+        hudLeft.innerHTML = `
+          <div class="eyebrow">${FLOOR_NAMES[game.floor - 1] || "The Descent"}</div>
+          <div class="title-lg">${p.className}</div>
+          <div class="bars">
+            ${barMarkup("Vigor", p.hp, p.maxHp, "hp")}
+            ${barMarkup("Sanity", p.sanity, p.maxSanity, "sanity")}
+            ${barMarkup("Resolve", p.xp, p.xpNeed, "xp")}
+          </div>
+          <div class="stat-grid">
+            <div class="stat-card"><span>Level</span><strong>${p.level}</strong></div>
+            <div class="stat-card"><span>Damage</span><strong>${p.damage}</strong></div>
+            <div class="stat-card"><span>Salves</span><strong>${p.salves}</strong></div>
+            <div class="stat-card"><span>Tonics</span><strong>${p.tonics}</strong></div>
+          </div>
+          ${boss ? `
+            <div class="bars">
+              ${barMarkup("Red Mother", boss.hp, boss.maxHp, "hp")}
+            </div>
+          ` : ""}
+        `;
+        objectiveEl.textContent = currentObjective();
+        promptEl.textContent = currentPrompt();
+        messagesEl.innerHTML = game.messages.map(msg => `
+          <div class="message ${msg.kind}" style="opacity:${clamp(msg.ttl / 7, 0.35, 1)}">${msg.text}</div>
+        `).join("");
+      }
+
+      function barMarkup(label, value, max, kind) {
+        const pct = Math.max(0, Math.min(100, (value / max) * 100));
+        return `
+          <div class="bar-row">
+            <div class="bar-head"><span>${label}</span><span>${Math.max(0, Math.round(value))} / ${max}</span></div>
+            <div class="bar"><div class="fill ${kind}" style="width:${pct}%"></div></div>
+          </div>
+        `;
+      }
+
+      function onMouseMove(event) {
+        if (document.pointerLockElement === canvas && game.state === "playing") {
+          game.player.dir += event.movementX * 0.0026;
+        }
+      }
+
+      function bindInput() {
+        window.addEventListener("keydown", event => {
+          input[event.code] = true;
+          if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "KeyE", "KeyQ", "KeyR", "KeyF"].includes(event.code)) {
+            event.preventDefault();
+          }
+          if (game.state === "title" && event.code === "Enter") {
+            beginGame();
+          }
+          if (game.state === "playing") {
+            if (event.code === "Space") attackMelee();
+            if (event.code === "KeyE") interact();
+            if (event.code === "KeyQ") useSalve();
+            if (event.code === "KeyR") useTonic();
+            if (event.code === "KeyF") lanternBurst();
+          } else if ((game.state === "dead" || game.state === "victory") && event.code === "Enter") {
+            beginGame();
+          }
+        });
+        window.addEventListener("keyup", event => {
+          input[event.code] = false;
+        });
+        window.addEventListener("mousemove", onMouseMove);
+        canvas.addEventListener("mousedown", event => {
+          if (event.button === 0) {
+            if (game.state === "playing") {
+              canvas.requestPointerLock?.();
+              attackMelee();
+            } else if (game.state === "title" || game.state === "dead" || game.state === "victory") {
+              beginGame();
+            }
+          } else if (event.button === 2 && game.state === "playing") {
+            event.preventDefault();
+            canvas.requestPointerLock?.();
+            lanternBurst();
+          }
+        });
+        canvas.addEventListener("contextmenu", event => event.preventDefault());
+      }
+
+      let lastTime = performance.now();
+      function loop(now) {
+        const dt = Math.min(0.05, (now - lastTime) / 1000);
+        lastTime = now;
+        if (game.state === "playing") {
+          update(dt);
+          renderWorld();
+          renderMinimap();
+          renderHud();
+        } else if (game.player && game.map) {
+          renderWorld();
+          renderMinimap();
+          renderHud();
+        }
+        requestAnimationFrame(loop);
+      }
+
+      buildAssets();
+      bindInput();
+      showTitle();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

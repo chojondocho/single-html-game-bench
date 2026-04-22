@@ -35,7 +35,7 @@ As of **April 17, 2026**, based on direct hands-on play testing:
 | 11   | Antigravity - Gemini 3 Flash    | [Play](https://chojondocho.github.io/single-html-game-bench/antigravity-gemini-3-flash.html) |
 | 12   | Grok Web - Grok 4.20 (4 Agents) | [Play](https://chojondocho.github.io/single-html-game-bench/grokweb-grok-4-20-4agents.html)  |
 
-## All Playable Builds (Direct Links)
+## Ranked Playable Builds (Direct Links)
 
 - [claudecode-opus-4-7-max](https://chojondocho.github.io/single-html-game-bench/claudecode-opus-4-7-max.html)
 - [chatgpt-gpt-5-4-unverified](https://chojondocho.github.io/single-html-game-bench/chatgpt-gpt-5-4-unverified.html)
@@ -49,6 +49,18 @@ As of **April 17, 2026**, based on direct hands-on play testing:
 - [codex-gpt-5-3-codex-xhigh](https://chojondocho.github.io/single-html-game-bench/codex-gpt-5-3-codex-xhigh.html)
 - [antigravity-gemini-3-flash](https://chojondocho.github.io/single-html-game-bench/antigravity-gemini-3-flash.html)
 - [grokweb-grok-4-20-4agents](https://chojondocho.github.io/single-html-game-bench/grokweb-grok-4-20-4agents.html)
+
+## Appendix: Unranked Codex Exposure Tests
+
+As of **April 22, 2026**, these three artifacts are intentionally excluded from the personal ranking.
+They were captured during a short-lived Codex internal-model exposure, so the labels below are treated as observed labels, not stable product or model names.
+They are published here for reproducibility and side-by-side inspection only.
+
+| Observed Codex Label | Generated Game Title                         | Play                                                                                         | Screenshot                                                                                   |
+| -------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Arcanine 47s         | Lanternfall: The Thirteenth Reliquary        | [Play](https://chojondocho.github.io/single-html-game-bench/codex-arcanine-47s.html)         | [PNG](https://chojondocho.github.io/single-html-game-bench/codex-arcanine-47s.png)           |
+| GPT-5.5 1m31s        | Hollowwake: Reliquary of the Last Bell       | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-5-5-1m31s.html)        | [PNG](https://chojondocho.github.io/single-html-game-bench/codex-gpt-5-5-1m31s.png)          |
+| OAI 2.1 4m25s        | Echoes Beneath the Chancel                   | [Play](https://chojondocho.github.io/single-html-game-bench/codex-oai-2-1-4m25s.html)        | [PNG](https://chojondocho.github.io/single-html-game-bench/codex-oai-2-1-4m25s.png)          |
 
 ## Benchmark Rules
 
