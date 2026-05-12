@@ -1,0 +1,3620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>THE SUNKEN VOW — A Descent</title>
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23000'/><text x='8' y='12' font-size='12' text-anchor='middle' fill='%23c41320' font-family='serif' font-style='italic'>V</text></svg>">
+<style>
+:root{
+  --blood:#7a0a10; --bone:#d8cdb7; --ash:#1a1614; --rust:#52281a;
+  --ink:#0a0809; --rune:#b48a4a; --soul:#9fd6ff; --dread:#3a1e2a;
+  --hp:#9a1622; --mp:#3866c8; --st:#c9a437; --xp:#7fb069;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;color:var(--bone);font-family:'Georgia','Times New Roman',serif;cursor:none;}
+canvas{display:block;position:absolute;top:0;left:0;width:100%;height:100%;}
+#game{z-index:1;}
+#vignette{position:absolute;inset:0;pointer-events:none;z-index:5;
+  background:radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.95) 100%);
+  mix-blend-mode:multiply;}
+#grain{position:absolute;inset:0;pointer-events:none;z-index:6;opacity:0.08;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.7'/></svg>");}
+#bloodVeil{position:absolute;inset:0;pointer-events:none;z-index:7;opacity:0;transition:opacity 0.3s;
+  background:radial-gradient(ellipse at center,transparent 35%,rgba(120,8,12,0.55) 80%,rgba(80,0,4,0.85) 100%);}
+#flashWhite{position:absolute;inset:0;pointer-events:none;z-index:8;background:#fff;opacity:0;}
+#hud{position:absolute;inset:0;pointer-events:none;z-index:10;font-size:14px;}
+.bar-stack{position:absolute;left:24px;bottom:24px;width:300px;}
+.bar{position:relative;width:100%;height:14px;background:rgba(8,4,4,0.7);border:1px solid rgba(180,138,74,0.45);margin-top:4px;box-shadow:inset 0 0 8px rgba(0,0,0,0.8);}
+.bar .fill{position:absolute;top:0;left:0;height:100%;transition:width 0.18s linear;}
+.bar .label{position:absolute;left:8px;top:-1px;font-size:10px;letter-spacing:2px;color:var(--bone);text-shadow:0 0 4px #000,0 0 2px #000;font-variant:small-caps;font-weight:bold;mix-blend-mode:screen;}
+.bar .num{position:absolute;right:8px;top:-1px;font-size:10px;color:var(--bone);text-shadow:0 0 4px #000;}
+#hpBar .fill{background:linear-gradient(180deg,#c41320,#7a0a10);box-shadow:0 0 6px rgba(196,19,32,0.6);}
+#mpBar .fill{background:linear-gradient(180deg,#5a86e8,#2a4a9c);box-shadow:0 0 6px rgba(90,134,232,0.5);}
+#stBar .fill{background:linear-gradient(180deg,#e4c454,#9c7220);box-shadow:0 0 4px rgba(228,196,84,0.4);}
+#xpBar{height:6px;}
+#xpBar .fill{background:linear-gradient(180deg,#a8d088,#5a8048);}
+#xpBar .label{font-size:9px;top:-12px;}
+.stats-line{position:absolute;left:24px;bottom:120px;font-size:11px;letter-spacing:1px;color:var(--rune);text-shadow:0 0 4px #000;font-variant:small-caps;}
+#charPanel{position:absolute;left:24px;top:24px;font-size:12px;color:var(--bone);text-shadow:0 0 4px #000;line-height:1.5;letter-spacing:1px;font-variant:small-caps;}
+#charPanel .title{color:var(--rune);font-size:13px;letter-spacing:2px;}
+#charPanel .floor{color:var(--blood);font-style:italic;}
+#minimap{position:absolute;right:24px;top:24px;width:180px;height:180px;background:rgba(6,4,4,0.7);border:1px solid rgba(180,138,74,0.45);box-shadow:inset 0 0 12px rgba(0,0,0,0.9),0 0 12px rgba(0,0,0,0.7);}
+#minimapCanvas{width:100%;height:100%;display:block;}
+#mapLabel{position:absolute;right:24px;top:208px;width:180px;text-align:center;font-size:10px;letter-spacing:3px;color:var(--rune);font-variant:small-caps;text-shadow:0 0 4px #000;}
+#hotbar{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);display:flex;gap:6px;}
+.slot{width:48px;height:48px;background:rgba(6,4,4,0.75);border:1px solid rgba(180,138,74,0.5);position:relative;font-size:11px;color:var(--bone);text-shadow:0 0 3px #000;display:flex;align-items:flex-end;justify-content:flex-end;padding:3px;box-shadow:inset 0 0 8px rgba(0,0,0,0.8);}
+.slot .key{position:absolute;top:2px;left:4px;font-size:9px;color:var(--rune);opacity:0.85;}
+.slot .icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--bone);text-shadow:0 0 6px #000,0 0 3px #000;}
+.slot.active{border-color:var(--rune);box-shadow:inset 0 0 10px rgba(180,138,74,0.4),0 0 8px rgba(180,138,74,0.5);}
+.slot .cnt{font-size:10px;color:var(--bone);text-shadow:0 0 2px #000;font-weight:bold;}
+#spellbar{position:absolute;right:24px;bottom:24px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;}
+.spell{display:flex;align-items:center;gap:6px;background:rgba(6,4,4,0.7);border:1px solid rgba(58,30,42,0.7);padding:4px 8px;font-size:11px;color:var(--bone);letter-spacing:1px;}
+.spell .glyph{font-size:14px;color:var(--mp);}
+.spell.ready .glyph{color:var(--soul);text-shadow:0 0 6px var(--soul);}
+.spell.locked{opacity:0.35;}
+#crosshair{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:18px;height:18px;z-index:11;pointer-events:none;}
+#crosshair:before,#crosshair:after{content:"";position:absolute;background:rgba(216,205,183,0.55);box-shadow:0 0 4px #000;}
+#crosshair:before{left:50%;top:0;width:1px;height:100%;transform:translateX(-50%);}
+#crosshair:after{top:50%;left:0;width:100%;height:1px;transform:translateY(-50%);}
+#crosshair .dot{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:3px;height:3px;background:var(--blood);border-radius:50%;box-shadow:0 0 4px rgba(196,19,32,0.8);}
+#messages{position:absolute;left:50%;top:32%;transform:translateX(-50%);width:520px;text-align:center;z-index:11;pointer-events:none;}
+.msg{font-size:14px;color:var(--bone);text-shadow:0 0 6px #000,0 0 3px #000;padding:4px;letter-spacing:1px;animation:msgFade 4.5s forwards;font-variant:small-caps;}
+.msg.dmg{color:#ff6a4a;font-size:13px;}
+.msg.heal{color:#9fd6a0;}
+.msg.pickup{color:var(--rune);font-style:italic;}
+.msg.lore{color:#b8a8c8;font-style:italic;font-size:13px;}
+.msg.warn{color:#ff8c4a;letter-spacing:2px;}
+@keyframes msgFade{0%{opacity:0;transform:translateY(8px);}10%{opacity:1;transform:translateY(0);}80%{opacity:1;}100%{opacity:0;transform:translateY(-6px);}}
+#floorTitle{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);text-align:center;z-index:12;pointer-events:none;opacity:0;transition:opacity 1.5s;}
+#floorTitle .num{font-size:16px;color:var(--rune);letter-spacing:6px;font-variant:small-caps;}
+#floorTitle .name{font-size:42px;color:var(--bone);letter-spacing:8px;font-style:italic;text-shadow:0 0 14px #000,0 0 6px #000;margin-top:8px;}
+#floorTitle .sub{font-size:13px;color:var(--rune);font-style:italic;letter-spacing:2px;margin-top:14px;opacity:0.7;}
+.menu{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(20,8,8,0.92),#000 70%);z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:auto;pointer-events:auto;}
+.menu.hidden{display:none;}
+.menu h1{font-size:64px;letter-spacing:14px;color:var(--blood);text-shadow:0 0 18px rgba(196,19,32,0.4),0 4px 0 #000;font-style:italic;font-weight:normal;margin-bottom:8px;}
+.menu h2{font-size:20px;letter-spacing:6px;color:var(--bone);font-variant:small-caps;margin-bottom:48px;opacity:0.7;font-weight:normal;}
+.menu .epigraph{max-width:640px;text-align:center;font-style:italic;color:var(--rune);font-size:14px;letter-spacing:1px;line-height:1.8;margin-bottom:36px;opacity:0.85;}
+.menu .epigraph span{color:var(--bone);}
+.classes{display:flex;gap:18px;margin-bottom:36px;}
+.classcard{width:200px;padding:22px 16px;background:rgba(8,4,4,0.7);border:1px solid rgba(180,138,74,0.45);text-align:center;cursor:pointer;transition:all 0.25s;}
+.classcard:hover{border-color:var(--blood);background:rgba(40,8,8,0.55);transform:translateY(-3px);box-shadow:0 4px 16px rgba(196,19,32,0.25);}
+.classcard h3{font-size:18px;letter-spacing:4px;color:var(--bone);margin-bottom:6px;font-variant:small-caps;}
+.classcard .tag{font-size:10px;color:var(--rune);letter-spacing:2px;font-style:italic;margin-bottom:14px;}
+.classcard .desc{font-size:12px;color:var(--bone);opacity:0.7;line-height:1.5;margin-bottom:14px;letter-spacing:0.5px;}
+.classcard .stats{font-size:11px;color:var(--rune);letter-spacing:1px;line-height:1.6;font-variant:small-caps;}
+.menu .hint{font-size:11px;color:var(--rune);letter-spacing:3px;opacity:0.55;font-variant:small-caps;}
+.menu .btn{background:transparent;border:1px solid var(--rune);color:var(--bone);padding:12px 32px;font-size:13px;letter-spacing:4px;font-variant:small-caps;cursor:pointer;font-family:inherit;margin-top:14px;transition:all 0.2s;}
+.menu .btn:hover{background:rgba(180,138,74,0.15);color:var(--rune);}
+#deathScreen h1{color:var(--blood);font-size:84px;}
+#deathScreen .epigraph{color:var(--blood);opacity:0.7;}
+#deathScreen .stats-block{font-size:13px;color:var(--bone);letter-spacing:2px;line-height:2;margin:20px 0 30px;font-variant:small-caps;text-align:center;}
+.menu .stats-block .lbl{color:var(--rune);display:inline-block;width:140px;text-align:right;margin-right:14px;}
+.menu .stats-block .val{display:inline-block;width:80px;text-align:left;}
+#victoryScreen h1{color:var(--soul);font-size:72px;text-shadow:0 0 28px rgba(159,214,255,0.5);}
+#victoryScreen .epigraph{color:var(--bone);}
+#inventory{position:absolute;inset:0;background:rgba(0,0,0,0.78);z-index:25;display:none;align-items:center;justify-content:center;pointer-events:auto;}
+#inventory.open{display:flex;}
+.invPanel{display:flex;gap:18px;background:rgba(12,6,6,0.96);border:1px solid var(--rune);padding:24px;box-shadow:0 0 60px rgba(180,138,74,0.18),inset 0 0 30px rgba(0,0,0,0.7);min-width:780px;}
+.invCol{display:flex;flex-direction:column;gap:14px;}
+.invCol h3{font-size:13px;letter-spacing:4px;color:var(--rune);font-variant:small-caps;border-bottom:1px solid rgba(180,138,74,0.35);padding-bottom:6px;}
+.invGrid{display:grid;grid-template-columns:repeat(5,52px);grid-gap:5px;}
+.invSlot{width:52px;height:52px;background:rgba(6,4,4,0.8);border:1px solid rgba(180,138,74,0.3);position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:22px;transition:all 0.15s;}
+.invSlot:hover{border-color:var(--blood);background:rgba(40,8,8,0.5);}
+.invSlot.equipped{border-color:var(--rune);background:rgba(80,56,20,0.35);box-shadow:inset 0 0 8px rgba(180,138,74,0.3);}
+.invSlot .cnt{position:absolute;bottom:1px;right:3px;font-size:10px;color:var(--bone);text-shadow:0 0 2px #000;font-weight:bold;}
+.invSlot .rune{position:absolute;top:1px;left:3px;font-size:8px;color:var(--rune);opacity:0.7;}
+.equipBox{display:flex;flex-direction:column;gap:6px;font-size:12px;}
+.equipRow{display:flex;align-items:center;gap:8px;background:rgba(6,4,4,0.7);border:1px solid rgba(180,138,74,0.25);padding:6px 10px;min-width:220px;}
+.equipRow .lbl{color:var(--rune);font-variant:small-caps;letter-spacing:2px;width:70px;font-size:11px;}
+.equipRow .name{color:var(--bone);}
+.equipRow .empty{color:var(--rune);opacity:0.4;font-style:italic;}
+.statBox{display:flex;flex-direction:column;gap:4px;font-size:12px;background:rgba(6,4,4,0.7);border:1px solid rgba(180,138,74,0.25);padding:14px 18px;min-width:220px;}
+.statRow{display:flex;justify-content:space-between;letter-spacing:1px;}
+.statRow .lbl{color:var(--rune);font-variant:small-caps;}
+.statRow .val{color:var(--bone);}
+.statRow.head{color:var(--bone);font-weight:bold;border-bottom:1px solid rgba(180,138,74,0.35);padding-bottom:4px;margin-bottom:4px;letter-spacing:3px;font-variant:small-caps;}
+#tooltip{position:absolute;background:rgba(2,2,2,0.96);border:1px solid var(--rune);padding:10px 14px;font-size:12px;color:var(--bone);letter-spacing:0.5px;line-height:1.5;pointer-events:none;z-index:40;max-width:280px;display:none;box-shadow:0 4px 20px rgba(0,0,0,0.7);}
+#tooltip.show{display:block;}
+#tooltip .tn{color:var(--rune);font-variant:small-caps;letter-spacing:2px;font-size:13px;margin-bottom:4px;display:block;}
+#tooltip .tt{color:#888;font-size:11px;font-style:italic;margin-bottom:6px;}
+#tooltip .ts{color:var(--bone);font-size:11px;line-height:1.6;}
+#tooltip .tf{color:#998;font-style:italic;font-size:10px;margin-top:6px;border-top:1px dashed rgba(180,138,74,0.25);padding-top:5px;}
+#tooltip .trare{color:#3866c8;}
+#tooltip .tepic{color:#a060d8;}
+#tooltip .tcurs{color:#c41320;}
+.invHelp{font-size:10px;color:var(--rune);opacity:0.6;letter-spacing:1px;margin-top:8px;line-height:1.5;}
+#interact{position:absolute;left:50%;top:55%;transform:translateX(-50%);font-size:13px;color:var(--rune);letter-spacing:3px;font-variant:small-caps;text-shadow:0 0 6px #000;z-index:11;pointer-events:none;opacity:0;transition:opacity 0.18s;}
+#interact.show{opacity:1;}
+#interact .k{color:var(--bone);font-weight:bold;border:1px solid var(--rune);padding:2px 8px;margin-right:6px;}
+#blockBar{position:absolute;left:50%;top:55%;transform:translateX(-50%);font-size:12px;color:var(--mp);text-shadow:0 0 6px #000;z-index:11;pointer-events:none;opacity:0;letter-spacing:3px;font-variant:small-caps;}
+#blockBar.show{opacity:1;}
+#dmgIndicators{position:absolute;inset:0;pointer-events:none;z-index:9;}
+.dmgArrow{position:absolute;left:50%;top:50%;width:300px;height:300px;margin-left:-150px;margin-top:-150px;background:conic-gradient(from var(--rot),transparent 0deg, rgba(196,19,32,0.55) 18deg, transparent 36deg);mix-blend-mode:screen;opacity:0;pointer-events:none;animation:dmgFade 0.6s forwards;}
+@keyframes dmgFade{0%{opacity:0.9;}100%{opacity:0;}}
+#fpsBox{position:absolute;right:24px;top:240px;font-size:9px;color:var(--rune);opacity:0.4;letter-spacing:1px;font-family:monospace;}
+.helpkey{position:absolute;right:24px;bottom:160px;font-size:10px;color:var(--rune);opacity:0.55;letter-spacing:1.5px;line-height:1.7;text-align:right;font-variant:small-caps;text-shadow:0 0 3px #000;}
+.helpkey .k{color:var(--bone);font-weight:bold;padding:0 4px;}
+#loader{position:absolute;inset:0;background:#000;z-index:50;display:flex;align-items:center;justify-content:center;color:var(--blood);font-size:18px;letter-spacing:8px;font-variant:small-caps;font-style:italic;}
+#loader.hidden{display:none;}
+#loader .pulse{animation:lpulse 1.6s ease-in-out infinite;}
+@keyframes lpulse{0%,100%{opacity:0.4;}50%{opacity:1;}}
+.pauseTag{position:absolute;left:50%;top:14px;transform:translateX(-50%);font-size:11px;color:var(--rune);letter-spacing:6px;font-variant:small-caps;opacity:0;z-index:11;}
+.pauseTag.show{opacity:0.8;}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="vignette"></div>
+<div id="grain"></div>
+<div id="bloodVeil"></div>
+<div id="flashWhite"></div>
+<div id="dmgIndicators"></div>
+
+<div id="hud">
+  <div id="charPanel">
+    <div class="title" id="cName">—</div>
+    <div id="cClass">—</div>
+    <div class="floor" id="cFloor">—</div>
+  </div>
+  <div id="minimap"><canvas id="minimapCanvas" width="180" height="180"></canvas></div>
+  <div id="mapLabel">— THE DESCENT —</div>
+  <div class="bar-stack">
+    <div class="bar" id="xpBar"><span class="label">SOUL ✦ <span id="lvlNum">1</span></span><div class="fill" style="width:0%"></div></div>
+    <div class="bar" id="hpBar"><span class="label">VITAE</span><span class="num" id="hpNum">100/100</span><div class="fill" style="width:100%"></div></div>
+    <div class="bar" id="mpBar"><span class="label">UMBRA</span><span class="num" id="mpNum">30/30</span><div class="fill" style="width:100%"></div></div>
+    <div class="bar" id="stBar"><span class="label">BREATH</span><span class="num" id="stNum">100/100</span><div class="fill" style="width:100%"></div></div>
+  </div>
+  <div class="stats-line" id="statsLine">STR 5 · DEX 5 · INT 5 · CON 5 · ✦ 0 souls</div>
+  <div id="hotbar"></div>
+  <div id="spellbar"></div>
+  <div class="helpkey">
+    <span class="k">WASD</span> move <span class="k">SHIFT</span> sprint<br>
+    <span class="k">LMB</span> strike <span class="k">RMB</span> guard<br>
+    <span class="k">Q</span> cast <span class="k">E</span> use <span class="k">F</span> interact<br>
+    <span class="k">TAB</span> grimoire <span class="k">1-6</span> hotbar
+  </div>
+  <div id="interact"><span class="k">F</span><span id="interactLabel">enter</span></div>
+  <div id="blockBar">⛨ GUARDING ⛨</div>
+  <div class="pauseTag" id="pauseTag">— PAUSED —</div>
+  <div id="fpsBox"></div>
+</div>
+
+<div id="crosshair"><div class="dot"></div></div>
+<div id="messages"></div>
+<div id="floorTitle"><div class="num">FLOOR I</div><div class="name">The Forgotten Chapel</div><div class="sub">"They prayed here, once."</div></div>
+
+<div class="menu" id="titleScreen">
+  <h1>THE SUNKEN VOW</h1>
+  <h2>a descent into the unkept</h2>
+  <div class="epigraph">
+    <span>You knelt at the altar. You spoke the words.</span><br>
+    Years later, the vow rotted in your chest, and now it pulls you<br>
+    down into the crypt beneath the chapel — ten floors deep,<br>
+    to the heart that still beats your old promise.<br><br>
+    <span>The chapel remembers what you swore. It is hungry.</span>
+  </div>
+  <div class="classes" id="classesBox"></div>
+  <div class="hint">— choose your shape · then click to begin —</div>
+</div>
+
+<div class="menu hidden" id="deathScreen">
+  <h1>YOU ARE UNKEPT</h1>
+  <h2>the vow consumes</h2>
+  <div class="epigraph">The crypt closes its many mouths around you.</div>
+  <div class="stats-block" id="deathStats"></div>
+  <button class="btn" id="restartBtn">— BEGIN ANEW —</button>
+</div>
+
+<div class="menu hidden" id="victoryScreen">
+  <h1>THE VOW IS BROKEN</h1>
+  <h2>you rise, unowed</h2>
+  <div class="epigraph">The Heart stills. Its long red whisper stops.<br>Daylight, when you find it, will not know your name.</div>
+  <div class="stats-block" id="winStats"></div>
+  <button class="btn" id="winBtn">— DESCEND AGAIN —</button>
+</div>
+
+<div id="inventory">
+  <div class="invPanel">
+    <div class="invCol">
+      <h3>GRIMOIRE</h3>
+      <div class="invGrid" id="invGrid"></div>
+      <div class="invHelp">
+        ◇ LMB equip · use · cast<br>
+        ◇ RMB drop<br>
+        ◇ SHIFT+LMB assign to hotbar<br>
+        ◇ TAB / ESC close
+      </div>
+    </div>
+    <div class="invCol">
+      <h3>WORN</h3>
+      <div class="equipBox" id="equipBox"></div>
+      <h3 style="margin-top:8px;">SPELLS KNOWN</h3>
+      <div class="equipBox" id="spellsBox"></div>
+    </div>
+    <div class="invCol">
+      <h3>VESSEL</h3>
+      <div class="statBox" id="statBox"></div>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<div id="loader"><span class="pulse">— THE CRYPT REMEMBERS —</span></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+/* === GAME CODE === */
+import * as THREE from 'three';
+
+/* ============================================================
+   CONSTANTS
+============================================================ */
+const TILE = 4;
+const WALL_H = 4.6;
+const MAP_W = 38;
+const MAP_H = 38;
+const PLAYER_R = 0.36;
+const EYE_H = 1.62;
+const MAX_FLOORS = 10;
+const TORCH_RANGE = 14;
+const TORCH_FAR = 22;
+const SIGHT_R = 30;
+const FOG_NEAR_BASE = 4;
+const FOG_FAR_BASE = 22;
+
+const KIN = { FLOOR:0, WALL:1, DOOR:2, STAIRS:3, ALTAR:4, CHEST:5, SPIKE:6, RUNE:7, SHRINE:8, BRAZIER:9, PILLAR:10 };
+
+const FLOORS = [
+  {name:"The Forgotten Chapel",  sub:"\"They prayed here, once.\"",          tint:0x2a3a4a, fogN:5, fogF:24, light:0x6a7888, ceilC:0x141820},
+  {name:"The Pale Catacombs",    sub:"\"Bone counts the years.\"",            tint:0x3a3026, fogN:4, fogF:20, light:0x6a5840, ceilC:0x18130f},
+  {name:"The Flesh Garden",      sub:"\"What grows here was someone.\"",      tint:0x4a1620, fogN:3.5,fogF:18, light:0x884a4a, ceilC:0x1c0a0c},
+  {name:"The Iron Womb",         sub:"\"It bore engines, and one daughter.\"",tint:0x402418, fogN:4, fogF:19, light:0x885840, ceilC:0x180e08},
+  {name:"The Choir of Mouths",   sub:"\"You hear your name. Don't answer.\"", tint:0x3a1a3a, fogN:3, fogF:17, light:0x7a4488, ceilC:0x180818},
+  {name:"The Frozen Vow",        sub:"\"Cold keeps a promise longer.\"",      tint:0x2a3a4a, fogN:3, fogF:16, light:0x5a8aaa, ceilC:0x0a1018},
+  {name:"The Rotting Court",     sub:"\"Their crowns are mostly mold now.\"", tint:0x2a3a1a, fogN:3, fogF:15, light:0x6a7a3a, ceilC:0x0e1208},
+  {name:"The Mirror Halls",      sub:"\"Do not look at yourself for long.\"", tint:0x5a5a6a, fogN:2.5,fogF:14, light:0x9aa0b0, ceilC:0x202028},
+  {name:"The Black Sermon",      sub:"\"The priest is still preaching.\"",    tint:0x1a0a1a, fogN:2, fogF:12, light:0x7a3a8a, ceilC:0x080208},
+  {name:"The Heart of the Vow",  sub:"\"It has been waiting for you.\"",      tint:0x3a0a0a, fogN:3, fogF:18, light:0xc41320, ceilC:0x100404},
+];
+
+const CLAMP = (v,a,b)=>v<a?a:v>b?b:v;
+const LERP = (a,b,t)=>a+(b-a)*t;
+const DEG = Math.PI/180;
+const TAU = Math.PI*2;
+const sqr = x=>x*x;
+const sign = x=>x<0?-1:x>0?1:0;
+
+/* ============================================================
+   RNG — seedable mulberry32
+============================================================ */
+class RNG {
+  constructor(seed){ this.s = (seed>>>0) || 1; }
+  next(){ let t = this.s += 0x6D2B79F5; t = Math.imul(t ^ t>>>15, t|1); t ^= t + Math.imul(t ^ t>>>7, t|61); return ((t ^ t>>>14) >>> 0) / 4294967296; }
+  range(a,b){ return a + this.next()*(b-a); }
+  int(a,b){ return Math.floor(this.range(a,b+1)); }
+  chance(p){ return this.next() < p; }
+  pick(a){ return a[Math.floor(this.next()*a.length)]; }
+  shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(this.next()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+  gauss(){ const u=1-this.next(), v=this.next(); return Math.sqrt(-2*Math.log(u))*Math.cos(TAU*v); }
+}
+
+/* ============================================================
+   PROCEDURAL TEXTURES (canvas)
+============================================================ */
+function ctx2d(w,h){ const c = document.createElement('canvas'); c.width=w; c.height=h; return [c, c.getContext('2d')]; }
+
+function noise(ctx,w,h,base,amp,seed){
+  const id = ctx.getImageData(0,0,w,h); const d=id.data;
+  const r = new RNG(seed);
+  for(let i=0;i<d.length;i+=4){
+    const n = (r.next()-0.5)*amp;
+    d[i]   = CLAMP(base+n + (r.next()-0.5)*8,0,255);
+    d[i+1] = CLAMP(base+n + (r.next()-0.5)*8,0,255);
+    d[i+2] = CLAMP(base+n + (r.next()-0.5)*8,0,255);
+    d[i+3] = 255;
+  }
+  ctx.putImageData(id,0,0);
+}
+
+function fbm(x,y,seed){
+  let s=0,a=1,f=1; const r = new RNG(seed);
+  for(let i=0;i<5;i++){ s += (Math.sin(x*f*0.13+r.next()*9)+Math.cos(y*f*0.11+r.next()*7))*a; a*=0.5; f*=2.1; }
+  return s;
+}
+
+function makeStoneTex(seed, baseR, baseG, baseB, crackC){
+  const W=256, H=256;
+  const [c, x] = ctx2d(W,H);
+  x.fillStyle = `rgb(${baseR},${baseG},${baseB})`; x.fillRect(0,0,W,H);
+  const id = x.getImageData(0,0,W,H); const d=id.data;
+  const r = new RNG(seed);
+  for(let i=0;i<W*H;i++){
+    const px = i%W, py=Math.floor(i/W);
+    const n1 = fbm(px,py,seed)*8;
+    const n2 = fbm(px*2.3,py*2.3,seed+99)*4;
+    const v = n1 + n2;
+    const k = i*4;
+    d[k]   = CLAMP(baseR + v + r.gauss()*6,8,255);
+    d[k+1] = CLAMP(baseG + v*0.95 + r.gauss()*6,8,255);
+    d[k+2] = CLAMP(baseB + v*0.9 + r.gauss()*6,8,255);
+    d[k+3] = 255;
+  }
+  x.putImageData(id,0,0);
+  // cracks
+  x.strokeStyle = crackC; x.lineWidth = 1;
+  for(let i=0;i<14;i++){
+    x.beginPath();
+    let cx = r.next()*W, cy = r.next()*H;
+    x.moveTo(cx,cy);
+    const segs = r.int(4,10);
+    for(let s=0;s<segs;s++){
+      cx += r.range(-22,22); cy += r.range(-22,22);
+      x.lineTo(cx,cy);
+    }
+    x.globalAlpha = r.range(0.2,0.6);
+    x.stroke();
+  }
+  x.globalAlpha = 1;
+  // grime patches
+  for(let i=0;i<22;i++){
+    const cx = r.next()*W, cy = r.next()*H;
+    const rr = r.range(8,30);
+    const grad = x.createRadialGradient(cx,cy,0,cx,cy,rr);
+    grad.addColorStop(0,'rgba(0,0,0,0.25)');
+    grad.addColorStop(1,'rgba(0,0,0,0)');
+    x.fillStyle = grad; x.beginPath(); x.arc(cx,cy,rr,0,TAU); x.fill();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 4;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+function makeFloorTex(seed, baseR, baseG, baseB){
+  const W=256, H=256; const [c,x] = ctx2d(W,H);
+  x.fillStyle = `rgb(${baseR},${baseG},${baseB})`; x.fillRect(0,0,W,H);
+  const id = x.getImageData(0,0,W,H); const d=id.data;
+  const r = new RNG(seed);
+  for(let i=0;i<W*H;i++){
+    const px=i%W, py=Math.floor(i/W);
+    const n = fbm(px*1.3,py*1.3,seed)*10;
+    const k=i*4;
+    d[k]   = CLAMP(baseR+n+r.gauss()*4,4,255);
+    d[k+1] = CLAMP(baseG+n+r.gauss()*4,4,255);
+    d[k+2] = CLAMP(baseB+n+r.gauss()*4,4,255);
+    d[k+3] = 255;
+  }
+  x.putImageData(id,0,0);
+  // tile grout
+  x.strokeStyle = 'rgba(0,0,0,0.45)'; x.lineWidth = 2;
+  const tiles = 4;
+  for(let i=0;i<=tiles;i++){
+    const p = (i/tiles)*W;
+    x.beginPath(); x.moveTo(p,0); x.lineTo(p,H); x.stroke();
+    x.beginPath(); x.moveTo(0,p); x.lineTo(W,p); x.stroke();
+  }
+  // staining
+  for(let i=0;i<10;i++){
+    const cx=r.next()*W,cy=r.next()*H;
+    const grad = x.createRadialGradient(cx,cy,0,cx,cy,r.range(30,80));
+    grad.addColorStop(0,'rgba(20,4,4,0.35)');
+    grad.addColorStop(1,'rgba(0,0,0,0)');
+    x.fillStyle=grad; x.fillRect(0,0,W,H);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+function makeCeilTex(seed, baseR, baseG, baseB){
+  const W=128,H=128; const [c,x]=ctx2d(W,H);
+  x.fillStyle=`rgb(${baseR},${baseG},${baseB})`; x.fillRect(0,0,W,H);
+  const r = new RNG(seed);
+  const id = x.getImageData(0,0,W,H); const d=id.data;
+  for(let i=0;i<W*H;i++){
+    const n = r.gauss()*5;
+    const k=i*4;
+    d[k]=CLAMP(baseR+n,0,255);
+    d[k+1]=CLAMP(baseG+n,0,255);
+    d[k+2]=CLAMP(baseB+n,0,255);
+    d[k+3]=255;
+  }
+  x.putImageData(id,0,0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=2;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+function makeSpriteTex(drawFn,size=128){
+  const [c,x] = ctx2d(size,size);
+  drawFn(x,size);
+  const t = new THREE.CanvasTexture(c);
+  t.anisotropy = 4;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+function makeBloodSplatTex(seed){
+  const W=128,H=128; const [c,x]=ctx2d(W,H);
+  x.clearRect(0,0,W,H);
+  const r = new RNG(seed);
+  const cx=W/2, cy=H/2;
+  const main = r.range(18,28);
+  const grad = x.createRadialGradient(cx,cy,0,cx,cy,main);
+  grad.addColorStop(0,'rgba(80,0,0,0.95)');
+  grad.addColorStop(0.5,'rgba(60,4,8,0.7)');
+  grad.addColorStop(1,'rgba(40,0,4,0)');
+  x.fillStyle=grad; x.beginPath(); x.arc(cx,cy,main,0,TAU); x.fill();
+  for(let i=0;i<14;i++){
+    const ang = r.next()*TAU; const dist = r.range(18,55);
+    const sx = cx + Math.cos(ang)*dist; const sy = cy + Math.sin(ang)*dist;
+    const rr = r.range(1.5,5);
+    const g2 = x.createRadialGradient(sx,sy,0,sx,sy,rr*1.5);
+    g2.addColorStop(0,'rgba(70,0,0,0.85)');
+    g2.addColorStop(1,'rgba(40,0,0,0)');
+    x.fillStyle = g2; x.beginPath(); x.arc(sx,sy,rr*1.5,0,TAU); x.fill();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+/* ============================================================
+   ENEMY SPRITES — procedural canvas
+============================================================ */
+function drawCrawler(x,size){
+  x.clearRect(0,0,size,size);
+  const cx=size/2, cy=size*0.62;
+  // body — bloated hunched torso
+  x.fillStyle = '#4a3024';
+  x.beginPath(); x.ellipse(cx,cy,size*0.34,size*0.30,0,0,TAU); x.fill();
+  x.fillStyle = '#2c1a14';
+  x.beginPath(); x.ellipse(cx,cy+size*0.05,size*0.36,size*0.22,0,0,TAU); x.fill();
+  // ribs
+  x.strokeStyle = '#1a0e08'; x.lineWidth = 2;
+  for(let i=-2;i<=2;i++){
+    x.beginPath(); x.arc(cx+i*size*0.06, cy-size*0.05, size*0.10, 0, Math.PI); x.stroke();
+  }
+  // head — eyeless skull
+  const hx=cx, hy=size*0.32;
+  x.fillStyle = '#d6cbb0';
+  x.beginPath(); x.ellipse(hx,hy,size*0.14,size*0.16,0,0,TAU); x.fill();
+  // jaw open
+  x.fillStyle = '#0a0604';
+  x.beginPath(); x.ellipse(hx,hy+size*0.08,size*0.08,size*0.06,0,0,TAU); x.fill();
+  // eye sockets
+  x.fillStyle = '#000';
+  x.beginPath(); x.arc(hx-size*0.05,hy-size*0.02,size*0.025,0,TAU); x.fill();
+  x.beginPath(); x.arc(hx+size*0.05,hy-size*0.02,size*0.025,0,TAU); x.fill();
+  // red points in sockets
+  x.fillStyle = '#c41320';
+  x.beginPath(); x.arc(hx-size*0.05,hy-size*0.02,size*0.008,0,TAU); x.fill();
+  x.beginPath(); x.arc(hx+size*0.05,hy-size*0.02,size*0.008,0,TAU); x.fill();
+  // arms — long, reaching
+  x.strokeStyle = '#3a2418'; x.lineWidth = size*0.05;
+  x.beginPath(); x.moveTo(cx-size*0.28,cy); x.lineTo(cx-size*0.42,cy+size*0.22); x.lineTo(cx-size*0.45,cy+size*0.34); x.stroke();
+  x.beginPath(); x.moveTo(cx+size*0.28,cy); x.lineTo(cx+size*0.42,cy+size*0.22); x.lineTo(cx+size*0.45,cy+size*0.34); x.stroke();
+  // claws
+  x.strokeStyle = '#d8cdb7'; x.lineWidth = 2;
+  for(let s=-1;s<=1;s+=2){
+    for(let i=0;i<3;i++){
+      x.beginPath();
+      x.moveTo(cx+s*size*0.45, cy+size*0.34);
+      x.lineTo(cx+s*size*0.45+s*size*0.02+(i-1)*4, cy+size*0.42);
+      x.stroke();
+    }
+  }
+}
+
+function drawWraith(x,size){
+  x.clearRect(0,0,size,size);
+  const cx=size/2;
+  // long flowing shroud
+  x.fillStyle = 'rgba(180,180,200,0.55)';
+  x.beginPath();
+  x.moveTo(cx-size*0.34, size*0.22);
+  x.quadraticCurveTo(cx-size*0.40, size*0.6, cx-size*0.30, size*0.95);
+  x.quadraticCurveTo(cx, size*0.85, cx+size*0.30, size*0.95);
+  x.quadraticCurveTo(cx+size*0.40, size*0.6, cx+size*0.34, size*0.22);
+  x.quadraticCurveTo(cx, size*0.10, cx-size*0.34, size*0.22);
+  x.fill();
+  // inner shadow
+  x.fillStyle = 'rgba(20,10,30,0.55)';
+  x.beginPath(); x.ellipse(cx,size*0.45,size*0.20,size*0.30,0,0,TAU); x.fill();
+  // hood
+  x.fillStyle = '#181020';
+  x.beginPath();
+  x.moveTo(cx-size*0.22, size*0.32);
+  x.quadraticCurveTo(cx, size*0.10, cx+size*0.22, size*0.32);
+  x.quadraticCurveTo(cx+size*0.18, size*0.42, cx, size*0.44);
+  x.quadraticCurveTo(cx-size*0.18, size*0.42, cx-size*0.22, size*0.32);
+  x.fill();
+  // glowing eyes
+  x.fillStyle = '#9fd6ff';
+  x.shadowColor = '#9fd6ff'; x.shadowBlur = 18;
+  x.beginPath(); x.arc(cx-size*0.06,size*0.30,size*0.018,0,TAU); x.fill();
+  x.beginPath(); x.arc(cx+size*0.06,size*0.30,size*0.018,0,TAU); x.fill();
+  x.shadowBlur = 0;
+}
+
+function drawWitch(x,size){
+  x.clearRect(0,0,size,size);
+  const cx=size/2;
+  // robes
+  x.fillStyle = '#3a1a3a';
+  x.beginPath();
+  x.moveTo(cx-size*0.36, size*0.34);
+  x.lineTo(cx-size*0.32, size*0.96);
+  x.lineTo(cx+size*0.32, size*0.96);
+  x.lineTo(cx+size*0.36, size*0.34);
+  x.closePath(); x.fill();
+  // inner trim
+  x.strokeStyle = '#b48a4a'; x.lineWidth = 2;
+  x.beginPath(); x.moveTo(cx-size*0.32, size*0.96); x.lineTo(cx+size*0.32, size*0.96); x.stroke();
+  // head
+  x.fillStyle = '#d6cbb0';
+  x.beginPath(); x.ellipse(cx,size*0.26,size*0.12,size*0.14,0,0,TAU); x.fill();
+  // sunken eyes
+  x.fillStyle='#000';
+  x.beginPath(); x.arc(cx-size*0.04,size*0.25,size*0.020,0,TAU); x.fill();
+  x.beginPath(); x.arc(cx+size*0.04,size*0.25,size*0.020,0,TAU); x.fill();
+  x.fillStyle = '#9fd6ff';
+  x.beginPath(); x.arc(cx-size*0.04,size*0.25,size*0.006,0,TAU); x.fill();
+  x.beginPath(); x.arc(cx+size*0.04,size*0.25,size*0.006,0,TAU); x.fill();
+  // hood
+  x.fillStyle='#1a0a1a';
+  x.beginPath();
+  x.moveTo(cx-size*0.20, size*0.32);
+  x.quadraticCurveTo(cx, size*0.08, cx+size*0.20, size*0.32);
+  x.quadraticCurveTo(cx+size*0.16, size*0.40, cx, size*0.40);
+  x.quadraticCurveTo(cx-size*0.16, size*0.40, cx-size*0.20, size*0.32);
+  x.fill();
+  // staff
+  x.strokeStyle='#3a2418'; x.lineWidth=3;
+  x.beginPath(); x.moveTo(cx+size*0.28, size*0.36); x.lineTo(cx+size*0.34, size*0.94); x.stroke();
+  // orb
+  x.fillStyle='#a060d8';
+  x.shadowColor='#a060d8'; x.shadowBlur=16;
+  x.beginPath(); x.arc(cx+size*0.28,size*0.34,size*0.05,0,TAU); x.fill();
+  x.shadowBlur=0;
+}
+
+function drawShade(x,size){
+  x.clearRect(0,0,size,size);
+  const cx=size/2;
+  // smoky form
+  for(let i=0;i<28;i++){
+    const ang = (i/28)*TAU;
+    const dist = size*0.16 + Math.sin(i*1.7)*size*0.06;
+    const sx = cx + Math.cos(ang)*dist;
+    const sy = size*0.5 + Math.sin(ang)*dist*1.3;
+    const grad = x.createRadialGradient(sx,sy,0,sx,sy,size*0.18);
+    grad.addColorStop(0,'rgba(8,4,12,0.35)');
+    grad.addColorStop(1,'rgba(8,4,12,0)');
+    x.fillStyle = grad;
+    x.beginPath(); x.arc(sx,sy,size*0.18,0,TAU); x.fill();
+  }
+  // core dark
+  const g = x.createRadialGradient(cx,size*0.5,0,cx,size*0.5,size*0.30);
+  g.addColorStop(0,'rgba(0,0,0,0.85)');
+  g.addColorStop(0.7,'rgba(0,0,0,0.3)');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  x.fillStyle = g;
+  x.beginPath(); x.arc(cx,size*0.5,size*0.30,0,TAU); x.fill();
+  // glowing eyes
+  x.fillStyle='#c41320';
+  x.shadowColor='#c41320'; x.shadowBlur=20;
+  x.beginPath(); x.arc(cx-size*0.05,size*0.46,size*0.020,0,TAU); x.fill();
+  x.beginPath(); x.arc(cx+size*0.05,size*0.46,size*0.020,0,TAU); x.fill();
+  x.shadowBlur=0;
+}
+
+function drawHeart(x,size){
+  x.clearRect(0,0,size,size);
+  const cx=size/2, cy=size*0.5;
+  // huge beating heart
+  x.fillStyle = '#5a0810';
+  x.beginPath();
+  x.moveTo(cx, cy+size*0.30);
+  x.bezierCurveTo(cx-size*0.45,cy, cx-size*0.40,cy-size*0.30, cx,cy-size*0.05);
+  x.bezierCurveTo(cx+size*0.40,cy-size*0.30, cx+size*0.45,cy, cx,cy+size*0.30);
+  x.fill();
+  // gloss
+  x.fillStyle = '#8a1020';
+  x.beginPath();
+  x.ellipse(cx-size*0.10, cy-size*0.05, size*0.10, size*0.06, -0.3, 0, TAU);
+  x.fill();
+  // veins
+  x.strokeStyle='#2a0408'; x.lineWidth=3;
+  for(let i=0;i<8;i++){
+    const ang = (i/8)*TAU + 0.3;
+    x.beginPath();
+    x.moveTo(cx,cy);
+    let px=cx, py=cy;
+    for(let s=0;s<6;s++){
+      px += Math.cos(ang+s*0.3)*8;
+      py += Math.sin(ang+s*0.3)*8;
+      x.lineTo(px,py);
+    }
+    x.stroke();
+  }
+  // eyes embedded
+  for(let i=0;i<3;i++){
+    const ang = (i/3)*TAU;
+    const ex = cx + Math.cos(ang)*size*0.16;
+    const ey = cy + Math.sin(ang)*size*0.10;
+    x.fillStyle='#fff';
+    x.beginPath(); x.arc(ex,ey,size*0.035,0,TAU); x.fill();
+    x.fillStyle='#000';
+    x.beginPath(); x.arc(ex,ey,size*0.018,0,TAU); x.fill();
+    x.fillStyle='#c41320';
+    x.beginPath(); x.arc(ex,ey,size*0.007,0,TAU); x.fill();
+  }
+}
+
+function drawItem(x,size,kind,color){
+  x.clearRect(0,0,size,size);
+  const cx=size/2, cy=size/2;
+  x.shadowColor=color; x.shadowBlur=14;
+  if(kind==='sword'){
+    x.strokeStyle=color; x.lineWidth=size*0.10; x.lineCap='round';
+    x.beginPath(); x.moveTo(cx-size*0.28,cy+size*0.28); x.lineTo(cx+size*0.28,cy-size*0.28); x.stroke();
+    x.strokeStyle='#b48a4a';
+    x.beginPath(); x.moveTo(cx-size*0.36,cy+size*0.20); x.lineTo(cx-size*0.18,cy+size*0.38); x.stroke();
+  } else if(kind==='potion'){
+    x.fillStyle=color;
+    x.beginPath(); x.ellipse(cx,cy+size*0.08,size*0.18,size*0.22,0,0,TAU); x.fill();
+    x.fillStyle='#b48a4a';
+    x.fillRect(cx-size*0.06, cy-size*0.22, size*0.12, size*0.10);
+  } else if(kind==='scroll'){
+    x.fillStyle='#d8cdb7';
+    x.fillRect(cx-size*0.22,cy-size*0.20,size*0.44,size*0.40);
+    x.strokeStyle=color; x.lineWidth=2;
+    x.beginPath(); x.moveTo(cx-size*0.16,cy-size*0.08); x.lineTo(cx+size*0.16,cy-size*0.08); x.stroke();
+    x.beginPath(); x.moveTo(cx-size*0.16,cy+size*0.02); x.lineTo(cx+size*0.10,cy+size*0.02); x.stroke();
+    x.beginPath(); x.moveTo(cx-size*0.16,cy+size*0.12); x.lineTo(cx+size*0.16,cy+size*0.12); x.stroke();
+  } else if(kind==='ring'){
+    x.strokeStyle=color; x.lineWidth=size*0.06;
+    x.beginPath(); x.arc(cx,cy,size*0.18,0,TAU); x.stroke();
+    x.fillStyle='#9fd6ff';
+    x.beginPath(); x.arc(cx,cy-size*0.18,size*0.05,0,TAU); x.fill();
+  } else if(kind==='key'){
+    x.strokeStyle=color; x.lineWidth=size*0.05;
+    x.beginPath(); x.arc(cx-size*0.15,cy,size*0.12,0,TAU); x.stroke();
+    x.beginPath(); x.moveTo(cx-size*0.03,cy); x.lineTo(cx+size*0.30,cy); x.stroke();
+    x.beginPath(); x.moveTo(cx+size*0.22,cy); x.lineTo(cx+size*0.22,cy+size*0.10); x.stroke();
+    x.beginPath(); x.moveTo(cx+size*0.30,cy); x.lineTo(cx+size*0.30,cy+size*0.14); x.stroke();
+  } else if(kind==='armor'){
+    x.fillStyle=color;
+    x.beginPath();
+    x.moveTo(cx-size*0.24,cy-size*0.20);
+    x.lineTo(cx+size*0.24,cy-size*0.20);
+    x.lineTo(cx+size*0.20,cy+size*0.24);
+    x.lineTo(cx-size*0.20,cy+size*0.24);
+    x.closePath(); x.fill();
+    x.strokeStyle='#000'; x.lineWidth=2; x.stroke();
+  } else if(kind==='staff'){
+    x.strokeStyle='#3a2418'; x.lineWidth=size*0.06;
+    x.beginPath(); x.moveTo(cx-size*0.20,cy+size*0.28); x.lineTo(cx+size*0.20,cy-size*0.28); x.stroke();
+    x.fillStyle=color;
+    x.shadowBlur=20;
+    x.beginPath(); x.arc(cx+size*0.22,cy-size*0.28,size*0.10,0,TAU); x.fill();
+  } else if(kind==='tome'){
+    x.fillStyle='#3a1a1a';
+    x.fillRect(cx-size*0.22,cy-size*0.26,size*0.44,size*0.52);
+    x.strokeStyle='#b48a4a'; x.lineWidth=2;
+    x.strokeRect(cx-size*0.22,cy-size*0.26,size*0.44,size*0.52);
+    x.fillStyle=color;
+    x.beginPath(); x.arc(cx,cy,size*0.08,0,TAU); x.fill();
+  } else if(kind==='heart'){
+    x.fillStyle=color;
+    x.beginPath();
+    x.moveTo(cx,cy+size*0.22);
+    x.bezierCurveTo(cx-size*0.35,cy+size*0.04, cx-size*0.30,cy-size*0.22, cx,cy-size*0.04);
+    x.bezierCurveTo(cx+size*0.30,cy-size*0.22, cx+size*0.35,cy+size*0.04, cx,cy+size*0.22);
+    x.fill();
+  } else if(kind==='soul'){
+    const g = x.createRadialGradient(cx,cy,0,cx,cy,size*0.30);
+    g.addColorStop(0,color);
+    g.addColorStop(0.6,'rgba(180,138,74,0.4)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    x.fillStyle=g; x.beginPath(); x.arc(cx,cy,size*0.30,0,TAU); x.fill();
+    x.fillStyle=color;
+    x.beginPath(); x.arc(cx,cy,size*0.08,0,TAU); x.fill();
+  }
+  x.shadowBlur=0;
+}
+
+/* ============================================================
+   AUDIO ENGINE — fully procedural, Web Audio
+============================================================ */
+class AudioEngine {
+  constructor(){
+    this.ctx = null;
+    this.master = null;
+    this.musicGain = null;
+    this.sfxGain = null;
+    this.ambientGain = null;
+    this.heartGain = null;
+    this.lpf = null;
+    this.muffleAmount = 0;
+    this.heartRate = 1.0;
+    this._heartT = 0;
+    this._musicNodes = [];
+    this._whisperT = 0;
+    this.suspended = true;
+  }
+  init(){
+    if(this.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    this.ctx = new AC();
+    this.master = this.ctx.createGain(); this.master.gain.value = 0.85; this.master.connect(this.ctx.destination);
+    this.lpf = this.ctx.createBiquadFilter(); this.lpf.type='lowpass'; this.lpf.frequency.value=18000; this.lpf.Q.value=0.6;
+    this.lpf.connect(this.master);
+    this.musicGain = this.ctx.createGain(); this.musicGain.gain.value=0.42; this.musicGain.connect(this.lpf);
+    this.ambientGain = this.ctx.createGain(); this.ambientGain.gain.value=0.55; this.ambientGain.connect(this.lpf);
+    this.sfxGain = this.ctx.createGain(); this.sfxGain.gain.value=0.85; this.sfxGain.connect(this.lpf);
+    this.heartGain = this.ctx.createGain(); this.heartGain.gain.value=0.0; this.heartGain.connect(this.lpf);
+    this.suspended = (this.ctx.state === 'suspended');
+  }
+  resume(){
+    if(!this.ctx) this.init();
+    if(this.ctx.state === 'suspended') this.ctx.resume().then(()=>{this.suspended=false;});
+    else this.suspended = false;
+  }
+  now(){ return this.ctx ? this.ctx.currentTime : 0; }
+  setMuffle(amount){
+    if(!this.ctx) return;
+    this.muffleAmount = amount;
+    this.lpf.frequency.cancelScheduledValues(this.now());
+    this.lpf.frequency.linearRampToValueAtTime(LERP(18000, 700, amount), this.now()+0.08);
+  }
+  startAmbient(floor){
+    if(!this.ctx) return;
+    this.stopAmbient();
+    const ctx = this.ctx;
+    const baseFreq = 40 + floor*1.6;
+    const o1 = ctx.createOscillator(); o1.type='sine'; o1.frequency.value=baseFreq;
+    const o2 = ctx.createOscillator(); o2.type='sine'; o2.frequency.value=baseFreq*1.5;
+    const o3 = ctx.createOscillator(); o3.type='sine'; o3.frequency.value=baseFreq*2;
+    const o4 = ctx.createOscillator(); o4.type='triangle'; o4.frequency.value=baseFreq*0.5;
+    const o5 = ctx.createOscillator(); o5.type='sawtooth'; o5.frequency.value=baseFreq*1.498;
+    const g1 = ctx.createGain(); g1.gain.value=0.20;
+    const g2 = ctx.createGain(); g2.gain.value=0.10;
+    const g3 = ctx.createGain(); g3.gain.value=0.05;
+    const g4 = ctx.createGain(); g4.gain.value=0.16;
+    const g5 = ctx.createGain(); g5.gain.value=0.02;
+    o1.connect(g1); o2.connect(g2); o3.connect(g3); o4.connect(g4); o5.connect(g5);
+    g1.connect(this.ambientGain); g2.connect(this.ambientGain); g3.connect(this.ambientGain); g4.connect(this.ambientGain); g5.connect(this.ambientGain);
+    o1.start(); o2.start(); o3.start(); o4.start(); o5.start();
+    // slow LFO on osc detune
+    const lfo1 = ctx.createOscillator(); lfo1.frequency.value=0.07;
+    const lfoG1 = ctx.createGain(); lfoG1.gain.value=8; lfo1.connect(lfoG1); lfoG1.connect(o2.detune);
+    lfo1.start();
+    const lfo2 = ctx.createOscillator(); lfo2.frequency.value=0.05;
+    const lfoG2 = ctx.createGain(); lfoG2.gain.value=4; lfo2.connect(lfoG2); lfoG2.connect(o5.detune);
+    lfo2.start();
+    // Brown noise wind layer
+    const bufSize = 2*ctx.sampleRate;
+    const buf = ctx.createBuffer(1,bufSize,ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    let last = 0;
+    for(let i=0;i<bufSize;i++){
+      const white = Math.random()*2-1;
+      last = (last + 0.02*white)/1.02;
+      data[i] = last*3.5;
+    }
+    const noise = ctx.createBufferSource(); noise.buffer=buf; noise.loop=true;
+    const nf = ctx.createBiquadFilter(); nf.type='lowpass'; nf.frequency.value=380; nf.Q.value=0.7;
+    const ng = ctx.createGain(); ng.gain.value=0.18;
+    noise.connect(nf); nf.connect(ng); ng.connect(this.ambientGain);
+    noise.start();
+    // creaks — slow, irregular
+    this._musicNodes = [o1,o2,o3,o4,o5,lfo1,lfo2,noise];
+  }
+  stopAmbient(){
+    for(const n of this._musicNodes){ try{ n.stop(); }catch(e){} }
+    this._musicNodes = [];
+  }
+  beatHeart(){
+    if(!this.ctx) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(76,t); o.frequency.exponentialRampToValueAtTime(30,t+0.12);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.95,t+0.005); g.gain.exponentialRampToValueAtTime(0.0001,t+0.18);
+    o.connect(g); g.connect(this.heartGain);
+    o.start(t); o.stop(t+0.20);
+    // second beat
+    const o2 = ctx.createOscillator(); o2.type='sine'; o2.frequency.setValueAtTime(60,t+0.18); o2.frequency.exponentialRampToValueAtTime(28,t+0.30);
+    const g2 = ctx.createGain(); g2.gain.setValueAtTime(0.0001,t+0.18); g2.gain.exponentialRampToValueAtTime(0.55,t+0.185); g2.gain.exponentialRampToValueAtTime(0.0001,t+0.34);
+    o2.connect(g2); g2.connect(this.heartGain);
+    o2.start(t+0.18); o2.stop(t+0.36);
+  }
+  setHeartLevel(level){
+    if(!this.heartGain) return;
+    this.heartGain.gain.cancelScheduledValues(this.now());
+    this.heartGain.gain.linearRampToValueAtTime(level, this.now()+0.2);
+  }
+  setHeartRate(hpFrac){
+    if(hpFrac < 0.4){
+      this.heartRate = LERP(1.4, 2.4, 1 - hpFrac/0.4);
+      this.setHeartLevel(LERP(0.6, 1.4, 1 - hpFrac/0.4));
+    } else {
+      this.heartRate = 1.0;
+      this.setHeartLevel(0);
+    }
+  }
+  updateHeart(dt){
+    this._heartT += dt*this.heartRate;
+    if(this._heartT > 1.0){
+      this._heartT = 0;
+      if(this.heartGain && this.heartGain.gain.value > 0.02) this.beatHeart();
+    }
+  }
+  swing(){
+    if(!this.ctx) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    const bs = 0.18*ctx.sampleRate;
+    const buf = ctx.createBuffer(1,bs,ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<bs;i++){ const env = Math.exp(-i/(bs*0.18)); d[i] = (Math.random()*2-1)*env; }
+    const src = ctx.createBufferSource(); src.buffer=buf;
+    const f = ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.setValueAtTime(2400,t); f.frequency.exponentialRampToValueAtTime(380,t+0.16); f.Q.value=4;
+    const g = ctx.createGain(); g.gain.value=0.55;
+    src.connect(f); f.connect(g); g.connect(this.sfxGain);
+    src.start();
+  }
+  hit(strong){
+    if(!this.ctx) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type='triangle'; o.frequency.setValueAtTime(180,t); o.frequency.exponentialRampToValueAtTime(40,t+0.18);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(strong?0.85:0.55,t+0.008); g.gain.exponentialRampToValueAtTime(0.0001,t+0.22);
+    o.connect(g); g.connect(this.sfxGain);
+    o.start(t); o.stop(t+0.24);
+    // noise impact
+    const bs = 0.12*ctx.sampleRate;
+    const buf = ctx.createBuffer(1,bs,ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<bs;i++){ const env = Math.exp(-i/(bs*0.10)); d[i] = (Math.random()*2-1)*env; }
+    const src = ctx.createBufferSource(); src.buffer=buf;
+    const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=900;
+    const ng = ctx.createGain(); ng.gain.value=strong?0.6:0.35;
+    src.connect(f); f.connect(ng); ng.connect(this.sfxGain);
+    src.start();
+  }
+  hurt(){
+    if(!this.ctx) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type='sawtooth'; o.frequency.setValueAtTime(220,t); o.frequency.exponentialRampToValueAtTime(80,t+0.30);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.50,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+0.32);
+    const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1200;
+    o.connect(f); f.connect(g); g.connect(this.sfxGain);
+    o.start(t); o.stop(t+0.34);
+  }
+  step(){
+    if(!this.ctx) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const bs = 0.10*ctx.sampleRate;
+    const buf = ctx.createBuffer(1,bs,ctx.sampleRate); const d = buf.getChannelData(0);
+    for(let i=0;i<bs;i++){ const env = Math.exp(-i/(bs*0.10)); d[i] = (Math.random()*2-1)*env; }
+    const src = ctx.createBufferSource(); src.buffer=buf;
+    const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=320;
+    const g = ctx.createGain(); g.gain.value=0.14;
+    src.connect(f); f.connect(g); g.connect(this.sfxGain);
+    src.start();
+  }
+  pickup(){
+    if(!this.ctx) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(880,t); o.frequency.exponentialRampToValueAtTime(1760,t+0.16);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.30,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+0.28);
+    o.connect(g); g.connect(this.sfxGain);
+    o.start(t); o.stop(t+0.30);
+    const o2 = ctx.createOscillator(); o2.type='sine'; o2.frequency.setValueAtTime(1320,t+0.04); o2.frequency.exponentialRampToValueAtTime(2640,t+0.20);
+    const g2 = ctx.createGain(); g2.gain.setValueAtTime(0.0001,t+0.04); g2.gain.exponentialRampToValueAtTime(0.16,t+0.05); g2.gain.exponentialRampToValueAtTime(0.0001,t+0.30);
+    o2.connect(g2); g2.connect(this.sfxGain);
+    o2.start(t+0.04); o2.stop(t+0.32);
+  }
+  spell(kind){
+    if(!this.ctx) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type='sawtooth';
+    const f = ctx.createBiquadFilter(); f.type='lowpass'; f.Q.value=8;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001,t);
+    o.connect(f); f.connect(g); g.connect(this.sfxGain);
+    if(kind==='fire'){
+      o.frequency.setValueAtTime(120,t); o.frequency.exponentialRampToValueAtTime(60,t+0.40);
+      f.frequency.setValueAtTime(2400,t); f.frequency.exponentialRampToValueAtTime(180,t+0.40);
+      g.gain.exponentialRampToValueAtTime(0.6,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.40);
+    } else if(kind==='heal'){
+      o.type='sine';
+      o.frequency.setValueAtTime(440,t); o.frequency.exponentialRampToValueAtTime(880,t+0.50);
+      f.frequency.setValueAtTime(3000,t);
+      g.gain.exponentialRampToValueAtTime(0.4,t+0.04); g.gain.exponentialRampToValueAtTime(0.0001,t+0.55);
+    } else if(kind==='shock'){
+      o.frequency.setValueAtTime(2000,t); o.frequency.exponentialRampToValueAtTime(400,t+0.18);
+      f.frequency.setValueAtTime(4000,t); f.frequency.exponentialRampToValueAtTime(800,t+0.18);
+      g.gain.exponentialRampToValueAtTime(0.5,t+0.005); g.gain.exponentialRampToValueAtTime(0.0001,t+0.20);
+    } else if(kind==='light'){
+      o.type='sine';
+      o.frequency.setValueAtTime(660,t); o.frequency.exponentialRampToValueAtTime(1320,t+0.6);
+      f.frequency.setValueAtTime(2000,t);
+      g.gain.exponentialRampToValueAtTime(0.30,t+0.10); g.gain.exponentialRampToValueAtTime(0.0001,t+0.70);
+    } else {
+      o.frequency.setValueAtTime(330,t); o.frequency.exponentialRampToValueAtTime(110,t+0.30);
+      f.frequency.value=1800;
+      g.gain.exponentialRampToValueAtTime(0.4,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+0.32);
+    }
+    o.start(t); o.stop(t+0.80);
+  }
+  growl(kind){
+    if(!this.ctx) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type='sawtooth';
+    const mod = ctx.createOscillator(); mod.type='sine'; mod.frequency.value=4 + Math.random()*6;
+    const modG = ctx.createGain(); modG.gain.value = 20 + Math.random()*30;
+    mod.connect(modG); modG.connect(o.frequency);
+    const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=600;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001,t);
+    o.connect(f); f.connect(g); g.connect(this.sfxGain);
+    const base = kind==='wraith' ? 110 : kind==='witch' ? 180 : kind==='shade' ? 80 : 70;
+    o.frequency.setValueAtTime(base,t);
+    g.gain.exponentialRampToValueAtTime(0.18,t+0.04); g.gain.exponentialRampToValueAtTime(0.0001,t+0.60);
+    o.start(t); mod.start(t); o.stop(t+0.65); mod.stop(t+0.65);
+  }
+  whisper(){
+    if(!this.ctx) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const bs = 1.0*ctx.sampleRate;
+    const buf = ctx.createBuffer(1,bs,ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<bs;i++){
+      const env = Math.sin(i/bs*Math.PI);
+      d[i] = (Math.random()*2-1) * env * 0.5;
+    }
+    const src = ctx.createBufferSource(); src.buffer=buf;
+    const f = ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1200 + Math.random()*800; f.Q.value=18;
+    const g = ctx.createGain(); g.gain.value=0.12;
+    src.connect(f); f.connect(g); g.connect(this.sfxGain);
+    src.start();
+    // modulate filter
+    const lfo = ctx.createOscillator(); lfo.frequency.value=2 + Math.random()*4;
+    const lg = ctx.createGain(); lg.gain.value=300;
+    lfo.connect(lg); lg.connect(f.frequency);
+    lfo.start();
+    setTimeout(()=>{ try{ lfo.stop(); }catch(e){} }, 1000);
+  }
+  scare(){
+    if(!this.ctx) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const bs = 0.4*ctx.sampleRate;
+    const buf = ctx.createBuffer(1,bs,ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<bs;i++){ const env=Math.exp(-i/(bs*0.5)); d[i] = (Math.random()*2-1)*env; }
+    const src = ctx.createBufferSource(); src.buffer=buf;
+    const f = ctx.createBiquadFilter(); f.type='lowpass';
+    f.frequency.setValueAtTime(3000,t); f.frequency.exponentialRampToValueAtTime(180,t+0.30);
+    const g = ctx.createGain(); g.gain.value=0.55;
+    src.connect(f); f.connect(g); g.connect(this.sfxGain);
+    src.start();
+    const o = ctx.createOscillator(); o.type='sawtooth'; o.frequency.setValueAtTime(60,t); o.frequency.exponentialRampToValueAtTime(20,t+0.4);
+    const og = ctx.createGain(); og.gain.setValueAtTime(0.0001,t); og.gain.exponentialRampToValueAtTime(0.7,t+0.02); og.gain.exponentialRampToValueAtTime(0.0001,t+0.45);
+    o.connect(og); og.connect(this.sfxGain);
+    o.start(t); o.stop(t+0.48);
+  }
+  death(){
+    if(!this.ctx) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type='sawtooth'; o.frequency.setValueAtTime(180,t); o.frequency.exponentialRampToValueAtTime(20,t+1.6);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.6,t+0.05); g.gain.exponentialRampToValueAtTime(0.0001,t+1.8);
+    const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.setValueAtTime(2000,t); f.frequency.exponentialRampToValueAtTime(200,t+1.6);
+    o.connect(f); f.connect(g); g.connect(this.sfxGain);
+    o.start(t); o.stop(t+2.0);
+  }
+  win(){
+    if(!this.ctx) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const notes = [261.63, 329.63, 392.00, 523.25, 659.25];
+    notes.forEach((n,i)=>{
+      const o = ctx.createOscillator(); o.type='sine'; o.frequency.value=n;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t+i*0.18);
+      g.gain.exponentialRampToValueAtTime(0.3, t+i*0.18+0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+i*0.18+1.2);
+      o.connect(g); g.connect(this.sfxGain);
+      o.start(t+i*0.18); o.stop(t+i*0.18+1.3);
+    });
+  }
+  ambientTick(dt, hpFrac, floor){
+    if(!this.ctx) return;
+    this._whisperT -= dt;
+    if(this._whisperT <= 0){
+      if(Math.random() < 0.5) this.whisper();
+      this._whisperT = 12 + Math.random()*22 - floor*0.5;
+    }
+  }
+}
+
+/* ============================================================
+   ITEM / SPELL / ENEMY DATABASES
+============================================================ */
+// rarity: 0 common, 1 uncommon, 2 rare, 3 epic, -1 cursed
+const RAR_COL = ['#d8cdb7','#a8d088','#3866c8','#a060d8'];
+const RAR_NAME = ['Common','Worn','Vowed','Relic'];
+
+const ITEM_DB = {
+  // === weapons ===
+  dagger:    {name:"Notched Dagger",   kind:'weapon', slot:'weapon', dmg:[3,6],   atkSpd:1.6, str:0, dex:1, range:1.7, rarity:0, icon:'sword', color:'#d8cdb7', flav:"A novice's blade, kept too long."},
+  shortSword:{name:"Choir Sword",      kind:'weapon', slot:'weapon', dmg:[5,9],   atkSpd:1.3, str:1, dex:0, range:1.9, rarity:0, icon:'sword', color:'#d8cdb7', flav:"Etched with hymns no one sings."},
+  longSword: {name:"Vow-Iron Sword",   kind:'weapon', slot:'weapon', dmg:[8,14],  atkSpd:1.1, str:2, dex:0, range:2.1, rarity:1, icon:'sword', color:'#a8d088', flav:"Iron that remembers oaths."},
+  axe:       {name:"Sexton's Axe",     kind:'weapon', slot:'weapon', dmg:[10,18], atkSpd:0.9, str:3, dex:-1, range:1.9, rarity:1, icon:'sword', color:'#a8d088', flav:"It buried more than it cut."},
+  mace:      {name:"Censer Mace",      kind:'weapon', slot:'weapon', dmg:[7,13],  atkSpd:1.0, str:2, dex:0, range:1.9, rarity:0, icon:'sword', color:'#d8cdb7', flav:"Still smells faintly of incense."},
+  rapier:    {name:"Reliquary Rapier", kind:'weapon', slot:'weapon', dmg:[6,11],  atkSpd:1.8, str:0, dex:3, range:2.2, rarity:1, icon:'sword', color:'#a8d088', flav:"Thin as a held breath.", critBonus:0.1},
+  greatsword:{name:"The Mourner",      kind:'weapon', slot:'weapon', dmg:[14,24], atkSpd:0.7, str:4, dex:-1, range:2.4, rarity:2, icon:'sword', color:'#3866c8', flav:"Two-handed, named for what it does."},
+  bloodEdge: {name:"Bloodletter",      kind:'weapon', slot:'weapon', dmg:[9,16],  atkSpd:1.3, str:2, dex:1, range:2.0, rarity:2, icon:'sword', color:'#3866c8', flav:"It drinks first.", lifesteal:0.20},
+  vowReaper: {name:"Vow-Reaper",       kind:'weapon', slot:'weapon', dmg:[18,28], atkSpd:1.0, str:3, dex:2, range:2.3, rarity:3, icon:'sword', color:'#a060d8', flav:"Cuts oaths first, flesh after.", critBonus:0.15, lifesteal:0.1},
+
+  // staves (caster weapons)
+  staffNov:  {name:"Acolyte's Staff",  kind:'weapon', slot:'weapon', dmg:[2,4], atkSpd:1.2, str:0, int:2, range:2.2, rarity:0, icon:'staff', color:'#3866c8', flav:"Smooth where hands have prayed."},
+  staffPyre: {name:"Pyre Staff",       kind:'weapon', slot:'weapon', dmg:[4,7], atkSpd:1.1, str:0, int:3, range:2.3, rarity:1, icon:'staff', color:'#a8d088', flav:"Warm even when nothing burns.", spellBonus:0.20},
+  staffSoul: {name:"Soulglass Staff",  kind:'weapon', slot:'weapon', dmg:[6,10],atkSpd:1.0, str:0, int:5, range:2.4, rarity:2, icon:'staff', color:'#3866c8', flav:"Souls drift inside its head.", spellBonus:0.35, mpRegen:0.5},
+  staffVow:  {name:"Staff of Unkept",  kind:'weapon', slot:'weapon', dmg:[8,13],atkSpd:1.0, str:0, int:7, range:2.4, rarity:3, icon:'staff', color:'#a060d8', flav:"It whispers the vow back to you.", spellBonus:0.55, mpRegen:0.8},
+
+  // armors
+  rags:      {name:"Acolyte Rags",     kind:'armor', slot:'armor', def:1, rarity:0, icon:'armor', color:'#5a4030', flav:"Linen old enough to vote."},
+  leather:   {name:"Tanner's Leather", kind:'armor', slot:'armor', def:3, rarity:0, icon:'armor', color:'#6a4a32', flav:"Cracked at the joints."},
+  chain:     {name:"Hymn-Mail",        kind:'armor', slot:'armor', def:6, rarity:1, str:1, icon:'armor', color:'#a8b0c0', flav:"Each ring carries one syllable."},
+  plate:     {name:"Sexton's Plate",   kind:'armor', slot:'armor', def:10, rarity:2, str:2, icon:'armor', color:'#a0a8b8', flav:"Burdens you like duty."},
+  vestments: {name:"Black Vestments",  kind:'armor', slot:'armor', def:5, rarity:1, int:2, mpMax:10, icon:'armor', color:'#2a1a3a', flav:"Soft, until it isn't.", spellBonus:0.10},
+  silentMail:{name:"Silent Mail",      kind:'armor', slot:'armor', def:8, rarity:2, dex:2, icon:'armor', color:'#5a6a78', flav:"Heard by no one.", critBonus:0.05},
+  vowGuard:  {name:"Vow-Etched Plate", kind:'armor', slot:'armor', def:14, rarity:3, str:2, con:2, icon:'armor', color:'#a060d8', flav:"Holds you to it.", thorns:3},
+
+  // rings / accessory
+  ringMight: {name:"Ring of Mire",     kind:'ring', slot:'ring', str:3, rarity:1, icon:'ring', color:'#a8d088', flav:"Heavy beyond its weight."},
+  ringStill: {name:"Ring of Still Breath", kind:'ring', slot:'ring', dex:3, rarity:1, icon:'ring', color:'#a8d088', flav:"The world slows in its silver."},
+  ringMind:  {name:"Ring of the Mind", kind:'ring', slot:'ring', int:3, mpMax:8, rarity:1, icon:'ring', color:'#3866c8', flav:"Cold against the knuckle."},
+  ringHale:  {name:"Ring of the Hale", kind:'ring', slot:'ring', con:3, hpMax:14, rarity:1, icon:'ring', color:'#3866c8', flav:"Throbs faintly when worn."},
+  ringWick:  {name:"Wick Ring",        kind:'ring', slot:'ring', mpRegen:1.2, rarity:2, icon:'ring', color:'#3866c8', flav:"Burns from the inside.", spellBonus:0.10},
+  ringDirge: {name:"Dirge Ring",       kind:'ring', slot:'ring', lifesteal:0.10, str:1, rarity:2, icon:'ring', color:'#3866c8', flav:"Sings when blood pools.", color:'#3866c8'},
+  ringVoid:  {name:"Void-Vow Ring",    kind:'ring', slot:'ring', str:2, dex:2, int:2, con:2, rarity:3, icon:'ring', color:'#a060d8', flav:"A circle that owes nothing."},
+
+  // potions
+  potHeal:   {name:"Vial of Vitae",    kind:'cons', use:'heal',  amount:35, rarity:0, stack:5, icon:'potion', color:'#c41320', flav:"Tastes of pennies and prayer."},
+  potHealG:  {name:"Greater Vitae",    kind:'cons', use:'heal',  amount:75, rarity:1, stack:3, icon:'potion', color:'#c41320', flav:"Three good swallows."},
+  potMana:   {name:"Vial of Umbra",    kind:'cons', use:'mana',  amount:20, rarity:0, stack:5, icon:'potion', color:'#3866c8', flav:"Cold going down."},
+  potManaG:  {name:"Greater Umbra",    kind:'cons', use:'mana',  amount:45, rarity:1, stack:3, icon:'potion', color:'#3866c8', flav:"Stars settle behind your eyes."},
+  potStr:    {name:"Mire Elixir",      kind:'cons', use:'buffStr', amount:60, rarity:1, stack:2, icon:'potion', color:'#a8d088', flav:"+5 STR for 60s. The world feels small."},
+  potDex:    {name:"Quicksilver",      kind:'cons', use:'buffDex', amount:60, rarity:1, stack:2, icon:'potion', color:'#a8d088', flav:"+5 DEX for 60s. You skim seconds."},
+  potDef:    {name:"Iron Tonic",       kind:'cons', use:'buffDef', amount:60, rarity:1, stack:2, icon:'potion', color:'#a8a8a8', flav:"+5 DEF for 60s. The world bruises less."},
+  potRegen:  {name:"Slow Vitae",       kind:'cons', use:'regen',   amount:30, rarity:2, stack:2, icon:'potion', color:'#c41320', flav:"Heals over time. Slow as forgiveness."},
+  potWisp:   {name:"Wisp Phial",       kind:'cons', use:'reveal',  amount:0,  rarity:1, stack:2, icon:'potion', color:'#9fd6ff', flav:"Reveals the floor. Briefly."},
+
+  // scrolls
+  scrFire:   {name:"Scroll of Pyre",   kind:'cons', use:'castFire', amount:0, rarity:1, stack:3, icon:'scroll', color:'#c46420', flav:"Read it at something flammable."},
+  scrShock:  {name:"Scroll of Shock",  kind:'cons', use:'castShock', amount:0, rarity:1, stack:3, icon:'scroll', color:'#9fd6ff', flav:"The page tingles."},
+  scrHeal:   {name:"Scroll of Mending",kind:'cons', use:'castHeal',  amount:0, rarity:0, stack:5, icon:'scroll', color:'#a8d088', flav:"Full heal. Cures all in one breath."},
+  scrTele:   {name:"Scroll of Elsewhere", kind:'cons', use:'teleport', amount:0, rarity:1, stack:3, icon:'scroll', color:'#a060d8', flav:"You arrive where you weren't."},
+  scrBanish: {name:"Scroll of Banish", kind:'cons', use:'banish', amount:0, rarity:2, stack:2, icon:'scroll', color:'#a060d8', flav:"Clears all enemies in sight. They remember you."},
+  scrIdent:  {name:"Scroll of Naming", kind:'cons', use:'identify', amount:0, rarity:0, stack:5, icon:'scroll', color:'#d8cdb7', flav:"To name a thing is to bind it."},
+  scrLight:  {name:"Scroll of Light",  kind:'cons', use:'light', amount:0, rarity:0, stack:5, icon:'scroll', color:'#e4c454', flav:"Holds back the dark, briefly."},
+
+  // keys & coin
+  keyBone:   {name:"Bone Key",         kind:'cons', use:'key', amount:1, rarity:0, stack:9, icon:'key', color:'#d8cdb7', flav:"Cut from a finger that knew the door."},
+  soulShard: {name:"Soul Shard",       kind:'cons', use:'soul', amount:5, rarity:0, stack:99, icon:'soul', color:'#9fd6ff', flav:"Warm. Listens."},
+
+  // lore tomes (use to read flavor)
+  tome1: {name:"Tome: The First Vow",  kind:'cons', use:'lore', amount:1, rarity:1, stack:1, icon:'tome', color:'#b48a4a', flav:"\"I swore by the chapel, and the chapel agreed.\""},
+  tome2: {name:"Tome: The Watcher",    kind:'cons', use:'lore', amount:2, rarity:1, stack:1, icon:'tome', color:'#b48a4a', flav:"\"It has many eyes. None look at you. All know.\""},
+  tome3: {name:"Tome: The Heart",      kind:'cons', use:'lore', amount:3, rarity:1, stack:1, icon:'tome', color:'#b48a4a', flav:"\"At the bottom is a heart that has the wrong owner.\""},
+  tome4: {name:"Tome: The Choir",      kind:'cons', use:'lore', amount:4, rarity:1, stack:1, icon:'tome', color:'#b48a4a', flav:"\"Their mouths are kept. Their throats are not.\""},
+  tome5: {name:"Tome: The Mirror",     kind:'cons', use:'lore', amount:5, rarity:1, stack:1, icon:'tome', color:'#b48a4a', flav:"\"Look long, and the mirror remembers your face for you.\""},
+};
+
+const LORE_TOMES = ['tome1','tome2','tome3','tome4','tome5'];
+
+const SPELL_DB = {
+  spark:   {name:"Spark",     glyph:"✦", cost:6,  cooldown:0.6, dmg:[8,14], range:18, kind:'fire', desc:"A bead of fire flung from the palm."},
+  pyre:    {name:"Pyre",      glyph:"✺", cost:14, cooldown:1.4, dmg:[20,32],range:22, kind:'fire', radius:3, desc:"A blooming fire that catches all near."},
+  shock:   {name:"Shock",     glyph:"⚡", cost:9,  cooldown:0.4, dmg:[10,16],range:14, kind:'shock', chain:2, desc:"A blue arc that leaps to a second throat."},
+  mend:    {name:"Mend",      glyph:"✚", cost:12, cooldown:1.8, heal:40, kind:'heal', desc:"Knits skin. Costs umbra, not blood."},
+  ward:    {name:"Ward",      glyph:"⛨", cost:18, cooldown:8, kind:'shield', shield:35, dur:8, desc:"A shell of cold air over your skin."},
+  unmake:  {name:"Unmake",    glyph:"☠", cost:25, cooldown:2.5, dmg:[30,46], range:18, kind:'shock', desc:"Un-says what should not be."},
+  beckon:  {name:"Beckon",    glyph:"❂", cost:8,  cooldown:0.8, kind:'light', dur:20, desc:"A pale light cleaves to you."},
+  ruin:    {name:"Ruin",      glyph:"☩", cost:35, cooldown:3.0, dmg:[50,70], range:24, radius:4, kind:'fire', desc:"The vow's own end, leveled at another."},
+};
+
+const SPELL_LIST = Object.keys(SPELL_DB);
+
+const ENEMY_DB = {
+  crawler: {name:"Crawler",   hp:25, dmg:[5,9],  spd:2.8, atkR:1.5, atkCd:1.2, xp:15, soul:3, kind:'melee', sprite:'crawler', col:'#4a3024', size:1.6, ai:'rush'},
+  hound:   {name:"Pale Hound",hp:38, dmg:[7,12], spd:4.2, atkR:1.6, atkCd:1.0, xp:25, soul:5, kind:'melee', sprite:'crawler', col:'#8a7050', size:1.4, ai:'rush'},
+  wraith:  {name:"Wraith",    hp:30, dmg:[6,11], spd:3.0, atkR:9.0, atkCd:1.8, xp:30, soul:6, kind:'ranged', sprite:'wraith', col:'#b8c8d8', size:1.9, ai:'kite', proj:'ecto'},
+  witch:   {name:"Vow-Witch", hp:48, dmg:[10,16],spd:2.4, atkR:11,  atkCd:2.4, xp:55, soul:10,kind:'caster', sprite:'witch',  col:'#3a1a3a', size:1.9, ai:'caster', proj:'hex'},
+  shade:   {name:"Shade",     hp:42, dmg:[12,18],spd:3.6, atkR:1.7, atkCd:1.4, xp:50, soul:8, kind:'ambush', sprite:'shade',  col:'#000000', size:1.7, ai:'ambush'},
+  brute:   {name:"Iron Brute",hp:90, dmg:[14,22],spd:2.2, atkR:1.9, atkCd:1.6, xp:80, soul:12,kind:'melee', sprite:'crawler', col:'#383830', size:2.1, ai:'rush'},
+  choir:   {name:"Choir-Mouth",hp:60, dmg:[8,12],spd:2.8, atkR:9.0, atkCd:1.4, xp:60, soul:9, kind:'ranged', sprite:'wraith', col:'#a060d8', size:1.7, ai:'kite', proj:'hymn'},
+  reaper:  {name:"Reaper",    hp:120,dmg:[20,30],spd:3.4, atkR:2.2, atkCd:1.6, xp:140,soul:18,kind:'elite', sprite:'witch',  col:'#5a0810', size:2.2, ai:'rush', critBonus:0.3},
+  watcher: {name:"THE HEART OF THE VOW", hp:900, dmg:[28,46], spd:1.6, atkR:11, atkCd:2.2, xp:0, soul:0, kind:'boss', sprite:'heart', col:'#5a0810', size:4.5, ai:'boss', proj:'doom'},
+};
+
+// per-floor enemy table
+const FLOOR_ENEMIES = [
+  ['crawler','crawler','crawler','hound'],
+  ['crawler','hound','hound','wraith'],
+  ['hound','wraith','crawler','wraith'],
+  ['wraith','brute','hound','witch'],
+  ['witch','shade','wraith','choir'],
+  ['shade','witch','brute','choir'],
+  ['brute','choir','reaper','witch'],
+  ['shade','reaper','choir','witch'],
+  ['reaper','reaper','choir','shade'],
+  ['watcher'],
+];
+
+const PROJECTILE_DEF = {
+  ecto:  {col:0x9fd6ff, spd:14, dmg:[6,10], radius:0.18, life:3},
+  hex:   {col:0xa060d8, spd:11, dmg:[10,16], radius:0.22, life:4},
+  hymn:  {col:0xb060d8, spd:10, dmg:[8,14], radius:0.20, life:3.5},
+  doom:  {col:0xc41320, spd:13, dmg:[18,28], radius:0.30, life:4.5},
+  // player spells
+  spark: {col:0xff8a3a, spd:22, dmg:[8,14], radius:0.18, life:2.5, player:true},
+  pyre:  {col:0xff5a20, spd:14, dmg:[20,32], radius:0.30, life:3, player:true, splash:3},
+  shock: {col:0x9fd6ff, spd:26, dmg:[10,16], radius:0.16, life:1.5, player:true, chain:2},
+  unmake:{col:0xa060d8, spd:18, dmg:[30,46], radius:0.24, life:3, player:true},
+  ruin:  {col:0xff2010, spd:14, dmg:[50,70], radius:0.36, life:4, player:true, splash:4},
+};
+
+const CLASSES = {
+  warden: {
+    name:"WARDEN",
+    tag:"a kept oath, in iron",
+    desc:"Knelt longest. Strikes hardest. Endures the worst.",
+    str:7, dex:4, int:3, con:7,
+    hpMax:120, mpMax:18,
+    weapon:'shortSword', armor:'leather',
+    spells:['ward'],
+  },
+  reaper: {
+    name:"REAPER",
+    tag:"a half-spoken vow, with a knife",
+    desc:"Quiet. Quick. Bleeds them slowly.",
+    str:5, dex:8, int:3, con:5,
+    hpMax:90, mpMax:24,
+    weapon:'dagger', armor:'rags',
+    spells:['beckon'],
+  },
+  vowist: {
+    name:"VOWIST",
+    tag:"the vow itself, walking",
+    desc:"You let the words speak for you. They speak fire.",
+    str:3, dex:4, int:9, con:4,
+    hpMax:80, mpMax:55,
+    weapon:'staffNov', armor:'vestments',
+    spells:['spark','mend'],
+  },
+};
+
+/* ============================================================
+   DUNGEON GENERATION
+============================================================ */
+class Dungeon {
+  constructor(floor, seed, scene, textures){
+    this.floor = floor;
+    this.rng = new RNG(seed);
+    this.scene = scene;
+    this.tex = textures;
+    this.W = MAP_W;
+    this.H = MAP_H;
+    this.tiles = new Uint8Array(this.W*this.H);
+    this.kind = new Uint8Array(this.W*this.H);   // KIN.*
+    this.lit = new Uint8Array(this.W*this.H);    // visited mask for minimap
+    this.rooms = [];
+    this.start = {x:0,z:0};
+    this.stairs = {x:0,z:0};
+    this.props = [];
+    this.enemies = [];
+    this.items = [];
+    this.shrines = [];
+    this.braziers = [];
+    this.group = new THREE.Group();
+    this.dynamicGroup = new THREE.Group();
+    this.scene.add(this.group);
+    this.scene.add(this.dynamicGroup);
+  }
+  idx(x,z){ return z*this.W+x; }
+  inBounds(x,z){ return x>=0&&z>=0&&x<this.W&&z<this.H; }
+  isWall(x,z){ if(!this.inBounds(x,z)) return true; return this.tiles[this.idx(x,z)]===1; }
+  isFloor(x,z){ if(!this.inBounds(x,z)) return false; return this.tiles[this.idx(x,z)]===0; }
+  worldToTile(wx,wz){ return [Math.floor(wx/TILE), Math.floor(wz/TILE)]; }
+  tileToWorld(tx,tz){ return [tx*TILE + TILE/2, tz*TILE + TILE/2]; }
+
+  generate(){
+    // start solid
+    this.tiles.fill(1);
+    this.kind.fill(KIN.WALL);
+
+    if(this.floor === MAX_FLOORS){ this._generateBoss(); return; }
+
+    // BSP partitioning
+    const root = {x:1,z:1,w:this.W-2,h:this.H-2};
+    const leaves = [];
+    const split = (n, depth)=>{
+      if(depth > 4 || (n.w < 11 && n.h < 11) || this.rng.chance(0.18)){
+        leaves.push(n); return;
+      }
+      const horiz = n.w > n.h ? false : (n.h > n.w ? true : this.rng.chance(0.5));
+      if(horiz){
+        const min = 5, max = n.h - 5;
+        if(max <= min){ leaves.push(n); return; }
+        const cut = this.rng.int(min, max);
+        split({x:n.x, z:n.z, w:n.w, h:cut}, depth+1);
+        split({x:n.x, z:n.z+cut, w:n.w, h:n.h-cut}, depth+1);
+      } else {
+        const min = 5, max = n.w - 5;
+        if(max <= min){ leaves.push(n); return; }
+        const cut = this.rng.int(min, max);
+        split({x:n.x, z:n.z, w:cut, h:n.h}, depth+1);
+        split({x:n.x+cut, z:n.z, w:n.w-cut, h:n.h}, depth+1);
+      }
+    };
+    split(root, 0);
+
+    // carve rooms inside leaves with margin
+    for(const n of leaves){
+      const pw = Math.min(n.w-2, this.rng.int(4, 8));
+      const ph = Math.min(n.h-2, this.rng.int(4, 7));
+      const px = n.x + this.rng.int(1, n.w-pw-1);
+      const pz = n.z + this.rng.int(1, n.h-ph-1);
+      this.carveRoom(px,pz,pw,ph);
+      this.rooms.push({x:px,z:pz,w:pw,h:ph, cx:px+(pw>>1), cz:pz+(ph>>1)});
+    }
+
+    // connect rooms — minimum spanning + a few extra
+    this.rooms.sort((a,b)=>a.cx+a.cz-(b.cx+b.cz));
+    for(let i=1;i<this.rooms.length;i++){
+      const a = this.rooms[i-1], b = this.rooms[i];
+      this.carveCorridor(a.cx,a.cz,b.cx,b.cz);
+    }
+    // extra loop corridors
+    const extras = Math.min(this.rooms.length, 3);
+    for(let i=0;i<extras;i++){
+      const a = this.rng.pick(this.rooms), b = this.rng.pick(this.rooms);
+      if(a!==b) this.carveCorridor(a.cx,a.cz,b.cx,b.cz);
+    }
+
+    // place start in first room, stairs in farthest
+    const sr = this.rooms[0];
+    this.start.x = sr.cx; this.start.z = sr.cz;
+    let far = sr, fd = -1;
+    for(const r of this.rooms){
+      const d = Math.abs(r.cx-sr.cx)+Math.abs(r.cz-sr.cz);
+      if(d > fd){ fd = d; far = r; }
+    }
+    this.stairs.x = far.cx; this.stairs.z = far.cz;
+    this.kind[this.idx(far.cx, far.cz)] = KIN.STAIRS;
+
+    // populate
+    this._placeProps();
+    this._placeFeatures();
+    this._placeEnemies();
+    this._placeItems();
+    this._buildMesh();
+  }
+
+  _generateBoss(){
+    // single circular arena
+    const cx = this.W>>1, cz = this.H>>1;
+    const R = 14;
+    for(let z=0;z<this.H;z++){
+      for(let x=0;x<this.W;x++){
+        const dx=x-cx, dz=z-cz;
+        if(dx*dx+dz*dz <= R*R) this.tiles[this.idx(x,z)] = 0;
+      }
+    }
+    // pillars
+    const props = [];
+    for(let i=0;i<8;i++){
+      const ang = (i/8)*TAU;
+      const px = Math.round(cx + Math.cos(ang)*9);
+      const pz = Math.round(cz + Math.sin(ang)*9);
+      props.push({x:px,z:pz,type:'pillar'});
+      this.kind[this.idx(px,pz)] = KIN.PILLAR;
+    }
+    // braziers
+    for(let i=0;i<4;i++){
+      const ang = (i/4)*TAU + Math.PI/4;
+      const px = Math.round(cx + Math.cos(ang)*5);
+      const pz = Math.round(cz + Math.sin(ang)*5);
+      props.push({x:px,z:pz,type:'brazier'});
+      this.kind[this.idx(px,pz)] = KIN.BRAZIER;
+      this.braziers.push({x:px,z:pz});
+    }
+    // center altar (heart)
+    this.kind[this.idx(cx,cz)] = KIN.ALTAR;
+    this.rooms.push({x:cx-R,z:cz-R,w:R*2,h:R*2,cx,cz});
+    this.start.x = cx; this.start.z = cz - R + 3;
+    this.stairs.x = -1; this.stairs.z = -1;
+    this.props = props;
+
+    // boss spawn
+    this.enemies.push({type:'watcher', x:cx, z:cz});
+    this._buildMesh();
+  }
+
+  carveRoom(x,z,w,h){
+    for(let zz=z; zz<z+h; zz++){
+      for(let xx=x; xx<x+w; xx++){
+        if(this.inBounds(xx,zz)){ this.tiles[this.idx(xx,zz)] = 0; this.kind[this.idx(xx,zz)] = KIN.FLOOR; }
+      }
+    }
+  }
+  carveCorridor(x1,z1,x2,z2){
+    // L-shape, randomized turn order
+    if(this.rng.chance(0.5)){
+      for(let x=Math.min(x1,x2); x<=Math.max(x1,x2); x++){ if(this.inBounds(x,z1)){ this.tiles[this.idx(x,z1)]=0; this.kind[this.idx(x,z1)]=KIN.FLOOR; } }
+      for(let z=Math.min(z1,z2); z<=Math.max(z1,z2); z++){ if(this.inBounds(x2,z)){ this.tiles[this.idx(x2,z)]=0; this.kind[this.idx(x2,z)]=KIN.FLOOR; } }
+    } else {
+      for(let z=Math.min(z1,z2); z<=Math.max(z1,z2); z++){ if(this.inBounds(x1,z)){ this.tiles[this.idx(x1,z)]=0; this.kind[this.idx(x1,z)]=KIN.FLOOR; } }
+      for(let x=Math.min(x1,x2); x<=Math.max(x1,x2); x++){ if(this.inBounds(x,z2)){ this.tiles[this.idx(x,z2)]=0; this.kind[this.idx(x,z2)]=KIN.FLOOR; } }
+    }
+  }
+  _placeProps(){
+    // braziers in some rooms
+    for(const r of this.rooms){
+      if(this.rng.chance(0.55)){
+        // corner brazier
+        const cands = [
+          [r.x+1,r.z+1],[r.x+r.w-2,r.z+1],[r.x+1,r.z+r.h-2],[r.x+r.w-2,r.z+r.h-2]
+        ];
+        const [bx,bz] = this.rng.pick(cands);
+        if(this.isFloor(bx,bz) && !(bx===this.start.x && bz===this.start.z) && !(bx===this.stairs.x && bz===this.stairs.z)){
+          this.kind[this.idx(bx,bz)] = KIN.BRAZIER;
+          this.braziers.push({x:bx,z:bz});
+          this.props.push({x:bx,z:bz,type:'brazier'});
+        }
+      }
+      // occasional pillars
+      if(r.w >= 6 && r.h >= 6 && this.rng.chance(0.30)){
+        const px = r.x + 2 + this.rng.int(0, r.w-4);
+        const pz = r.z + 2 + this.rng.int(0, r.h-4);
+        if(this.isFloor(px,pz)){
+          this.kind[this.idx(px,pz)] = KIN.PILLAR;
+          this.props.push({x:px,z:pz,type:'pillar'});
+        }
+      }
+    }
+  }
+  _placeFeatures(){
+    // shrines in ~30% of rooms (skip start/stairs room)
+    for(const r of this.rooms){
+      if(r.cx === this.start.x && r.cz === this.start.z) continue;
+      if(r.cx === this.stairs.x && r.cz === this.stairs.z) continue;
+      if(this.rng.chance(0.25)){
+        // place at center if free
+        if(this.isFloor(r.cx, r.cz) && this.kind[this.idx(r.cx, r.cz)] === KIN.FLOOR){
+          this.kind[this.idx(r.cx,r.cz)] = KIN.SHRINE;
+          this.shrines.push({x:r.cx,z:r.cz, used:false, kind: this.rng.pick(['heal','mana','buff','curse'])});
+          this.props.push({x:r.cx, z:r.cz, type:'shrine'});
+        }
+      }
+    }
+  }
+  _placeEnemies(){
+    const table = FLOOR_ENEMIES[Math.min(this.floor-1, FLOOR_ENEMIES.length-1)];
+    const baseCount = 6 + this.floor*1.4;
+    const count = Math.round(baseCount + this.rng.range(-2,3));
+    let placed = 0, tries = 0;
+    while(placed < count && tries < 600){
+      tries++;
+      const r = this.rng.pick(this.rooms);
+      if(!r) break;
+      if(r.cx === this.start.x && r.cz === this.start.z) continue;
+      const tx = r.x + this.rng.int(0, r.w-1);
+      const tz = r.z + this.rng.int(0, r.h-1);
+      if(this.isFloor(tx,tz) && this.kind[this.idx(tx,tz)] === KIN.FLOOR){
+        // don't pile on start
+        const dx = tx-this.start.x, dz = tz-this.start.z;
+        if(dx*dx+dz*dz < 18) continue;
+        this.enemies.push({type:this.rng.pick(table), x:tx, z:tz});
+        placed++;
+      }
+    }
+  }
+  _placeItems(){
+    // items: weapons, armors, potions, scrolls, rings, keys, gold, tomes
+    const itemRolls = 6 + Math.floor(this.floor*1.2);
+    let placed = 0, tries = 0;
+    while(placed < itemRolls && tries < 400){
+      tries++;
+      const r = this.rng.pick(this.rooms);
+      if(!r) break;
+      const tx = r.x + this.rng.int(0, r.w-1);
+      const tz = r.z + this.rng.int(0, r.h-1);
+      if(this.isFloor(tx,tz) && this.kind[this.idx(tx,tz)] === KIN.FLOOR){
+        const dx = tx-this.start.x, dz = tz-this.start.z;
+        if(dx*dx+dz*dz < 6) continue;
+        const item = this._rollItem();
+        if(item){
+          this.items.push({key:item, x:tx, z:tz});
+          placed++;
+        }
+      }
+    }
+    // a guaranteed key for some floors
+    if(this.floor >= 3 && this.rng.chance(0.5)){
+      const r = this.rng.pick(this.rooms);
+      this.items.push({key:'keyBone', x:r.cx, z:r.cz});
+    }
+    // a tome per few floors
+    if(this.rng.chance(0.5) && this.floor <= 9){
+      const r = this.rng.pick(this.rooms);
+      this.items.push({key: LORE_TOMES[Math.min(this.floor-1, LORE_TOMES.length-1)], x:r.x, z:r.z});
+    }
+    // souls scattered
+    const soulCount = 3 + Math.floor(this.floor*0.6);
+    for(let i=0;i<soulCount;i++){
+      const r = this.rng.pick(this.rooms);
+      const tx = r.x + this.rng.int(0,r.w-1);
+      const tz = r.z + this.rng.int(0,r.h-1);
+      if(this.isFloor(tx,tz)) this.items.push({key:'soulShard', x:tx, z:tz});
+    }
+  }
+  _rollItem(){
+    // weighted pool varies by floor
+    const f = this.floor;
+    const pool = [];
+    const add = (k, w)=>{ for(let i=0;i<w;i++) pool.push(k); };
+    // potions and scrolls common everywhere
+    add('potHeal', 10); add('potMana', 8);
+    add('scrIdent', 3); add('scrLight', 3); add('scrHeal', 2);
+    if(f >= 2){ add('potStr',2); add('potDex',2); add('potDef',2); add('scrFire',3); }
+    if(f >= 3){ add('potHealG',3); add('potManaG',2); add('scrShock',3); add('potRegen',1); add('potWisp',1); }
+    if(f >= 4){ add('scrTele',2); add('scrBanish',1); }
+    // weapons by floor band
+    const wpnByFloor = [
+      ['dagger','shortSword','staffNov','rags'],
+      ['shortSword','axe','mace','staffNov','leather'],
+      ['longSword','axe','rapier','staffPyre','chain','leather'],
+      ['longSword','rapier','greatsword','staffPyre','chain','vestments'],
+      ['greatsword','bloodEdge','staffSoul','plate','silentMail','vestments','ringMight','ringStill','ringMind','ringHale'],
+      ['greatsword','bloodEdge','staffSoul','plate','silentMail','ringMight','ringStill','ringMind','ringHale'],
+      ['bloodEdge','staffSoul','vowReaper','plate','silentMail','vowGuard','ringWick','ringDirge'],
+      ['vowReaper','staffVow','vowGuard','silentMail','ringWick','ringDirge'],
+      ['vowReaper','staffVow','vowGuard','ringVoid','ringWick','ringDirge'],
+    ];
+    const wpnPool = wpnByFloor[Math.min(f-1, wpnByFloor.length-1)];
+    for(const k of wpnPool) add(k, 3);
+    return this.rng.pick(pool);
+  }
+
+  _buildMesh(){
+    const theme = FLOORS[this.floor-1];
+    const tex = this.tex;
+
+    // floor — one big plane
+    const floorGeom = new THREE.PlaneGeometry(this.W*TILE, this.H*TILE);
+    const fTex = tex.floor.clone();
+    fTex.needsUpdate = true;
+    fTex.repeat.set(this.W*0.5, this.H*0.5);
+    fTex.wrapS = fTex.wrapT = THREE.RepeatWrapping;
+    const floorMat = new THREE.MeshStandardMaterial({ map: fTex, roughness: 0.95, metalness: 0.05, color: 0xffffff });
+    const floor = new THREE.Mesh(floorGeom, floorMat);
+    floor.rotation.x = -Math.PI/2;
+    floor.position.set(this.W*TILE/2, 0, this.H*TILE/2);
+    floor.receiveShadow = true;
+    this.group.add(floor);
+
+    // ceiling
+    const cGeom = new THREE.PlaneGeometry(this.W*TILE, this.H*TILE);
+    const cTex = tex.ceil.clone();
+    cTex.repeat.set(this.W*0.5, this.H*0.5);
+    cTex.wrapS = cTex.wrapT = THREE.RepeatWrapping;
+    const cMat = new THREE.MeshStandardMaterial({ map: cTex, roughness: 1.0, color: theme.ceilC });
+    const ceil = new THREE.Mesh(cGeom, cMat);
+    ceil.rotation.x = Math.PI/2;
+    ceil.position.set(this.W*TILE/2, WALL_H, this.H*TILE/2);
+    this.group.add(ceil);
+
+    // walls — instanced
+    let wallCount = 0;
+    for(let z=0;z<this.H;z++) for(let x=0;x<this.W;x++) if(this.isWall(x,z) && this._wallVisible(x,z)) wallCount++;
+    const wallGeom = new THREE.BoxGeometry(TILE, WALL_H, TILE);
+    const wallMat = new THREE.MeshStandardMaterial({ map: tex.wall, roughness: 0.95, color: 0xffffff });
+    const walls = new THREE.InstancedMesh(wallGeom, wallMat, wallCount);
+    walls.castShadow = false; walls.receiveShadow = true;
+    const dummy = new THREE.Object3D();
+    let wi = 0;
+    for(let z=0;z<this.H;z++){
+      for(let x=0;x<this.W;x++){
+        if(this.isWall(x,z) && this._wallVisible(x,z)){
+          dummy.position.set(x*TILE + TILE/2, WALL_H/2, z*TILE + TILE/2);
+          dummy.rotation.y = ((x*7+z*13) % 4) * Math.PI/2;
+          dummy.updateMatrix();
+          walls.setMatrixAt(wi, dummy.matrix);
+          wi++;
+        }
+      }
+    }
+    walls.instanceMatrix.needsUpdate = true;
+    this.group.add(walls);
+
+    // props: pillars, braziers, shrines, stairs
+    for(const p of this.props){
+      const [wx,wz] = this.tileToWorld(p.x, p.z);
+      if(p.type === 'pillar'){
+        const pg = new THREE.CylinderGeometry(0.55, 0.65, WALL_H, 10);
+        const pm = new THREE.MeshStandardMaterial({ map: tex.wall, roughness: 0.95 });
+        const pillar = new THREE.Mesh(pg, pm);
+        pillar.position.set(wx, WALL_H/2, wz);
+        this.group.add(pillar);
+        // capital
+        const cg = new THREE.BoxGeometry(1.4, 0.3, 1.4);
+        const cap = new THREE.Mesh(cg, pm);
+        cap.position.set(wx, WALL_H-0.2, wz);
+        this.group.add(cap);
+      } else if(p.type === 'brazier'){
+        const bg = new THREE.CylinderGeometry(0.34, 0.38, 0.18, 10);
+        const bm = new THREE.MeshStandardMaterial({ color: 0x1a0e08, roughness: 0.9, metalness:0.4 });
+        const bowl = new THREE.Mesh(bg, bm);
+        bowl.position.set(wx, 1.2, wz);
+        this.group.add(bowl);
+        const sg = new THREE.CylinderGeometry(0.06, 0.06, 1.2, 6);
+        const stand = new THREE.Mesh(sg, bm);
+        stand.position.set(wx, 0.6, wz);
+        this.group.add(stand);
+        // fire — sphere with emissive + light
+        const flameMat = new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent:true, opacity:0.85 });
+        const flame = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 8), flameMat);
+        flame.position.set(wx, 1.35, wz);
+        flame.userData = {flame:true, baseY:1.35, t:Math.random()*TAU};
+        this.group.add(flame);
+        // point light
+        const pl = new THREE.PointLight(0xff9a44, 1.4, 9, 1.6);
+        pl.position.set(wx, 1.6, wz);
+        pl.userData = {flicker:true, base:1.4, t:Math.random()*TAU};
+        this.group.add(pl);
+        if(!this._flames) this._flames = [];
+        this._flames.push({mesh:flame, light:pl});
+      } else if(p.type === 'shrine'){
+        const sg = new THREE.BoxGeometry(1.1, 1.2, 1.1);
+        const sm = new THREE.MeshStandardMaterial({ map: tex.wall, roughness: 0.9 });
+        const sh = new THREE.Mesh(sg, sm);
+        sh.position.set(wx, 0.6, wz);
+        this.group.add(sh);
+        // candle / orb on top
+        const orbMat = new THREE.MeshBasicMaterial({ color: 0x9fd6ff, transparent:true, opacity:0.85 });
+        const orb = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 10), orbMat);
+        orb.position.set(wx, 1.35, wz);
+        orb.userData = {shrineOrb:true, baseY:1.35, t:Math.random()*TAU};
+        this.group.add(orb);
+        const pl = new THREE.PointLight(0x9fd6ff, 0.9, 6, 1.6);
+        pl.position.set(wx, 1.5, wz);
+        this.group.add(pl);
+        if(!this._flames) this._flames = [];
+        this._flames.push({mesh:orb, light:pl, slow:true});
+      }
+    }
+
+    // stairs
+    if(this.stairs.x >= 0){
+      const [sx,sz] = this.tileToWorld(this.stairs.x, this.stairs.z);
+      const stairsGroup = new THREE.Group();
+      const steps = 6;
+      for(let i=0;i<steps;i++){
+        const sg = new THREE.BoxGeometry(2.6 - i*0.05, 0.18, 2.6 - i*0.3);
+        const sm = new THREE.MeshStandardMaterial({ map: tex.wall, roughness: 0.95 });
+        const step = new THREE.Mesh(sg, sm);
+        step.position.set(0, -i*0.18, i*0.18);
+        stairsGroup.add(step);
+      }
+      // glow ring underneath
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0xc41320, transparent:true, opacity:0.6 });
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.06, 8, 28), ringMat);
+      ring.rotation.x = -Math.PI/2;
+      ring.position.set(0, 0.06, 0);
+      stairsGroup.add(ring);
+      const pl = new THREE.PointLight(0xc41320, 1.1, 8, 1.6);
+      pl.position.set(0, 1.2, 0);
+      stairsGroup.add(pl);
+      stairsGroup.position.set(sx, 0.18, sz);
+      this.group.add(stairsGroup);
+      this.stairsGroup = stairsGroup;
+    } else {
+      // boss arena: altar in center
+      const [cx,cz] = this.tileToWorld(this.W>>1, this.H>>1);
+      const ag = new THREE.BoxGeometry(3.2, 1.2, 3.2);
+      const am = new THREE.MeshStandardMaterial({ map: tex.wall, roughness: 0.9, color: 0x6a3030 });
+      const altar = new THREE.Mesh(ag, am);
+      altar.position.set(cx, 0.6, cz);
+      this.group.add(altar);
+      const pl = new THREE.PointLight(0xc41320, 2.4, 18, 1.4);
+      pl.position.set(cx, 4, cz);
+      this.group.add(pl);
+    }
+
+    // ambient fog
+    this.scene.fog = new THREE.Fog(theme.ceilC, theme.fogN, theme.fogF);
+    this.scene.background = new THREE.Color(theme.ceilC);
+  }
+
+  _wallVisible(x,z){
+    // visible if at least one adjacent tile is a floor
+    return this.isFloor(x-1,z) || this.isFloor(x+1,z) || this.isFloor(x,z-1) || this.isFloor(x,z+1)
+        || this.isFloor(x-1,z-1) || this.isFloor(x+1,z-1) || this.isFloor(x-1,z+1) || this.isFloor(x+1,z+1);
+  }
+
+  updateProps(dt, time){
+    if(!this._flames) return;
+    for(const f of this._flames){
+      f.mesh.userData.t += dt * (f.slow ? 2.5 : 9);
+      const flick = Math.sin(f.mesh.userData.t) * 0.35 + Math.sin(f.mesh.userData.t*3.7+1.2) * 0.25 + (Math.random()-0.5)*0.2;
+      f.mesh.position.y = f.mesh.userData.baseY + flick*0.04;
+      f.mesh.scale.setScalar(1 + flick*0.10);
+      f.light.intensity = (f.light.userData?.base || (f.slow?0.9:1.4)) * (1 + flick*0.18);
+    }
+  }
+
+  dispose(){
+    this.scene.remove(this.group);
+    this.scene.remove(this.dynamicGroup);
+    this.group.traverse(o=>{
+      if(o.geometry) o.geometry.dispose();
+      if(o.material){
+        if(Array.isArray(o.material)) o.material.forEach(m=>m.dispose());
+        else o.material.dispose();
+      }
+    });
+    this.dynamicGroup.traverse(o=>{
+      if(o.geometry) o.geometry.dispose();
+      if(o.material){
+        if(Array.isArray(o.material)) o.material.forEach(m=>m.dispose());
+        else o.material.dispose();
+      }
+    });
+  }
+}
+
+/* ============================================================
+   PLAYER
+============================================================ */
+class Player {
+  constructor(classKey, scene, audio){
+    this.cls = CLASSES[classKey];
+    this.className = this.cls.name;
+    this.classKey = classKey;
+    this.scene = scene;
+    this.audio = audio;
+    // position
+    this.x = 0; this.z = 0; this.y = EYE_H;
+    this.yaw = 0; this.pitch = 0;
+    this.vx = 0; this.vz = 0;
+    this.bob = 0; this.bobT = 0;
+    // stats
+    this.lvl = 1;
+    this.xp = 0;
+    this.xpNext = 100;
+    this.souls = 0;
+    this.kills = 0;
+    this.floorReached = 1;
+    this.baseStr = this.cls.str;
+    this.baseDex = this.cls.dex;
+    this.baseInt = this.cls.int;
+    this.baseCon = this.cls.con;
+    this.hpMax = this.cls.hpMax;
+    this.mpMax = this.cls.mpMax;
+    this.stMax = 100;
+    this.hp = this.hpMax;
+    this.mp = this.mpMax;
+    this.st = this.stMax;
+    // equipment
+    this.equip = { weapon:null, armor:null, ring:null };
+    // inventory: array of {key, count}
+    this.inv = [];
+    // spells known
+    this.spells = [...this.cls.spells];
+    // hotbar refs: array of {kind:'item'|'spell', key}
+    this.hotbar = [null,null,null,null,null,null];
+    // cooldowns
+    this.spellCD = {};
+    for(const s of SPELL_LIST) this.spellCD[s] = 0;
+    this.attackCD = 0;
+    // buffs: {tag, dur, str?, dex?, int?, def?, regen?, shield?, lightDur?}
+    this.buffs = [];
+    // state
+    this.alive = true;
+    this.guarding = false;
+    this.identified = {}; // map item key -> true once identified
+    this.shieldHp = 0;
+    // give starting gear
+    this.addItem(this.cls.weapon);
+    this.equipFromInv(this.cls.weapon);
+    this.addItem(this.cls.armor);
+    this.equipFromInv(this.cls.armor);
+    this.addItem('potHeal', 2);
+    this.addItem('scrLight', 1);
+    // assign hotbar defaults
+    this.hotbar[0] = {kind:'item', key:'potHeal'};
+    if(this.spells.length > 0) this.hotbar[5] = {kind:'spell', key:this.spells[0]};
+  }
+  totalStr(){ let s = this.baseStr; for(const b of this.buffs) s += (b.str||0); s += this._eqBonus('str'); return s; }
+  totalDex(){ let s = this.baseDex; for(const b of this.buffs) s += (b.dex||0); s += this._eqBonus('dex'); return s; }
+  totalInt(){ let s = this.baseInt; for(const b of this.buffs) s += (b.int||0); s += this._eqBonus('int'); return s; }
+  totalCon(){ let s = this.baseCon; for(const b of this.buffs) s += (b.con||0); s += this._eqBonus('con'); return s; }
+  totalDef(){ let s = 0; for(const b of this.buffs) s += (b.def||0); s += this._eqBonus('def'); s += Math.floor(this.totalCon()*0.4); return s; }
+  spellPower(){ let s = 1.0; s += this.totalInt()*0.05; s += this._eqBonus('spellBonus'); return s; }
+  mpRegen(){ return 0.6 + this.totalInt()*0.04 + this._eqBonus('mpRegen'); }
+  stRegen(){ return 14 + this.totalDex()*0.6; }
+  hpRegen(){ return 0.3 + this.totalCon()*0.05; }
+  critChance(){ return CLAMP(0.05 + this.totalDex()*0.012 + this._eqBonus('critBonus'), 0.05, 0.55); }
+  lifesteal(){ return this._eqBonus('lifesteal'); }
+  thorns(){ return this._eqBonus('thorns'); }
+  _eqBonus(key){
+    let s = 0;
+    for(const slot of ['weapon','armor','ring']){
+      const ek = this.equip[slot];
+      if(!ek) continue;
+      const it = ITEM_DB[ek];
+      if(it && it[key] != null) s += it[key];
+    }
+    return s;
+  }
+  weaponData(){
+    const w = this.equip.weapon ? ITEM_DB[this.equip.weapon] : null;
+    if(!w) return {dmg:[1,2], atkSpd:1.2, range:1.8};
+    return w;
+  }
+  // === inventory ops ===
+  addItem(key, count=1){
+    const it = ITEM_DB[key];
+    if(!it) return false;
+    if(it.stack > 1){
+      const slot = this.inv.find(s=>s.key===key && s.count < (it.stack||99));
+      if(slot){ slot.count = Math.min(it.stack, slot.count+count); return true; }
+    }
+    if(this.inv.length >= 25) return false;
+    this.inv.push({key, count});
+    if(!it.unidentified) this.identified[key] = true;
+    return true;
+  }
+  removeItem(key, count=1){
+    for(let i=0;i<this.inv.length;i++){
+      if(this.inv[i].key === key){
+        this.inv[i].count -= count;
+        if(this.inv[i].count <= 0) this.inv.splice(i,1);
+        return true;
+      }
+    }
+    return false;
+  }
+  countItem(key){
+    let c = 0;
+    for(const s of this.inv) if(s.key===key) c += s.count;
+    return c;
+  }
+  equipFromInv(key){
+    const it = ITEM_DB[key];
+    if(!it || !it.slot) return false;
+    const slot = it.slot;
+    // swap: put currently-equipped back into inventory
+    const prev = this.equip[slot];
+    this.equip[slot] = key;
+    this.removeItem(key, 1);
+    if(prev) this.addItem(prev, 1);
+    return true;
+  }
+  unequip(slot){
+    const k = this.equip[slot];
+    if(!k) return false;
+    if(this.addItem(k, 1)){ this.equip[slot] = null; return true; }
+    return false;
+  }
+  useItem(key, game){
+    const it = ITEM_DB[key];
+    if(!it) return false;
+    const use = it.use;
+    if(!use) return false;
+    let used = true;
+    if(use === 'heal'){
+      const heal = it.amount;
+      const oldHp = this.hp;
+      this.hp = Math.min(this.hpMax, this.hp + heal);
+      game.ui.flashMsg(`✚ Vitae +${Math.round(this.hp-oldHp)}`, 'heal');
+      game.fxBloodVeil(0.2, true);
+      this.audio.spell('heal');
+    } else if(use === 'mana'){
+      const m = it.amount;
+      const oldMp = this.mp;
+      this.mp = Math.min(this.mpMax, this.mp + m);
+      game.ui.flashMsg(`✦ Umbra +${Math.round(this.mp-oldMp)}`, 'heal');
+      this.audio.pickup();
+    } else if(use === 'buffStr'){ this.buffs.push({tag:'STR', dur:it.amount, str:5}); game.ui.flashMsg(`+5 STR for ${it.amount}s`, 'pickup'); this.audio.pickup(); }
+    else if(use === 'buffDex'){ this.buffs.push({tag:'DEX', dur:it.amount, dex:5}); game.ui.flashMsg(`+5 DEX for ${it.amount}s`, 'pickup'); this.audio.pickup(); }
+    else if(use === 'buffDef'){ this.buffs.push({tag:'DEF', dur:it.amount, def:5}); game.ui.flashMsg(`+5 DEF for ${it.amount}s`, 'pickup'); this.audio.pickup(); }
+    else if(use === 'regen'){ this.buffs.push({tag:'REGEN', dur:30, regen:2}); game.ui.flashMsg(`Slow Vitae: +2 hp/s for 30s`, 'heal'); this.audio.pickup(); }
+    else if(use === 'reveal'){ game.revealMap(); game.ui.flashMsg(`The floor reveals itself.`, 'lore'); this.audio.spell('light'); }
+    else if(use === 'castFire'){ game.castFromScroll('pyre'); this.audio.spell('fire'); }
+    else if(use === 'castShock'){ game.castFromScroll('shock'); this.audio.spell('shock'); }
+    else if(use === 'castHeal'){ this.hp = this.hpMax; this.mp = this.mpMax; game.ui.flashMsg(`✚ The scroll knits you whole.`, 'heal'); this.audio.spell('heal'); }
+    else if(use === 'teleport'){ game.teleportPlayer(); game.ui.flashMsg(`You arrive where you weren't.`, 'lore'); this.audio.spell('shock'); }
+    else if(use === 'banish'){ game.banishVisible(); game.ui.flashMsg(`The scroll silences them.`, 'lore'); this.audio.spell('shock'); }
+    else if(use === 'identify'){
+      const candidate = this.inv.find(s => !this.identified[s.key]);
+      if(candidate){ this.identified[candidate.key] = true; game.ui.flashMsg(`Named: ${ITEM_DB[candidate.key].name}`, 'pickup'); }
+      else { game.ui.flashMsg(`Nothing to name.`, 'pickup'); used = false; }
+      this.audio.pickup();
+    } else if(use === 'light'){ this.buffs.push({tag:'LIGHT', dur:20, light:true}); game.ui.flashMsg(`The dark recedes — briefly.`, 'lore'); this.audio.spell('light'); }
+    else if(use === 'key'){ game.ui.flashMsg(`A bone key. Some door wants it.`, 'pickup'); used = false; }
+    else if(use === 'soul'){ this.souls += it.amount; game.ui.flashMsg(`✦ ${it.amount} souls`, 'pickup'); this.audio.pickup(); }
+    else if(use === 'lore'){ game.ui.flashMsg(it.flav.replace(/"/g,''), 'lore'); used = true; }
+    if(used) this.removeItem(key, 1);
+    return used;
+  }
+  castSpell(key, game){
+    const sp = SPELL_DB[key];
+    if(!sp) return false;
+    if(this.mp < sp.cost){ game.ui.flashMsg(`Not enough umbra.`, 'warn'); return false; }
+    if((this.spellCD[key]||0) > 0){ return false; }
+    this.mp -= sp.cost;
+    this.spellCD[key] = sp.cooldown;
+    if(sp.kind === 'heal'){
+      this.hp = Math.min(this.hpMax, this.hp + Math.round(sp.heal * this.spellPower()));
+      game.ui.flashMsg(`✚ Mended`, 'heal');
+      game.fxBloodVeil(0.15, true);
+      this.audio.spell('heal');
+    } else if(sp.kind === 'shield'){
+      this.shieldHp = Math.round(sp.shield * this.spellPower());
+      this.buffs.push({tag:'WARD', dur:sp.dur, shield:this.shieldHp});
+      game.ui.flashMsg(`⛨ Ward`, 'heal');
+      this.audio.spell('shock');
+    } else if(sp.kind === 'light'){
+      this.buffs.push({tag:'BECKON', dur:sp.dur, light:true});
+      game.ui.flashMsg(`A pale light cleaves to you.`, 'lore');
+      this.audio.spell('light');
+    } else {
+      // projectile
+      game.fireSpell(key);
+      this.audio.spell(sp.kind);
+    }
+    return true;
+  }
+  attack(game){
+    if(this.attackCD > 0) return false;
+    if(this.st < 8){ game.ui.flashMsg(`Breath fails you.`, 'warn'); return false; }
+    const w = this.weaponData();
+    this.attackCD = 1 / (w.atkSpd || 1.2);
+    this.st -= 8;
+    this.audio.swing();
+    // raycast to find target
+    const dir = new THREE.Vector3();
+    game.camera.getWorldDirection(dir);
+    const origin = new THREE.Vector3(this.x, this.y, this.z);
+    let bestEnemy = null;
+    let bestDist = (w.range || 1.9);
+    for(const e of game.enemies){
+      if(!e.alive) continue;
+      const dx = e.mesh.position.x - origin.x;
+      const dy = e.mesh.position.y - origin.y;
+      const dz = e.mesh.position.z - origin.z;
+      const dist = Math.sqrt(dx*dx+dz*dz);
+      if(dist > bestDist + e.def.size*0.45) continue;
+      const ndx = dx/dist, ndz = dz/dist;
+      const dot = ndx*dir.x + ndz*dir.z;
+      if(dot < 0.78) continue;
+      bestEnemy = e; bestDist = dist;
+    }
+    // swing fx — push attackSwing
+    game.attackSwing = 1;
+    if(bestEnemy){
+      let dmg = this.rollWeapon();
+      const isCrit = Math.random() < this.critChance();
+      if(isCrit) dmg = Math.round(dmg * 1.8);
+      bestEnemy.takeDamage(dmg, this, game);
+      // lifesteal
+      const ls = this.lifesteal();
+      if(ls > 0){
+        const heal = Math.max(1, Math.round(dmg * ls));
+        this.hp = Math.min(this.hpMax, this.hp + heal);
+      }
+      this.audio.hit(isCrit);
+      if(isCrit) game.ui.flashMsg(`✦ CRIT ${dmg}`, 'dmg');
+      return true;
+    }
+    return true;
+  }
+  rollWeapon(){
+    const w = this.weaponData();
+    const base = w.dmg[0] + Math.random()*(w.dmg[1]-w.dmg[0]);
+    const strBonus = this.totalStr()*1.2;
+    return Math.max(1, Math.round(base + strBonus));
+  }
+  takeDamage(dmg, src, game){
+    if(!this.alive) return;
+    if(this.guarding){
+      dmg = Math.round(dmg * 0.35);
+      this.st = Math.max(0, this.st - 6);
+    }
+    const def = this.totalDef();
+    dmg = Math.max(1, Math.round(dmg - def*0.8));
+    if(this.shieldHp > 0){
+      const a = Math.min(this.shieldHp, dmg);
+      this.shieldHp -= a; dmg -= a;
+    }
+    if(dmg > 0){
+      this.hp -= dmg;
+      game.ui.flashMsg(`✖ ${dmg}`, 'dmg');
+      game.fxDamageArrow(src);
+      game.fxBloodVeil(Math.min(0.7, dmg/40));
+      game.shakeCam(0.2 + dmg*0.01);
+      this.audio.hurt();
+      // thorns
+      const t = this.thorns();
+      if(t > 0 && src && src.takeDamage){
+        src.takeDamage(t, this, game);
+      }
+    }
+    if(this.hp <= 0){
+      this.hp = 0; this.alive = false; this.audio.death(); game.onPlayerDeath();
+    }
+  }
+  gainXp(amount, game){
+    this.xp += amount;
+    while(this.xp >= this.xpNext){
+      this.xp -= this.xpNext;
+      this.levelUp(game);
+    }
+  }
+  levelUp(game){
+    this.lvl++;
+    this.xpNext = Math.round(this.xpNext * 1.35 + 30);
+    // stat increase by class
+    this.baseStr += this.cls.name==='WARDEN' ? 2 : 1;
+    this.baseDex += this.cls.name==='REAPER' ? 2 : 1;
+    this.baseInt += this.cls.name==='VOWIST' ? 2 : 1;
+    this.baseCon += 1;
+    this.hpMax += 12 + (this.cls.name==='WARDEN' ? 6 : 0);
+    this.mpMax += 4 + (this.cls.name==='VOWIST' ? 6 : 0);
+    this.hp = this.hpMax; this.mp = this.mpMax;
+    // spell learn at level 3,5,7
+    if(this.lvl === 3 && this.cls.name === 'VOWIST'){ this.spells.push('pyre'); game.ui.flashMsg(`Learned: Pyre`, 'lore'); }
+    if(this.lvl === 5 && this.cls.name === 'VOWIST'){ this.spells.push('shock'); game.ui.flashMsg(`Learned: Shock`, 'lore'); }
+    if(this.lvl === 7 && this.cls.name === 'VOWIST'){ this.spells.push('unmake'); game.ui.flashMsg(`Learned: Unmake`, 'lore'); }
+    if(this.lvl === 9 && this.cls.name === 'VOWIST'){ this.spells.push('ruin'); game.ui.flashMsg(`Learned: RUIN`, 'lore'); }
+    if(this.lvl === 4 && this.cls.name === 'WARDEN'){ this.spells.push('mend'); game.ui.flashMsg(`Learned: Mend`, 'lore'); }
+    if(this.lvl === 6 && this.cls.name === 'REAPER'){ this.spells.push('shock'); game.ui.flashMsg(`Learned: Shock`, 'lore'); }
+    game.ui.flashMsg(`✦ LEVEL UP — ${this.lvl} ✦`, 'lore');
+    this.audio.win();
+  }
+  update(dt, input, game){
+    if(!this.alive) return;
+    // regen
+    this.st = Math.min(this.stMax, this.st + this.stRegen()*dt);
+    this.mp = Math.min(this.mpMax, this.mp + this.mpRegen()*dt);
+    if(this.hp < this.hpMax) this.hp = Math.min(this.hpMax, this.hp + this.hpRegen()*dt);
+    // buffs
+    for(let i=this.buffs.length-1;i>=0;i--){
+      this.buffs[i].dur -= dt;
+      if(this.buffs[i].regen) this.hp = Math.min(this.hpMax, this.hp + this.buffs[i].regen*dt);
+      if(this.buffs[i].dur <= 0) this.buffs.splice(i,1);
+    }
+    if(this.shieldHp <= 0){
+      // remove ward buff if shield gone
+      this.buffs = this.buffs.filter(b => b.tag !== 'WARD');
+    }
+    // cooldowns
+    if(this.attackCD > 0) this.attackCD = Math.max(0, this.attackCD - dt);
+    for(const k of SPELL_LIST) if((this.spellCD[k]||0) > 0) this.spellCD[k] = Math.max(0, this.spellCD[k] - dt);
+    // movement
+    const fwd = (input.keys.has('w') || input.keys.has('arrowup') ? 1 : 0) - (input.keys.has('s') || input.keys.has('arrowdown') ? 1 : 0);
+    const right = (input.keys.has('d') || input.keys.has('arrowright') ? 1 : 0) - (input.keys.has('a') || input.keys.has('arrowleft') ? 1 : 0);
+    const sprint = input.keys.has('shift') && this.st > 5;
+    const baseSpd = 5.2;
+    let spd = baseSpd + this.totalDex()*0.06;
+    if(sprint){ spd *= 1.5; this.st = Math.max(0, this.st - 18*dt); }
+    if(this.guarding) spd *= 0.45;
+    const cosY = Math.cos(this.yaw);
+    const sinY = Math.sin(this.yaw);
+    // forward axis: along -z when yaw=0
+    const fx = -sinY * fwd + cosY * right;
+    const fz = -cosY * fwd - sinY * right;
+    const len = Math.sqrt(fx*fx + fz*fz);
+    let mx = 0, mz = 0;
+    if(len > 0.01){ mx = fx/len * spd; mz = fz/len * spd; }
+    // collide on each axis
+    const nx = this.x + mx*dt;
+    if(!game.collideSolid(nx, this.z, PLAYER_R)) this.x = nx;
+    const nz = this.z + mz*dt;
+    if(!game.collideSolid(this.x, nz, PLAYER_R)) this.z = nz;
+    // bob
+    if(len > 0.01 && !this.guarding){
+      this.bobT += dt * (sprint ? 11 : 7.5);
+      this.bob = Math.sin(this.bobT)*0.06 * (sprint?1.5:1.0);
+      // footstep audio
+      if(Math.sin(this.bobT) > 0.95 && Math.sin(this.bobT - dt*(sprint?11:7.5)) <= 0.95){
+        this.audio.step();
+      }
+    } else {
+      this.bob *= 0.9;
+    }
+    // mouse look
+    this.yaw -= input.mx * 0.0024;
+    this.pitch -= input.my * 0.0024;
+    this.pitch = CLAMP(this.pitch, -Math.PI/2+0.05, Math.PI/2-0.05);
+    input.mx = 0; input.my = 0;
+    // camera
+    game.camera.position.set(this.x, this.y + this.bob, this.z);
+    game.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
+    // attack swing offset reduces over time — drives weapon viewmodel
+    // guard reduces stamina drain less
+    this.guarding = input.rmb && this.st > 2;
+    // attack
+    if(input.lmb && this.attackCD === 0 && !this.guarding){
+      this.attack(game);
+      input.lmb = false;
+    }
+    // dynamic light follows player
+    if(game.playerLight){
+      game.playerLight.position.set(this.x, this.y + 0.5, this.z);
+      // light boost if buff
+      const hasLight = this.buffs.find(b => b.light);
+      const target = hasLight ? 2.4 : 1.2;
+      game.playerLight.intensity += (target - game.playerLight.intensity) * Math.min(1, dt*4);
+      // flicker
+      const fl = 1 + (Math.sin(performance.now()*0.014) + Math.sin(performance.now()*0.027+1.3))*0.04;
+      game.playerLight.intensity *= fl;
+    }
+  }
+}
+
+/* ============================================================
+   ENEMY
+============================================================ */
+class Enemy {
+  constructor(type, x, z, scene, audio, tex){
+    this.type = type;
+    this.def = ENEMY_DB[type];
+    this.x = x; this.z = z; this.y = (this.def.size*0.5);
+    this.hp = this.def.hp; this.hpMax = this.def.hp;
+    this.alive = true;
+    this.atkCd = 0;
+    this.audio = audio;
+    this.scene = scene;
+    this.ai = this.def.ai;
+    this.kindLabel = this.def.name;
+    this.aiState = 'idle';
+    this.aiTimer = 0;
+    this.lastSeen = null;
+    this.invisible = false;
+    this.invisT = 0;
+    this.target = {x,z};
+    this.hurtT = 0;
+    this.stagger = 0;
+    // sprite-based 3D
+    this.spriteMap = tex.enemySprites[this.def.sprite];
+    this.mat = new THREE.MeshBasicMaterial({ map: this.spriteMap, transparent:true, depthWrite:false, side:THREE.DoubleSide, alphaTest:0.1, color: this.def.col || 0xffffff });
+    this.geom = new THREE.PlaneGeometry(this.def.size*1.2, this.def.size*1.8);
+    this.mesh = new THREE.Mesh(this.geom, this.mat);
+    const [wx, wz] = [x*TILE+TILE/2, z*TILE+TILE/2];
+    this.mesh.position.set(wx, this.def.size*0.9, wz);
+    scene.add(this.mesh);
+    // shadow disc
+    const shGeom = new THREE.CircleGeometry(this.def.size*0.5, 16);
+    const shMat = new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.45, depthWrite:false });
+    this.shadow = new THREE.Mesh(shGeom, shMat);
+    this.shadow.rotation.x = -Math.PI/2;
+    this.shadow.position.set(wx, 0.02, wz);
+    scene.add(this.shadow);
+  }
+  takeDamage(dmg, src, game){
+    if(!this.alive) return;
+    this.hp -= dmg;
+    this.hurtT = 0.18;
+    this.stagger = 0.18;
+    if(this.invisible){ this.invisible = false; this.invisT = 0; }
+    // detect player
+    this.aiState = 'chase';
+    this.lastSeen = {x: game.player.x/TILE, z: game.player.z/TILE};
+    if(this.hp <= 0){
+      this.hp = 0; this.alive = false;
+      game.onEnemyDeath(this);
+    }
+  }
+  rollDmg(){
+    const d = this.def.dmg;
+    return Math.max(1, Math.round(d[0] + Math.random()*(d[1]-d[0])));
+  }
+  update(dt, game){
+    if(!this.alive) return;
+    if(this.hurtT > 0) this.hurtT -= dt;
+    if(this.atkCd > 0) this.atkCd -= dt;
+    if(this.stagger > 0){ this.stagger -= dt; }
+    // sprite billboard toward camera
+    this.mesh.lookAt(game.camera.position.x, this.mesh.position.y, game.camera.position.z);
+    // invisibility tint
+    if(this.invisible){
+      this.mat.opacity = 0.18;
+    } else {
+      this.mat.opacity = 1.0;
+    }
+    // hurt flash
+    if(this.hurtT > 0){
+      const t = this.hurtT/0.18;
+      this.mat.color.setRGB(1, 1-t*0.6, 1-t*0.6);
+    } else {
+      this.mat.color.set(this.def.col || 0xffffff);
+    }
+    // AI
+    if(this.stagger > 0){ return; }
+    const px = game.player.x, pz = game.player.z;
+    const dx = px - this.mesh.position.x;
+    const dz = pz - this.mesh.position.z;
+    const dist = Math.sqrt(dx*dx + dz*dz);
+    const sees = dist < SIGHT_R && game.lineOfSight(this.mesh.position.x, this.mesh.position.z, px, pz);
+    if(sees) this.lastSeen = {x: px/TILE, z: pz/TILE};
+    if(this.ai === 'boss'){ this._aiBoss(dt, game, dist, dx, dz, sees); }
+    else if(this.ai === 'rush'){ this._aiRush(dt, game, dist, dx, dz, sees); }
+    else if(this.ai === 'kite'){ this._aiKite(dt, game, dist, dx, dz, sees); }
+    else if(this.ai === 'caster'){ this._aiCaster(dt, game, dist, dx, dz, sees); }
+    else if(this.ai === 'ambush'){ this._aiAmbush(dt, game, dist, dx, dz, sees); }
+    // position update
+    this.shadow.position.x = this.mesh.position.x;
+    this.shadow.position.z = this.mesh.position.z;
+    // sink small
+    this.mesh.position.y = this.def.size*0.9 + Math.sin(performance.now()*0.004 + this.x*0.7)*0.05;
+  }
+  _move(dt, game, dx, dz, speed){
+    const len = Math.sqrt(dx*dx + dz*dz);
+    if(len < 0.01) return;
+    const nx = this.mesh.position.x + (dx/len)*speed*dt;
+    const nz = this.mesh.position.z + (dz/len)*speed*dt;
+    if(!game.collideSolid(nx, this.mesh.position.z, 0.3)) this.mesh.position.x = nx;
+    if(!game.collideSolid(this.mesh.position.x, nz, 0.3)) this.mesh.position.z = nz;
+  }
+  _aiRush(dt, game, dist, dx, dz, sees){
+    if(sees){
+      if(dist > this.def.atkR){
+        this._move(dt, game, dx, dz, this.def.spd);
+      } else if(this.atkCd <= 0){
+        // attack
+        this.atkCd = this.def.atkCd;
+        game.player.takeDamage(this.rollDmg(), this, game);
+        this.audio.growl('crawler');
+      }
+    } else if(this.lastSeen){
+      const tx = this.lastSeen.x*TILE + TILE/2;
+      const tz = this.lastSeen.z*TILE + TILE/2;
+      const ddx = tx - this.mesh.position.x;
+      const ddz = tz - this.mesh.position.z;
+      const d = Math.sqrt(ddx*ddx + ddz*ddz);
+      if(d > 0.5) this._move(dt, game, ddx, ddz, this.def.spd*0.7);
+      else this.lastSeen = null;
+    } else {
+      // idle wander
+      this.aiTimer -= dt;
+      if(this.aiTimer <= 0){
+        this.aiTimer = 1 + Math.random()*2;
+        const ang = Math.random()*TAU;
+        this.target = {dx:Math.cos(ang), dz:Math.sin(ang)};
+      }
+      if(this.target.dx != null){
+        this._move(dt, game, this.target.dx, this.target.dz, this.def.spd*0.3);
+      }
+    }
+  }
+  _aiKite(dt, game, dist, dx, dz, sees){
+    if(sees){
+      if(dist > this.def.atkR-1 && dist < this.def.atkR+1){
+        // stand and shoot
+        if(this.atkCd <= 0){
+          this.atkCd = this.def.atkCd;
+          game.spawnProjectile(this.def.proj, this.mesh.position.x, this.mesh.position.y, this.mesh.position.z, game.player.x, game.player.y, game.player.z, false);
+          this.audio.growl('wraith');
+        }
+      } else if(dist < this.def.atkR-2){
+        // back away
+        this._move(dt, game, -dx, -dz, this.def.spd);
+      } else {
+        this._move(dt, game, dx, dz, this.def.spd*0.8);
+      }
+    } else {
+      // wander
+      this.aiTimer -= dt;
+      if(this.aiTimer <= 0){
+        this.aiTimer = 2 + Math.random()*2;
+        const ang = Math.random()*TAU;
+        this.target = {dx:Math.cos(ang), dz:Math.sin(ang)};
+      }
+      if(this.target.dx != null) this._move(dt, game, this.target.dx, this.target.dz, this.def.spd*0.3);
+    }
+  }
+  _aiCaster(dt, game, dist, dx, dz, sees){
+    if(sees){
+      if(dist > this.def.atkR){
+        this._move(dt, game, dx, dz, this.def.spd*0.8);
+      } else if(this.atkCd <= 0){
+        this.atkCd = this.def.atkCd;
+        // hex projectile aimed at player
+        game.spawnProjectile(this.def.proj, this.mesh.position.x, this.mesh.position.y+0.4, this.mesh.position.z, game.player.x, game.player.y, game.player.z, false);
+        this.audio.growl('witch');
+      } else if(dist < this.def.atkR-3){
+        this._move(dt, game, -dx, -dz, this.def.spd*0.5);
+      }
+    }
+  }
+  _aiAmbush(dt, game, dist, dx, dz, sees){
+    if(!this.invisible && !sees){
+      this.invisT += dt;
+      if(this.invisT > 2){ this.invisible = true; }
+    }
+    if(sees){
+      this.invisible = false;
+      this.invisT = 0;
+      if(dist > this.def.atkR){
+        this._move(dt, game, dx, dz, this.def.spd*1.2);
+      } else if(this.atkCd <= 0){
+        this.atkCd = this.def.atkCd;
+        game.player.takeDamage(this.rollDmg(), this, game);
+        this.audio.growl('shade');
+      }
+    } else if(this.invisible){
+      // teleport closer behind player if invisible too long
+      this.invisT += dt;
+      if(this.invisT > 6){
+        // re-emerge near player
+        const ang = Math.random()*TAU;
+        const r = 6;
+        const nx = game.player.x + Math.cos(ang)*r;
+        const nz = game.player.z + Math.sin(ang)*r;
+        if(!game.collideSolid(nx, nz, 0.4)){
+          this.mesh.position.x = nx;
+          this.mesh.position.z = nz;
+        }
+        this.invisT = 0;
+        this.audio.growl('shade');
+      }
+    }
+  }
+  _aiBoss(dt, game, dist, dx, dz, sees){
+    // boss: cycles attacks
+    this.aiTimer -= dt;
+    if(this.atkCd <= 0){
+      this.atkCd = this.def.atkCd + Math.random()*0.6;
+      // pick attack
+      const choice = Math.random();
+      if(choice < 0.45){
+        // single doom bolt
+        game.spawnProjectile('doom', this.mesh.position.x, this.mesh.position.y+0.5, this.mesh.position.z, game.player.x, game.player.y, game.player.z, false);
+      } else if(choice < 0.75){
+        // 3-burst spread
+        for(let i=-1;i<=1;i++){
+          const ang = Math.atan2(dz,dx) + i*0.3;
+          const tx = this.mesh.position.x + Math.cos(ang)*10;
+          const tz = this.mesh.position.z + Math.sin(ang)*10;
+          game.spawnProjectile('doom', this.mesh.position.x, this.mesh.position.y+0.5, this.mesh.position.z, tx, game.player.y, tz, false);
+        }
+      } else {
+        // 8-ray ring
+        for(let i=0;i<8;i++){
+          const ang = (i/8)*TAU;
+          const tx = this.mesh.position.x + Math.cos(ang)*10;
+          const tz = this.mesh.position.z + Math.sin(ang)*10;
+          game.spawnProjectile('doom', this.mesh.position.x, this.mesh.position.y+0.5, this.mesh.position.z, tx, game.player.y, tz, false);
+        }
+      }
+      this.audio.growl('shade');
+    }
+    // breathing motion
+    this.mesh.scale.y = 1 + Math.sin(performance.now()*0.005)*0.04;
+  }
+  dispose(){
+    this.scene.remove(this.mesh);
+    this.scene.remove(this.shadow);
+    this.geom.dispose(); this.mat.dispose();
+    this.shadow.geometry.dispose(); this.shadow.material.dispose();
+  }
+}
+
+/* ============================================================
+   PROJECTILE POOL
+============================================================ */
+class ProjectileSystem {
+  constructor(scene){
+    this.scene = scene;
+    this.list = [];
+    this.geo = new THREE.SphereGeometry(0.18, 8, 8);
+  }
+  spawn(kind, sx, sy, sz, tx, ty, tz, fromPlayer){
+    const def = PROJECTILE_DEF[kind];
+    if(!def) return;
+    const mat = new THREE.MeshBasicMaterial({ color: def.col, transparent:true, opacity:0.85 });
+    const m = new THREE.Mesh(this.geo, mat);
+    m.scale.setScalar(def.radius/0.18 * 1.2);
+    m.position.set(sx, sy, sz);
+    this.scene.add(m);
+    const dx = tx-sx, dy = ty-sy, dz = tz-sz;
+    const len = Math.sqrt(dx*dx+dy*dy+dz*dz) || 1;
+    const vx = dx/len * def.spd;
+    const vy = dy/len * def.spd;
+    const vz = dz/len * def.spd;
+    // halo light
+    const pl = new THREE.PointLight(def.col, 1.0, 5, 1.6);
+    pl.position.copy(m.position);
+    this.scene.add(pl);
+    this.list.push({m, mat, kind, def, vx, vy, vz, life: def.life, fromPlayer, pl});
+  }
+  update(dt, game){
+    for(let i=this.list.length-1;i>=0;i--){
+      const p = this.list[i];
+      p.life -= dt;
+      p.m.position.x += p.vx*dt;
+      p.m.position.y += p.vy*dt;
+      p.m.position.z += p.vz*dt;
+      p.pl.position.copy(p.m.position);
+      // hit wall?
+      const [tx,tz] = [Math.floor(p.m.position.x/TILE), Math.floor(p.m.position.z/TILE)];
+      let hit = false;
+      let hitEntity = null;
+      if(game.dungeon.isWall(tx,tz)) hit = true;
+      // hit entities
+      if(!hit){
+        if(p.fromPlayer){
+          for(const e of game.enemies){
+            if(!e.alive) continue;
+            const ex = e.mesh.position.x, ez = e.mesh.position.z;
+            const dx = ex-p.m.position.x, dz = ez-p.m.position.z;
+            if(dx*dx+dz*dz < sqr(0.7 + e.def.size*0.4)){
+              hitEntity = e; hit = true; break;
+            }
+          }
+        } else {
+          const dx = game.player.x - p.m.position.x;
+          const dz = game.player.z - p.m.position.z;
+          const dy = game.player.y - p.m.position.y;
+          if(dx*dx + dz*dz + dy*dy*0.6 < sqr(0.7 + PLAYER_R)){
+            hit = true; hitEntity = 'player';
+          }
+        }
+      }
+      if(hit || p.life <= 0){
+        // splash damage
+        if(p.def.splash){
+          const sr = p.def.splash;
+          if(p.fromPlayer){
+            for(const e of game.enemies){
+              if(!e.alive) continue;
+              const dx = e.mesh.position.x - p.m.position.x;
+              const dz = e.mesh.position.z - p.m.position.z;
+              if(dx*dx + dz*dz < sr*sr){
+                const dmg = p.def.dmg[0] + Math.random()*(p.def.dmg[1]-p.def.dmg[0]);
+                e.takeDamage(Math.round(dmg * game.player.spellPower()), game.player, game);
+              }
+            }
+          }
+          game.particles.burst(p.m.position.x, p.m.position.y, p.m.position.z, p.def.col, 24);
+        } else if(hitEntity){
+          if(hitEntity === 'player'){
+            const dmg = Math.round(p.def.dmg[0] + Math.random()*(p.def.dmg[1]-p.def.dmg[0]));
+            game.player.takeDamage(dmg, null, game);
+          } else {
+            let dmg = Math.round(p.def.dmg[0] + Math.random()*(p.def.dmg[1]-p.def.dmg[0]));
+            if(p.fromPlayer) dmg = Math.round(dmg * game.player.spellPower());
+            hitEntity.takeDamage(dmg, game.player, game);
+            // chain (shock)
+            if(p.def.chain && p.def.chain > 0){
+              let last = hitEntity;
+              let chained = 0;
+              while(chained < p.def.chain){
+                let bestE = null, bestD = 6;
+                for(const e of game.enemies){
+                  if(!e.alive || e === last) continue;
+                  const ddx = e.mesh.position.x - last.mesh.position.x;
+                  const ddz = e.mesh.position.z - last.mesh.position.z;
+                  const d = Math.sqrt(ddx*ddx+ddz*ddz);
+                  if(d < bestD){ bestD = d; bestE = e; }
+                }
+                if(!bestE) break;
+                let cdmg = Math.round(p.def.dmg[0] * 0.7 + Math.random()*(p.def.dmg[1]-p.def.dmg[0])*0.7);
+                cdmg = Math.round(cdmg * game.player.spellPower());
+                bestE.takeDamage(cdmg, game.player, game);
+                game.particles.burst(bestE.mesh.position.x, bestE.mesh.position.y, bestE.mesh.position.z, p.def.col, 8);
+                last = bestE;
+                chained++;
+              }
+            }
+          }
+        }
+        game.particles.burst(p.m.position.x, p.m.position.y, p.m.position.z, p.def.col, 12);
+        this.scene.remove(p.m); this.scene.remove(p.pl); p.mat.dispose();
+        this.list.splice(i,1);
+      } else {
+        // small trail particles
+        if(Math.random() < 0.5) game.particles.spawn(p.m.position.x, p.m.position.y, p.m.position.z, 0,0,0, p.def.col, 0.3, 0.06);
+      }
+    }
+  }
+  clear(){
+    for(const p of this.list){ this.scene.remove(p.m); this.scene.remove(p.pl); p.mat.dispose(); }
+    this.list = [];
+  }
+}
+
+/* ============================================================
+   PARTICLES
+============================================================ */
+class ParticleSystem {
+  constructor(scene, max=600){
+    this.scene = scene;
+    this.max = max;
+    this.geo = new THREE.BufferGeometry();
+    const positions = new Float32Array(max*3);
+    const colors = new Float32Array(max*3);
+    const sizes = new Float32Array(max);
+    this.geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    this.geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    this.geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    this.mat = new THREE.PointsMaterial({ vertexColors:true, size:0.16, transparent:true, opacity:0.85, depthWrite:false, blending:THREE.AdditiveBlending });
+    this.points = new THREE.Points(this.geo, this.mat);
+    this.points.frustumCulled = false;
+    scene.add(this.points);
+    this.parts = [];
+    for(let i=0;i<max;i++) this.parts.push({x:0,y:0,z:0,vx:0,vy:0,vz:0,r:0,g:0,b:0,life:0, alive:false});
+  }
+  spawn(x,y,z, vx,vy,vz, color, life, size){
+    const c = new THREE.Color(color);
+    for(let i=0;i<this.max;i++){
+      const p = this.parts[i];
+      if(!p.alive){
+        p.x=x; p.y=y; p.z=z;
+        p.vx=vx; p.vy=vy; p.vz=vz;
+        p.r=c.r; p.g=c.g; p.b=c.b;
+        p.life = life || 1;
+        p.lifeMax = p.life;
+        p.size = size||0.12;
+        p.alive = true;
+        return;
+      }
+    }
+  }
+  burst(x,y,z, color, count){
+    for(let i=0;i<count;i++){
+      const ang = Math.random()*TAU;
+      const sp = 1 + Math.random()*3;
+      const vy = (Math.random()-0.3)*3;
+      this.spawn(x,y,z, Math.cos(ang)*sp, vy, Math.sin(ang)*sp, color, 0.7 + Math.random()*0.6, 0.18);
+    }
+  }
+  update(dt){
+    const pos = this.geo.attributes.position.array;
+    const col = this.geo.attributes.color.array;
+    let n = 0;
+    for(let i=0;i<this.max;i++){
+      const p = this.parts[i];
+      if(!p.alive) continue;
+      p.life -= dt;
+      if(p.life <= 0){ p.alive = false; continue; }
+      p.x += p.vx*dt; p.y += p.vy*dt; p.z += p.vz*dt;
+      p.vy -= 4*dt;
+      const k = n*3;
+      pos[k] = p.x; pos[k+1] = p.y; pos[k+2] = p.z;
+      const a = p.life/p.lifeMax;
+      col[k] = p.r*a; col[k+1] = p.g*a; col[k+2] = p.b*a;
+      n++;
+    }
+    // hide unused points by sending to far away
+    for(let i=n;i<this.max;i++){
+      const k = i*3;
+      pos[k] = pos[k+1] = pos[k+2] = -10000;
+    }
+    this.geo.attributes.position.needsUpdate = true;
+    this.geo.attributes.color.needsUpdate = true;
+  }
+  dispose(){
+    this.scene.remove(this.points);
+    this.geo.dispose(); this.mat.dispose();
+  }
+}
+
+/* ============================================================
+   INPUT
+============================================================ */
+class Input {
+  constructor(canvas){
+    this.canvas = canvas;
+    this.keys = new Set();
+    this.mx = 0; this.my = 0;
+    this.lmb = false; this.rmb = false;
+    this.rmbDown = false;
+    this.locked = false;
+    this._wireup();
+  }
+  _wireup(){
+    window.addEventListener('keydown', e=>{
+      const k = e.key.toLowerCase();
+      this.keys.add(k);
+      if(k === 'tab'){ e.preventDefault(); }
+      if(['w','a','s','d','q','e','f','tab','1','2','3','4','5','6','escape','shift'].includes(k)) e.preventDefault();
+    });
+    window.addEventListener('keyup', e=>{
+      const k = e.key.toLowerCase();
+      this.keys.delete(k);
+    });
+    this.canvas.addEventListener('mousedown', e=>{
+      if(e.button === 0) this.lmb = true;
+      if(e.button === 2){ this.rmb = true; this.rmbDown = true; }
+    });
+    window.addEventListener('mouseup', e=>{
+      if(e.button === 2){ this.rmb = false; this.rmbDown = false; }
+    });
+    this.canvas.addEventListener('contextmenu', e=>{ e.preventDefault(); });
+    document.addEventListener('pointerlockchange', ()=>{
+      this.locked = document.pointerLockElement === this.canvas;
+    });
+    document.addEventListener('mousemove', e=>{
+      if(this.locked){
+        this.mx += e.movementX || 0;
+        this.my += e.movementY || 0;
+      }
+    });
+    this.canvas.addEventListener('click', ()=>{
+      if(!this.locked){
+        this.canvas.requestPointerLock();
+      }
+    });
+  }
+  unlock(){ if(this.locked) document.exitPointerLock(); }
+  lock(){ if(!this.locked) this.canvas.requestPointerLock(); }
+}
+
+/* ============================================================
+   UI CONTROLLER
+============================================================ */
+class UI {
+  constructor(game){
+    this.game = game;
+    this.hpFill = document.querySelector('#hpBar .fill');
+    this.mpFill = document.querySelector('#mpBar .fill');
+    this.stFill = document.querySelector('#stBar .fill');
+    this.xpFill = document.querySelector('#xpBar .fill');
+    this.hpNum = document.getElementById('hpNum');
+    this.mpNum = document.getElementById('mpNum');
+    this.stNum = document.getElementById('stNum');
+    this.lvlNum = document.getElementById('lvlNum');
+    this.statsLine = document.getElementById('statsLine');
+    this.cName = document.getElementById('cName');
+    this.cClass = document.getElementById('cClass');
+    this.cFloor = document.getElementById('cFloor');
+    this.mapLabel = document.getElementById('mapLabel');
+    this.hotbar = document.getElementById('hotbar');
+    this.spellbar = document.getElementById('spellbar');
+    this.messages = document.getElementById('messages');
+    this.floorTitle = document.getElementById('floorTitle');
+    this.titleScreen = document.getElementById('titleScreen');
+    this.deathScreen = document.getElementById('deathScreen');
+    this.victoryScreen = document.getElementById('victoryScreen');
+    this.classesBox = document.getElementById('classesBox');
+    this.inventory = document.getElementById('inventory');
+    this.invGrid = document.getElementById('invGrid');
+    this.equipBox = document.getElementById('equipBox');
+    this.spellsBox = document.getElementById('spellsBox');
+    this.statBox = document.getElementById('statBox');
+    this.minimap = document.getElementById('minimapCanvas');
+    this.mmCtx = this.minimap.getContext('2d');
+    this.tooltip = document.getElementById('tooltip');
+    this.dmgIndicators = document.getElementById('dmgIndicators');
+    this.bloodVeil = document.getElementById('bloodVeil');
+    this.flashWhite = document.getElementById('flashWhite');
+    this.interact = document.getElementById('interact');
+    this.interactLabel = document.getElementById('interactLabel');
+    this.blockBar = document.getElementById('blockBar');
+    this.fpsBox = document.getElementById('fpsBox');
+    this.loader = document.getElementById('loader');
+    this.pauseTag = document.getElementById('pauseTag');
+    this._wireup();
+    this._renderClasses();
+    this._buildHotbarSlots();
+    this._hotbarDirty = true;
+  }
+  _wireup(){
+    document.getElementById('restartBtn').addEventListener('click', ()=>{
+      this.deathScreen.classList.add('hidden');
+      this.titleScreen.classList.remove('hidden');
+    });
+    document.getElementById('winBtn').addEventListener('click', ()=>{
+      this.victoryScreen.classList.add('hidden');
+      this.titleScreen.classList.remove('hidden');
+    });
+    this.inventory.addEventListener('click', e=>{
+      if(e.target === this.inventory){
+        this.closeInventory();
+      }
+    });
+  }
+  _renderClasses(){
+    this.classesBox.innerHTML = '';
+    for(const [k, cls] of Object.entries(CLASSES)){
+      const div = document.createElement('div');
+      div.className = 'classcard';
+      div.innerHTML = `
+        <h3>${cls.name}</h3>
+        <div class="tag">${cls.tag}</div>
+        <div class="desc">${cls.desc}</div>
+        <div class="stats">STR ${cls.str} · DEX ${cls.dex}<br>INT ${cls.int} · CON ${cls.con}<br>HP ${cls.hpMax} · MP ${cls.mpMax}</div>
+      `;
+      div.addEventListener('click', ()=>{
+        this.titleScreen.classList.add('hidden');
+        this.game.startRun(k);
+      });
+      this.classesBox.appendChild(div);
+    }
+  }
+  _buildHotbarSlots(){
+    this.hotbar.innerHTML = '';
+    for(let i=0;i<6;i++){
+      const d = document.createElement('div');
+      d.className = 'slot';
+      d.dataset.idx = i;
+      d.innerHTML = `<span class="key">${i+1}</span><span class="icon"></span><span class="cnt"></span>`;
+      d.addEventListener('click', ()=>{ this.game.activateHotbar(i); });
+      d.addEventListener('mouseenter', e=>{
+        const slot = this.game.player.hotbar[i];
+        if(slot){
+          if(slot.kind === 'item') this.showTooltip(slot.key, e.clientX, e.clientY);
+          else if(slot.kind === 'spell') this.showSpellTooltip(slot.key, e.clientX, e.clientY);
+        }
+      });
+      d.addEventListener('mouseleave', ()=>{ this.hideTooltip(); });
+      this.hotbar.appendChild(d);
+    }
+  }
+  flashMsg(text, kind){
+    const div = document.createElement('div');
+    div.className = 'msg ' + (kind||'');
+    div.textContent = text;
+    this.messages.appendChild(div);
+    setTimeout(()=>{ if(div.parentNode) div.parentNode.removeChild(div); }, 4600);
+  }
+  showFloorTitle(floor){
+    const d = FLOORS[floor-1];
+    const fid = ['I','II','III','IV','V','VI','VII','VIII','IX','X'][floor-1] || floor;
+    this.floorTitle.querySelector('.num').textContent = `FLOOR ${fid}`;
+    this.floorTitle.querySelector('.name').textContent = d.name;
+    this.floorTitle.querySelector('.sub').textContent = d.sub;
+    this.floorTitle.style.opacity = '1';
+    setTimeout(()=>{ this.floorTitle.style.opacity = '0'; }, 4000);
+    this.mapLabel.textContent = '— ' + d.name.toUpperCase() + ' —';
+  }
+  showDeath(stats){
+    const html = `
+      <span class="lbl">Floors Walked</span><span class="val">${stats.floorReached}</span><br>
+      <span class="lbl">Souls Earned</span><span class="val">✦ ${stats.souls}</span><br>
+      <span class="lbl">Kills</span><span class="val">${stats.kills}</span><br>
+      <span class="lbl">Level Reached</span><span class="val">${stats.lvl}</span><br>
+      <span class="lbl">Vessel</span><span class="val">${stats.className}</span>`;
+    document.getElementById('deathStats').innerHTML = html;
+    this.deathScreen.classList.remove('hidden');
+  }
+  showVictory(stats){
+    const html = `
+      <span class="lbl">Floors Walked</span><span class="val">${stats.floorReached}</span><br>
+      <span class="lbl">Souls Earned</span><span class="val">✦ ${stats.souls}</span><br>
+      <span class="lbl">Kills</span><span class="val">${stats.kills}</span><br>
+      <span class="lbl">Level Reached</span><span class="val">${stats.lvl}</span><br>
+      <span class="lbl">Vessel</span><span class="val">${stats.className}</span>`;
+    document.getElementById('winStats').innerHTML = html;
+    this.victoryScreen.classList.remove('hidden');
+  }
+  openInventory(){
+    this.inventory.classList.add('open');
+    this.game.input.unlock();
+    this.renderInventory();
+  }
+  closeInventory(){
+    this.inventory.classList.remove('open');
+    this.hideTooltip();
+    if(this.game.running) this.game.input.lock();
+  }
+  toggleInventory(){ if(this.inventory.classList.contains('open')) this.closeInventory(); else this.openInventory(); }
+  renderInventory(){
+    const p = this.game.player;
+    // grid
+    this.invGrid.innerHTML = '';
+    for(let i=0;i<25;i++){
+      const slot = document.createElement('div');
+      slot.className = 'invSlot';
+      const it = p.inv[i];
+      if(it){
+        const d = ITEM_DB[it.key];
+        // icon: canvas
+        const c = document.createElement('canvas'); c.width = 40; c.height = 40;
+        drawItem(c.getContext('2d'), 40, d.icon, d.color);
+        slot.appendChild(c);
+        if(it.count > 1){
+          const cnt = document.createElement('span'); cnt.className='cnt'; cnt.textContent = it.count; slot.appendChild(cnt);
+        }
+        // hotbar marker
+        for(let h=0;h<6;h++){
+          if(p.hotbar[h] && p.hotbar[h].kind==='item' && p.hotbar[h].key === it.key){
+            const r = document.createElement('span'); r.className='rune'; r.textContent = (h+1); slot.appendChild(r); break;
+          }
+        }
+        slot.addEventListener('click', e=>{
+          if(e.shiftKey){ this.game.assignHotbar(it.key); this.renderInventory(); return; }
+          if(d.kind === 'cons') p.useItem(it.key, this.game);
+          else if(d.slot) p.equipFromInv(it.key);
+          this.renderInventory();
+        });
+        slot.addEventListener('contextmenu', e=>{
+          e.preventDefault();
+          p.removeItem(it.key, 1);
+          this.flashMsg(`Dropped: ${d.name}`, 'pickup');
+          this.renderInventory();
+        });
+        slot.addEventListener('mouseenter', e=>{ this.showTooltip(it.key, e.clientX, e.clientY); });
+        slot.addEventListener('mousemove', e=>{ this.moveTooltip(e.clientX, e.clientY); });
+        slot.addEventListener('mouseleave', ()=>{ this.hideTooltip(); });
+      }
+      this.invGrid.appendChild(slot);
+    }
+    // equipment
+    this.equipBox.innerHTML = '';
+    for(const [slot, lbl] of [['weapon','BLADE'],['armor','SKIN'],['ring','BAND']]){
+      const k = p.equip[slot];
+      const it = k ? ITEM_DB[k] : null;
+      const row = document.createElement('div');
+      row.className = 'equipRow';
+      if(it){
+        const c = document.createElement('canvas'); c.width=24; c.height=24; drawItem(c.getContext('2d'), 24, it.icon, it.color);
+        row.innerHTML = `<span class="lbl">${lbl}</span>`;
+        row.appendChild(c);
+        const nm = document.createElement('span'); nm.className='name'; nm.style.color = RAR_COL[it.rarity] || '#d8cdb7'; nm.textContent = ' '+it.name; row.appendChild(nm);
+        row.addEventListener('click', ()=>{ p.unequip(slot); this.renderInventory(); });
+        row.addEventListener('mouseenter', e=>{ this.showTooltip(k, e.clientX, e.clientY); });
+        row.addEventListener('mousemove', e=>{ this.moveTooltip(e.clientX, e.clientY); });
+        row.addEventListener('mouseleave', ()=>{ this.hideTooltip(); });
+      } else {
+        row.innerHTML = `<span class="lbl">${lbl}</span><span class="empty">— unworn —</span>`;
+      }
+      this.equipBox.appendChild(row);
+    }
+    // spells
+    this.spellsBox.innerHTML = '';
+    for(const sk of p.spells){
+      const sp = SPELL_DB[sk];
+      const row = document.createElement('div');
+      row.className = 'equipRow';
+      row.innerHTML = `<span class="lbl">${sp.glyph}</span><span class="name">${sp.name}</span><span style="margin-left:auto;color:var(--mp);font-size:11px;">${sp.cost} ✦</span>`;
+      row.addEventListener('click', ()=>{
+        this.game.player.hotbar[5] = {kind:'spell', key: sk};
+        this.renderInventory();
+        this._hotbarDirty = true;
+      });
+      row.addEventListener('mouseenter', e=>{ this.showSpellTooltip(sk, e.clientX, e.clientY); });
+      row.addEventListener('mousemove', e=>{ this.moveTooltip(e.clientX, e.clientY); });
+      row.addEventListener('mouseleave', ()=>{ this.hideTooltip(); });
+      this.spellsBox.appendChild(row);
+    }
+    // stats
+    this.statBox.innerHTML = `
+      <div class="statRow head"><span class="lbl">${p.className}</span><span class="val">Lv ${p.lvl}</span></div>
+      <div class="statRow"><span class="lbl">Vitae</span><span class="val">${Math.round(p.hp)} / ${p.hpMax}</span></div>
+      <div class="statRow"><span class="lbl">Umbra</span><span class="val">${Math.round(p.mp)} / ${p.mpMax}</span></div>
+      <div class="statRow"><span class="lbl">Breath</span><span class="val">${Math.round(p.st)} / ${p.stMax}</span></div>
+      <div class="statRow"><span class="lbl">Strength</span><span class="val">${p.totalStr()}</span></div>
+      <div class="statRow"><span class="lbl">Dexterity</span><span class="val">${p.totalDex()}</span></div>
+      <div class="statRow"><span class="lbl">Intellect</span><span class="val">${p.totalInt()}</span></div>
+      <div class="statRow"><span class="lbl">Constitution</span><span class="val">${p.totalCon()}</span></div>
+      <div class="statRow"><span class="lbl">Defense</span><span class="val">${p.totalDef()}</span></div>
+      <div class="statRow"><span class="lbl">Crit</span><span class="val">${Math.round(p.critChance()*100)}%</span></div>
+      <div class="statRow"><span class="lbl">Souls</span><span class="val">✦ ${p.souls}</span></div>
+      <div class="statRow"><span class="lbl">Kills</span><span class="val">${p.kills}</span></div>
+    `;
+  }
+  showTooltip(key, x, y){
+    const it = ITEM_DB[key]; if(!it) return;
+    const ident = this.game.player.identified[key];
+    const rarc = RAR_COL[it.rarity] || '#d8cdb7';
+    let body = '';
+    if(it.kind === 'weapon'){
+      body += `damage ${it.dmg[0]}–${it.dmg[1]}<br>attack speed ${it.atkSpd.toFixed(1)}<br>reach ${it.range.toFixed(1)}`;
+      if(it.str) body += `<br>+${it.str} STR`;
+      if(it.dex) body += `<br>+${it.dex} DEX`;
+      if(it.int) body += `<br>+${it.int} INT`;
+      if(it.critBonus) body += `<br>+${Math.round(it.critBonus*100)}% crit`;
+      if(it.lifesteal) body += `<br>+${Math.round(it.lifesteal*100)}% lifesteal`;
+      if(it.spellBonus) body += `<br>+${Math.round(it.spellBonus*100)}% spell power`;
+      if(it.mpRegen) body += `<br>+${it.mpRegen.toFixed(1)} mp/s`;
+    } else if(it.kind === 'armor'){
+      body += `defense +${it.def}`;
+      if(it.str) body += `<br>+${it.str} STR`;
+      if(it.dex) body += `<br>+${it.dex} DEX`;
+      if(it.int) body += `<br>+${it.int} INT`;
+      if(it.con) body += `<br>+${it.con} CON`;
+      if(it.mpMax) body += `<br>+${it.mpMax} max umbra`;
+      if(it.thorns) body += `<br>${it.thorns} thorns`;
+      if(it.spellBonus) body += `<br>+${Math.round(it.spellBonus*100)}% spell power`;
+      if(it.critBonus) body += `<br>+${Math.round(it.critBonus*100)}% crit`;
+    } else if(it.kind === 'ring'){
+      if(it.str) body += `<br>+${it.str} STR`;
+      if(it.dex) body += `<br>+${it.dex} DEX`;
+      if(it.int) body += `<br>+${it.int} INT`;
+      if(it.con) body += `<br>+${it.con} CON`;
+      if(it.hpMax) body += `<br>+${it.hpMax} max vitae`;
+      if(it.mpMax) body += `<br>+${it.mpMax} max umbra`;
+      if(it.lifesteal) body += `<br>+${Math.round(it.lifesteal*100)}% lifesteal`;
+      if(it.mpRegen) body += `<br>+${it.mpRegen.toFixed(1)} mp/s`;
+      if(it.spellBonus) body += `<br>+${Math.round(it.spellBonus*100)}% spell power`;
+    } else if(it.kind === 'cons'){
+      if(it.use === 'heal') body = `restores ${it.amount} vitae`;
+      else if(it.use === 'mana') body = `restores ${it.amount} umbra`;
+      else if(it.use === 'soul') body = `+${it.amount} souls`;
+      else body = it.flav;
+    }
+    this.tooltip.innerHTML = `
+      <span class="tn" style="color:${rarc}">${it.name}</span>
+      <div class="tt">${RAR_NAME[it.rarity]||''} · ${it.kind}</div>
+      <div class="ts">${body}</div>
+      <div class="tf">${it.flav}</div>
+    `;
+    this.moveTooltip(x, y);
+    this.tooltip.classList.add('show');
+  }
+  showSpellTooltip(key, x, y){
+    const sp = SPELL_DB[key]; if(!sp) return;
+    let body = `cost ${sp.cost} umbra · cooldown ${sp.cooldown}s`;
+    if(sp.dmg) body += `<br>damage ${sp.dmg[0]}–${sp.dmg[1]}`;
+    if(sp.heal) body += `<br>heals ${sp.heal}`;
+    if(sp.range) body += `<br>range ${sp.range}`;
+    if(sp.radius) body += `<br>radius ${sp.radius}`;
+    if(sp.chain) body += `<br>chains to ${sp.chain}`;
+    if(sp.shield) body += `<br>shield ${sp.shield} for ${sp.dur}s`;
+    this.tooltip.innerHTML = `
+      <span class="tn" style="color:var(--mp)">${sp.glyph} ${sp.name}</span>
+      <div class="tt">spell</div>
+      <div class="ts">${body}</div>
+      <div class="tf">${sp.desc}</div>
+    `;
+    this.moveTooltip(x, y);
+    this.tooltip.classList.add('show');
+  }
+  moveTooltip(x, y){
+    const w = window.innerWidth, h = window.innerHeight;
+    let tx = x + 14, ty = y + 14;
+    if(tx > w - 320) tx = x - 300;
+    if(ty > h - 200) ty = y - 180;
+    this.tooltip.style.left = tx + 'px';
+    this.tooltip.style.top = ty + 'px';
+  }
+  hideTooltip(){ this.tooltip.classList.remove('show'); }
+  showInteract(label){
+    if(label){
+      this.interactLabel.textContent = label;
+      this.interact.classList.add('show');
+    } else {
+      this.interact.classList.remove('show');
+    }
+  }
+  showBlock(b){ if(b) this.blockBar.classList.add('show'); else this.blockBar.classList.remove('show'); }
+  fxBlood(amount, sustain){
+    this.bloodVeil.style.opacity = amount;
+    if(!sustain){
+      setTimeout(()=>{ this.bloodVeil.style.opacity = 0; }, 350);
+    }
+  }
+  fxFlash(){
+    this.flashWhite.style.opacity = 0.4;
+    setTimeout(()=>{ this.flashWhite.style.opacity = 0; }, 80);
+  }
+  fxDamageArrow(srcAng){
+    const div = document.createElement('div');
+    div.className = 'dmgArrow';
+    div.style.setProperty('--rot', (srcAng*180/Math.PI - 90) + 'deg');
+    this.dmgIndicators.appendChild(div);
+    setTimeout(()=>{ if(div.parentNode) div.parentNode.removeChild(div); }, 650);
+  }
+  updateBars(){
+    const p = this.game.player;
+    this.hpFill.style.width = (p.hp/p.hpMax*100) + '%';
+    this.mpFill.style.width = (p.mp/p.mpMax*100) + '%';
+    this.stFill.style.width = (p.st/p.stMax*100) + '%';
+    this.xpFill.style.width = (p.xp/p.xpNext*100) + '%';
+    this.hpNum.textContent = `${Math.round(p.hp)}/${p.hpMax}`;
+    this.mpNum.textContent = `${Math.round(p.mp)}/${p.mpMax}`;
+    this.stNum.textContent = `${Math.round(p.st)}/${p.stMax}`;
+    this.lvlNum.textContent = p.lvl;
+    this.cName.textContent = p.className;
+    this.cClass.textContent = `${p.totalStr()}STR ${p.totalDex()}DEX ${p.totalInt()}INT`;
+    this.cFloor.textContent = `Floor ${this.game.floor} — ${FLOORS[this.game.floor-1].name}`;
+    this.statsLine.textContent = `STR ${p.totalStr()} · DEX ${p.totalDex()} · INT ${p.totalInt()} · CON ${p.totalCon()} · DEF ${p.totalDef()} · ✦ ${p.souls}`;
+    this.showBlock(p.guarding);
+    this._renderHotbar();
+    this._renderSpellbar();
+  }
+  _renderHotbar(){
+    const p = this.game.player;
+    const slots = this.hotbar.children;
+    for(let i=0;i<6;i++){
+      const slot = slots[i];
+      const cur = p.hotbar[i];
+      const iconEl = slot.querySelector('.icon');
+      const cntEl = slot.querySelector('.cnt');
+      iconEl.innerHTML = '';
+      if(cur && cur.kind === 'item'){
+        const it = ITEM_DB[cur.key];
+        if(it){
+          const c = document.createElement('canvas'); c.width=36; c.height=36;
+          drawItem(c.getContext('2d'), 36, it.icon, it.color);
+          iconEl.appendChild(c);
+          const cnt = p.countItem(cur.key);
+          cntEl.textContent = cnt > 1 ? cnt : '';
+        }
+      } else if(cur && cur.kind === 'spell'){
+        const sp = SPELL_DB[cur.key];
+        iconEl.textContent = sp.glyph;
+        iconEl.style.color = (p.mp >= sp.cost && (p.spellCD[cur.key]||0) <= 0) ? '#9fd6ff' : '#3866c8';
+        cntEl.textContent = (p.spellCD[cur.key]||0) > 0 ? (p.spellCD[cur.key]).toFixed(1) : '';
+      } else {
+        cntEl.textContent = '';
+      }
+    }
+  }
+  _renderSpellbar(){
+    const p = this.game.player;
+    this.spellbar.innerHTML = '';
+    for(const sk of p.spells){
+      const sp = SPELL_DB[sk];
+      const cd = p.spellCD[sk] || 0;
+      const ready = p.mp >= sp.cost && cd <= 0;
+      const div = document.createElement('div');
+      div.className = 'spell ' + (ready ? 'ready' : 'locked');
+      div.innerHTML = `<span class="glyph">${sp.glyph}</span><span>${sp.name}</span><span style="opacity:0.7;font-size:10px;">${sp.cost}</span>`;
+      this.spellbar.appendChild(div);
+    }
+  }
+  updateMinimap(){
+    const c = this.mmCtx;
+    const W = this.minimap.width, H = this.minimap.height;
+    c.fillStyle = '#000';
+    c.fillRect(0,0,W,H);
+    const d = this.game.dungeon;
+    if(!d) return;
+    const sc = W / d.W;
+    // floors
+    for(let z=0;z<d.H;z++){
+      for(let x=0;x<d.W;x++){
+        if(d.lit[z*d.W+x]){
+          c.fillStyle = d.isFloor(x,z) ? '#2a1a1a' : '#1a1010';
+          if(d.kind[z*d.W+x] === KIN.STAIRS) c.fillStyle = '#c41320';
+          else if(d.kind[z*d.W+x] === KIN.SHRINE) c.fillStyle = '#9fd6ff';
+          else if(d.kind[z*d.W+x] === KIN.BRAZIER) c.fillStyle = '#e4a040';
+          else if(d.kind[z*d.W+x] === KIN.PILLAR) c.fillStyle = '#5a4030';
+          else if(d.kind[z*d.W+x] === KIN.ALTAR) c.fillStyle = '#c41320';
+          c.fillRect(x*sc, z*sc, sc, sc);
+        }
+      }
+    }
+    // enemies (only if visible)
+    for(const e of this.game.enemies){
+      if(!e.alive) continue;
+      const ex = e.mesh.position.x/TILE, ez = e.mesh.position.z/TILE;
+      if(d.lit[Math.floor(ez)*d.W + Math.floor(ex)]){
+        c.fillStyle = '#c41320';
+        c.fillRect(ex*sc-2, ez*sc-2, 4, 4);
+      }
+    }
+    // items
+    for(const it of this.game.dungeon.items){
+      const idx = it.z*d.W + it.x;
+      if(d.lit[idx]){
+        c.fillStyle = '#a8d088';
+        c.fillRect(it.x*sc-1, it.z*sc-1, 3, 3);
+      }
+    }
+    // player
+    const px = this.game.player.x/TILE, pz = this.game.player.z/TILE;
+    c.save();
+    c.translate(px*sc, pz*sc);
+    c.rotate(this.game.player.yaw + Math.PI);
+    c.fillStyle = '#d8cdb7';
+    c.beginPath(); c.moveTo(0,-4); c.lineTo(3,3); c.lineTo(-3,3); c.closePath(); c.fill();
+    c.restore();
+  }
+  setLoader(visible){
+    if(visible) this.loader.classList.remove('hidden');
+    else this.loader.classList.add('hidden');
+  }
+}
+
+/* ============================================================
+   GAME
+============================================================ */
+class Game {
+  constructor(){
+    this.canvas = document.getElementById('game');
+    this.running = false;
+    this.paused = false;
+    this.floor = 1;
+    this.seed = Math.floor(Math.random()*1e9);
+    this.dungeon = null;
+    this.player = null;
+    this.enemies = [];
+    this.itemEntities = []; // ground items {key, mesh, light, x,z}
+    this.audio = new AudioEngine();
+    this.input = new Input(this.canvas);
+    this.ui = new UI(this);
+    this.lastT = 0;
+    this.shake = 0;
+    this.attackSwing = 0;
+    this.viewWeapon = null;
+    this.viewWeaponMat = null;
+    this.fpsTimer = 0; this.fpsCount = 0; this.fps = 0;
+    this._initThree();
+    this._buildTextures();
+    this._initViewWeapon();
+    window.addEventListener('resize', ()=>this._onResize());
+    this._onResize();
+  }
+  _initThree(){
+    this.renderer = new THREE.WebGLRenderer({ canvas:this.canvas, antialias:false, powerPreference:'high-performance' });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.0;
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x000000);
+    this.camera = new THREE.PerspectiveCamera(72, 16/9, 0.1, 200);
+    this.camera.rotation.order = 'YXZ';
+    // ambient + player light
+    this.ambient = new THREE.AmbientLight(0x222028, 0.45);
+    this.scene.add(this.ambient);
+    this.playerLight = new THREE.PointLight(0xffa44a, 1.2, TORCH_FAR, 1.7);
+    this.playerLight.position.set(0, 1.8, 0);
+    this.scene.add(this.playerLight);
+    // overall fog
+    this.scene.fog = new THREE.FogExp2(0x000000, 0.04);
+    // particle / projectile systems
+    this.particles = new ParticleSystem(this.scene);
+    this.proj = new ProjectileSystem(this.scene);
+  }
+  _buildTextures(){
+    this.tex = {};
+    this.tex.wall = makeStoneTex(0xa1b2, 60, 56, 52, 'rgba(20,8,8,0.5)');
+    this.tex.floor = makeFloorTex(0xc31d, 38, 32, 28);
+    this.tex.ceil = makeCeilTex(0x9911, 24, 20, 18);
+    this.tex.bloodSplat = makeBloodSplatTex(0x771a);
+    this.tex.enemySprites = {
+      crawler: makeSpriteTex(drawCrawler, 256),
+      wraith:  makeSpriteTex(drawWraith, 256),
+      witch:   makeSpriteTex(drawWitch, 256),
+      shade:   makeSpriteTex(drawShade, 256),
+      heart:   makeSpriteTex(drawHeart, 512),
+    };
+  }
+  _initViewWeapon(){
+    // viewmodel — a simple plane in front of camera that we can swap textures
+    this.viewWeaponTextures = {};
+    const wIcons = ['dagger','sword','axe','mace','rapier','greatsword','staff'];
+    // we just use the standard sword/staff icons for now
+    const cSword = document.createElement('canvas'); cSword.width = 256; cSword.height = 256;
+    drawItem(cSword.getContext('2d'), 256, 'sword', '#d8cdb7');
+    this.viewWeaponTextures.sword = new THREE.CanvasTexture(cSword);
+    this.viewWeaponTextures.sword.colorSpace = THREE.SRGBColorSpace;
+    const cStaff = document.createElement('canvas'); cStaff.width = 256; cStaff.height = 256;
+    drawItem(cStaff.getContext('2d'), 256, 'staff', '#3866c8');
+    this.viewWeaponTextures.staff = new THREE.CanvasTexture(cStaff);
+    this.viewWeaponTextures.staff.colorSpace = THREE.SRGBColorSpace;
+
+    this.viewWeaponMat = new THREE.MeshBasicMaterial({ map: this.viewWeaponTextures.sword, transparent:true, depthTest:false, depthWrite:false });
+    const g = new THREE.PlaneGeometry(0.34, 0.34);
+    this.viewWeapon = new THREE.Mesh(g, this.viewWeaponMat);
+    this.viewWeapon.renderOrder = 999;
+    this.camera.add(this.viewWeapon);
+    this.viewWeapon.position.set(0.32, -0.30, -0.55);
+    this.viewWeapon.rotation.z = -0.5;
+    this.scene.add(this.camera);
+  }
+  _onResize(){
+    const w = window.innerWidth, h = window.innerHeight;
+    this.renderer.setSize(w, h, false);
+    this.camera.aspect = w/h;
+    this.camera.updateProjectionMatrix();
+  }
+  startRun(classKey){
+    this.audio.resume();
+    if(this.dungeon){ this._cleanupFloor(); }
+    this.floor = 1;
+    this.seed = Math.floor(Math.random()*1e9);
+    this.running = true;
+    this.player = new Player(classKey, this.scene, this.audio);
+    this._loadFloor(this.floor);
+    this.ui.setLoader(false);
+    this.input.lock();
+    this.ui.flashMsg("You knelt. You spoke. The crypt heard.", 'lore');
+    setTimeout(()=>{ this.ui.flashMsg("Descend, oath-keeper. The Heart is far.", 'lore'); }, 3200);
+  }
+  _cleanupFloor(){
+    for(const e of this.enemies) e.dispose();
+    this.enemies = [];
+    for(const it of this.itemEntities){
+      this.scene.remove(it.mesh);
+      if(it.light) this.scene.remove(it.light);
+      if(it.mesh.geometry) it.mesh.geometry.dispose();
+      if(it.mesh.material) it.mesh.material.dispose();
+    }
+    this.itemEntities = [];
+    if(this.dungeon) this.dungeon.dispose();
+    this.dungeon = null;
+    this.proj.clear();
+  }
+  _loadFloor(floor){
+    this.floor = floor;
+    if(this.player) this.player.floorReached = Math.max(this.player.floorReached, floor);
+    this._cleanupFloor();
+    this.dungeon = new Dungeon(floor, this.seed + floor*7919, this.scene, this.tex);
+    this.dungeon.generate();
+    // place player at start
+    const [sx, sz] = this.dungeon.tileToWorld(this.dungeon.start.x, this.dungeon.start.z);
+    this.player.x = sx;
+    this.player.z = sz;
+    // mark start area as lit
+    this._lightRoom(this.dungeon.start.x, this.dungeon.start.z);
+    // spawn enemies
+    for(const e of this.dungeon.enemies){
+      const enemy = new Enemy(e.type, e.x, e.z, this.scene, this.audio, this.tex);
+      this.enemies.push(enemy);
+    }
+    // spawn item meshes
+    for(const it of this.dungeon.items){
+      this._spawnGroundItem(it.key, it.x, it.z);
+    }
+    // ambient
+    this.audio.startAmbient(floor);
+    // floor title
+    this.ui.showFloorTitle(floor);
+    // change torch tint
+    const theme = FLOORS[floor-1];
+    this.playerLight.color = new THREE.Color(0xffa44a).lerp(new THREE.Color(theme.light), 0.35);
+  }
+  _spawnGroundItem(key, tx, tz){
+    const it = ITEM_DB[key]; if(!it) return;
+    const [wx, wz] = this.dungeon.tileToWorld(tx, tz);
+    // sprite plane
+    const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+    drawItem(c.getContext('2d'), 128, it.icon, it.color);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent:true, depthWrite:false, side:THREE.DoubleSide, alphaTest:0.1 });
+    const g = new THREE.PlaneGeometry(0.6, 0.6);
+    const m = new THREE.Mesh(g, mat);
+    m.position.set(wx, 0.6, wz);
+    m.userData = { item:true, key, baseY: 0.6, t: Math.random()*TAU };
+    this.scene.add(m);
+    // light halo
+    const col = new THREE.Color(it.color);
+    const pl = new THREE.PointLight(col, 0.55, 3.5, 1.5);
+    pl.position.set(wx, 0.7, wz);
+    this.scene.add(pl);
+    this.itemEntities.push({key, mesh:m, light:pl, x:tx, z:tz, dropped:false});
+  }
+  _lightRoom(tx, tz){
+    const d = this.dungeon;
+    // find room containing this tile and mark all tiles in it as lit
+    for(const r of d.rooms){
+      if(tx >= r.x && tx < r.x+r.w && tz >= r.z && tz < r.z+r.h){
+        for(let z=Math.max(0,r.z-1); z<Math.min(d.H,r.z+r.h+1); z++)
+          for(let x=Math.max(0,r.x-1); x<Math.min(d.W,r.x+r.w+1); x++)
+            d.lit[z*d.W+x] = 1;
+        return;
+      }
+    }
+  }
+  _lightAround(tx, tz, r){
+    const d = this.dungeon;
+    for(let z=Math.max(0,tz-r); z<=Math.min(d.H-1,tz+r); z++)
+      for(let x=Math.max(0,tx-r); x<=Math.min(d.W-1,tx+r); x++){
+        const dx=x-tx, dz=z-tz;
+        if(dx*dx + dz*dz <= r*r) d.lit[z*d.W+x] = 1;
+      }
+  }
+  collideSolid(wx, wz, radius){
+    const d = this.dungeon; if(!d) return false;
+    const tx = Math.floor(wx/TILE);
+    const tz = Math.floor(wz/TILE);
+    for(let cz=tz-1; cz<=tz+1; cz++){
+      for(let cx=tx-1; cx<=tx+1; cx++){
+        if(!d.inBounds(cx,cz)) continue;
+        const k = d.kind[d.idx(cx,cz)];
+        const isSolid = d.tiles[d.idx(cx,cz)]===1 || k===KIN.PILLAR || k===KIN.BRAZIER || k===KIN.SHRINE || k===KIN.ALTAR;
+        if(isSolid){
+          const minX = cx*TILE, maxX = minX+TILE;
+          const minZ = cz*TILE, maxZ = minZ+TILE;
+          const px = CLAMP(wx, minX, maxX);
+          const pz = CLAMP(wz, minZ, maxZ);
+          const dx = wx - px, dz = wz - pz;
+          if(dx*dx + dz*dz < radius*radius) return true;
+        }
+      }
+    }
+    return false;
+  }
+  lineOfSight(x1, z1, x2, z2){
+    const d = this.dungeon;
+    const dx = x2-x1, dz = z2-z1;
+    const dist = Math.sqrt(dx*dx+dz*dz);
+    const steps = Math.ceil(dist/0.4);
+    for(let i=1;i<steps;i++){
+      const t = i/steps;
+      const x = x1 + dx*t, z = z1 + dz*t;
+      const tx = Math.floor(x/TILE), tz = Math.floor(z/TILE);
+      if(d.isWall(tx,tz)) return false;
+    }
+    return true;
+  }
+  fxDamageArrow(src){
+    let ang = 0;
+    if(src && src.mesh){
+      const dx = src.mesh.position.x - this.player.x;
+      const dz = src.mesh.position.z - this.player.z;
+      ang = Math.atan2(dz, dx) - this.player.yaw;
+    }
+    this.ui.fxDamageArrow(ang);
+  }
+  fxBloodVeil(amount, sustain){
+    this.ui.fxBlood(amount, sustain);
+  }
+  shakeCam(amount){ this.shake = Math.min(0.8, this.shake + amount); }
+  flash(){ this.ui.fxFlash(); }
+  fireSpell(key){
+    const dir = new THREE.Vector3();
+    this.camera.getWorldDirection(dir);
+    const sx = this.player.x + dir.x*0.5;
+    const sy = this.player.y + dir.y*0.2;
+    const sz = this.player.z + dir.z*0.5;
+    const tx = sx + dir.x*40, ty = sy + dir.y*40, tz = sz + dir.z*40;
+    this.proj.spawn(key, sx, sy, sz, tx, ty, tz, true);
+    this.particles.burst(sx, sy, sz, PROJECTILE_DEF[key].col, 8);
+  }
+  castFromScroll(key){
+    const dir = new THREE.Vector3();
+    this.camera.getWorldDirection(dir);
+    const sx = this.player.x + dir.x*0.5, sy = this.player.y, sz = this.player.z + dir.z*0.5;
+    const tx = sx + dir.x*40, ty = sy + dir.y*40, tz = sz + dir.z*40;
+    this.proj.spawn(key, sx, sy, sz, tx, ty, tz, true);
+  }
+  banishVisible(){
+    let killed = 0;
+    for(const e of this.enemies){
+      if(!e.alive) continue;
+      if(this.lineOfSight(this.player.x, this.player.z, e.mesh.position.x, e.mesh.position.z)){
+        e.takeDamage(9999, this.player, this);
+        killed++;
+      }
+    }
+    if(killed > 0) this.flash();
+  }
+  revealMap(){
+    const d = this.dungeon;
+    for(let i=0;i<d.W*d.H;i++) d.lit[i] = 1;
+  }
+  teleportPlayer(){
+    const d = this.dungeon;
+    let tries = 50;
+    while(tries-- > 0){
+      const r = d.rooms[Math.floor(Math.random()*d.rooms.length)];
+      const tx = r.x + Math.floor(Math.random()*r.w);
+      const tz = r.z + Math.floor(Math.random()*r.h);
+      if(d.isFloor(tx,tz) && d.kind[d.idx(tx,tz)] === KIN.FLOOR){
+        const [wx, wz] = d.tileToWorld(tx, tz);
+        this.player.x = wx;
+        this.player.z = wz;
+        this._lightAround(tx, tz, 6);
+        this.flash();
+        return;
+      }
+    }
+  }
+  spawnProjectile(kind, sx, sy, sz, tx, ty, tz, fromPlayer){
+    this.proj.spawn(kind, sx, sy, sz, tx, ty, tz, fromPlayer);
+  }
+  onEnemyDeath(e){
+    // particle burst, drop chance
+    this.particles.burst(e.mesh.position.x, e.mesh.position.y, e.mesh.position.z, 0x5a0810, 28);
+    e.dispose();
+    this.player.kills++;
+    this.player.gainXp(e.def.xp, this);
+    this.player.souls += e.def.soul;
+    this.ui.flashMsg(`${e.def.name} unmade · +${e.def.xp} ✦`, 'lore');
+    // chance to drop
+    if(Math.random() < 0.35){
+      const drops = ['potHeal','potMana','soulShard','soulShard','scrIdent','scrLight'];
+      if(this.floor >= 3) drops.push('potHealG');
+      if(this.floor >= 4) drops.push('potManaG','scrFire');
+      if(this.floor >= 5) drops.push('scrShock','potRegen');
+      const k = drops[Math.floor(Math.random()*drops.length)];
+      this._spawnGroundItem(k, Math.floor(e.mesh.position.x/TILE), Math.floor(e.mesh.position.z/TILE));
+    }
+    // boss death
+    if(e.type === 'watcher'){
+      this.onVictory();
+    }
+  }
+  onPlayerDeath(){
+    this.running = false;
+    this.audio.setHeartLevel(0);
+    this.input.unlock();
+    setTimeout(()=>{
+      this.ui.showDeath({
+        floorReached: this.player.floorReached,
+        souls: this.player.souls,
+        kills: this.player.kills,
+        lvl: this.player.lvl,
+        className: this.player.className,
+      });
+    }, 1400);
+  }
+  onVictory(){
+    this.running = false;
+    this.audio.setHeartLevel(0);
+    this.audio.win();
+    this.input.unlock();
+    setTimeout(()=>{
+      this.ui.showVictory({
+        floorReached: this.player.floorReached,
+        souls: this.player.souls,
+        kills: this.player.kills,
+        lvl: this.player.lvl,
+        className: this.player.className,
+      });
+    }, 2200);
+  }
+  activateHotbar(i){
+    if(!this.player) return;
+    const cur = this.player.hotbar[i];
+    if(!cur) return;
+    if(cur.kind === 'item'){
+      if(this.player.countItem(cur.key) > 0){
+        this.player.useItem(cur.key, this);
+      }
+    } else if(cur.kind === 'spell'){
+      this.player.castSpell(cur.key, this);
+    }
+  }
+  assignHotbar(key){
+    // assigns item to first empty hotbar slot
+    const p = this.player;
+    // first remove existing
+    for(let i=0;i<6;i++){
+      if(p.hotbar[i] && p.hotbar[i].kind==='item' && p.hotbar[i].key===key){ p.hotbar[i] = null; this.ui.flashMsg("Unassigned.", 'pickup'); return; }
+    }
+    for(let i=0;i<5;i++){
+      if(!p.hotbar[i]){ p.hotbar[i] = {kind:'item', key}; this.ui.flashMsg(`Assigned to ${i+1}.`, 'pickup'); return; }
+    }
+    p.hotbar[0] = {kind:'item', key};
+  }
+  // === per-frame interaction prompts ===
+  checkInteract(){
+    if(!this.player) return;
+    const d = this.dungeon;
+    const tx = Math.floor(this.player.x/TILE);
+    const tz = Math.floor(this.player.z/TILE);
+    let label = null, action = null;
+    // stairs
+    if(tx === d.stairs.x && tz === d.stairs.z && d.stairs.x >= 0){
+      label = 'descend';
+      action = ()=>{ if(this.floor < MAX_FLOORS){ this._loadFloor(this.floor+1); } };
+    }
+    // shrines adjacent
+    for(const s of d.shrines){
+      if(s.used) continue;
+      const ddx = s.x - tx, ddz = s.z - tz;
+      if(Math.abs(ddx) <= 1 && Math.abs(ddz) <= 1){
+        label = 'kneel at shrine';
+        action = ()=>{ this._useShrine(s); };
+        break;
+      }
+    }
+    // ground items
+    let itemEnt = null;
+    for(const it of this.itemEntities){
+      const dx = it.mesh.position.x - this.player.x;
+      const dz = it.mesh.position.z - this.player.z;
+      if(dx*dx + dz*dz < 1.8){ itemEnt = it; break; }
+    }
+    if(itemEnt){
+      const def = ITEM_DB[itemEnt.key];
+      label = `take ${def.name}`;
+      action = ()=>{ this._pickup(itemEnt); };
+    }
+    this.ui.showInteract(label);
+    this._pendingInteract = action;
+  }
+  _pickup(it){
+    const def = ITEM_DB[it.key];
+    if(this.player.addItem(it.key, 1)){
+      this.ui.flashMsg(`Took: ${def.name}`, 'pickup');
+      this.audio.pickup();
+      this.scene.remove(it.mesh);
+      if(it.light) this.scene.remove(it.light);
+      it.mesh.geometry.dispose(); it.mesh.material.dispose();
+      const idx = this.itemEntities.indexOf(it);
+      if(idx >= 0) this.itemEntities.splice(idx,1);
+    } else {
+      this.ui.flashMsg("Hands full.", 'warn');
+    }
+  }
+  _useShrine(s){
+    s.used = true;
+    const k = s.kind;
+    if(k === 'heal'){
+      this.player.hp = this.player.hpMax;
+      this.player.mp = this.player.mpMax;
+      this.ui.flashMsg("The shrine forgives your wounds.", 'heal');
+      this.audio.spell('heal');
+    } else if(k === 'mana'){
+      this.player.mpMax += 6;
+      this.player.mp = this.player.mpMax;
+      this.ui.flashMsg("+6 max umbra. The mind widens.", 'heal');
+      this.audio.spell('light');
+    } else if(k === 'buff'){
+      const r = Math.random();
+      if(r < 0.33){ this.player.baseStr += 1; this.ui.flashMsg("+1 STR — the iron remembers you.", 'lore'); }
+      else if(r < 0.66){ this.player.baseDex += 1; this.ui.flashMsg("+1 DEX — your hands learn quiet.", 'lore'); }
+      else { this.player.baseInt += 1; this.ui.flashMsg("+1 INT — a syllable opens.", 'lore'); }
+      this.audio.spell('shock');
+    } else if(k === 'curse'){
+      // mixed: lose some hp but gain souls
+      this.player.hp = Math.max(1, this.player.hp - 20);
+      this.player.souls += 30;
+      this.ui.flashMsg("The shrine takes blood, gives souls.", 'warn');
+      this.audio.spell('shock');
+    }
+  }
+  // === main update / loop ===
+  update(dt){
+    if(!this.player || !this.player.alive){ return; }
+    // input — hotbar
+    for(let i=1;i<=6;i++){
+      if(this.input.keys.has(String(i))){
+        this.activateHotbar(i-1);
+        this.input.keys.delete(String(i));
+      }
+    }
+    if(this.input.keys.has('q')){
+      // cast first spell in hotbar slot 6, else first known
+      const sl = this.player.hotbar[5];
+      const sk = (sl && sl.kind==='spell') ? sl.key : this.player.spells[0];
+      if(sk) this.player.castSpell(sk, this);
+      this.input.keys.delete('q');
+    }
+    if(this.input.keys.has('e')){
+      // use slot 1
+      this.activateHotbar(0);
+      this.input.keys.delete('e');
+    }
+    if(this.input.keys.has('f')){
+      if(this._pendingInteract){ this._pendingInteract(); this._pendingInteract = null; }
+      this.input.keys.delete('f');
+    }
+    if(this.input.keys.has('tab')){
+      this.ui.toggleInventory();
+      this.input.keys.delete('tab');
+    }
+    if(this.input.keys.has('escape')){
+      if(this.ui.inventory.classList.contains('open')) this.ui.closeInventory();
+      this.input.keys.delete('escape');
+    }
+    if(this.input.keys.has('p')){
+      this.paused = !this.paused;
+      document.getElementById('pauseTag').classList.toggle('show', this.paused);
+      this.input.keys.delete('p');
+    }
+    if(this.paused || this.ui.inventory.classList.contains('open')) return;
+    // update player
+    this.player.update(dt, this.input, this);
+    // shake
+    if(this.shake > 0){
+      const s = this.shake;
+      this.camera.position.x += (Math.random()-0.5)*s*0.3;
+      this.camera.position.y += (Math.random()-0.5)*s*0.3;
+      this.camera.position.z += (Math.random()-0.5)*s*0.3;
+      this.shake = Math.max(0, this.shake - dt*2.5);
+    }
+    // attack swing animation
+    if(this.attackSwing > 0){
+      this.attackSwing = Math.max(0, this.attackSwing - dt*5);
+      const t = this.attackSwing;
+      this.viewWeapon.rotation.z = -0.5 + Math.sin(t*Math.PI)*0.9;
+      this.viewWeapon.position.y = -0.30 - Math.sin(t*Math.PI)*0.16;
+      this.viewWeapon.position.x = 0.32 - Math.sin(t*Math.PI)*0.20;
+    } else {
+      // idle sway tied to bob
+      const tt = performance.now()*0.001;
+      this.viewWeapon.position.y = -0.30 + Math.sin(tt*1.7)*0.012 + this.player.bob*0.5;
+      this.viewWeapon.position.x = 0.32 + Math.cos(tt*1.3)*0.008;
+      this.viewWeapon.rotation.z = -0.5 + Math.sin(tt*1.3)*0.04;
+    }
+    // swap viewmodel texture by weapon kind
+    const w = this.player.equip.weapon;
+    if(w && this.viewWeaponMat){
+      const def = ITEM_DB[w];
+      if(def.icon === 'staff' && this.viewWeaponMat.map !== this.viewWeaponTextures.staff){ this.viewWeaponMat.map = this.viewWeaponTextures.staff; this.viewWeaponMat.needsUpdate = true; }
+      else if(def.icon === 'sword' && this.viewWeaponMat.map !== this.viewWeaponTextures.sword){ this.viewWeaponMat.map = this.viewWeaponTextures.sword; this.viewWeaponMat.needsUpdate = true; }
+    }
+    // update enemies
+    for(const e of this.enemies){ e.update(dt, this); }
+    // projectiles + particles
+    this.proj.update(dt, this);
+    this.particles.update(dt);
+    // dungeon props
+    if(this.dungeon){
+      this.dungeon.updateProps(dt);
+      // light tiles around player
+      const tx = Math.floor(this.player.x/TILE);
+      const tz = Math.floor(this.player.z/TILE);
+      this._lightAround(tx, tz, 4);
+      this._lightRoom(tx, tz);
+    }
+    // floating items
+    for(const it of this.itemEntities){
+      it.mesh.userData.t += dt*3;
+      it.mesh.position.y = it.mesh.userData.baseY + Math.sin(it.mesh.userData.t)*0.08;
+      it.mesh.lookAt(this.camera.position.x, it.mesh.position.y, this.camera.position.z);
+    }
+    // audio heart rate by hp
+    this.audio.setHeartRate(this.player.hp / this.player.hpMax);
+    this.audio.updateHeart(dt);
+    this.audio.ambientTick(dt, this.player.hp/this.player.hpMax, this.floor);
+    // muffle when low HP
+    const muff = this.player.hp < this.player.hpMax*0.3 ? CLAMP(1 - this.player.hp/(this.player.hpMax*0.3), 0, 0.85) : 0;
+    this.audio.setMuffle(muff);
+    // interact check
+    this.checkInteract();
+    // UI
+    this.ui.updateBars();
+    this.ui.updateMinimap();
+  }
+  render(){
+    this.renderer.render(this.scene, this.camera);
+  }
+  loop(t){
+    const now = t * 0.001;
+    let dt = now - (this.lastT || now);
+    this.lastT = now;
+    if(dt > 0.1) dt = 0.1;
+    this.fpsTimer += dt; this.fpsCount++;
+    if(this.fpsTimer >= 0.5){
+      this.fps = Math.round(this.fpsCount/this.fpsTimer);
+      this.fpsCount = 0; this.fpsTimer = 0;
+      this.ui.fpsBox.textContent = this.fps + ' fps';
+    }
+    if(this.running) this.update(dt);
+    this.render();
+    requestAnimationFrame((tt)=>this.loop(tt));
+  }
+  boot(){
+    this.ui.setLoader(false);
+    requestAnimationFrame((t)=>this.loop(t));
+  }
+}
+
+/* ============================================================
+   BOOT
+============================================================ */
+const game = new Game();
+window.__game = game;
+game.boot();
+</script>
+</body>
+</html>

@@ -48,6 +48,15 @@ As of **April 17, 2026**, based on direct hands-on play testing:
 - [antigravity-gemini-3-flash](https://chojondocho.github.io/single-html-game-bench/antigravity-gemini-3-flash.html)
 - [grokweb-grok-4-20-4agents](https://chojondocho.github.io/single-html-game-bench/grokweb-grok-4-20-4agents.html)
 
+## Vowline Test01 Ranking (Subjective Result)
+
+As of **May 12, 2026**, this section ranks only builds generated with vowline-test01.
+The current set has one entry, so it is ranked first by itself.
+
+| Rank | Client + Model                                  | Generated Game Title       | Play                                                                                                              |
+| ---- | ----------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 1    | Claude Code - Opus 4.7 Max with vowline-test01  | THE SUNKEN VOW - A Descent | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-opus-4-7-max-with-vowline-test01.html)     |
+
 ## Appendix: Unranked Codex Exposure Tests
 
 As of **April 22, 2026**, these three artifacts are intentionally excluded from the personal ranking.
