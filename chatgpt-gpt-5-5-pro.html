@@ -1,0 +1,1346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nightfall Reliquary — Single File Horror Roguelike RPG</title>
+<style>
+  :root{
+    --bg:#030406; --panel:rgba(9,10,13,.88); --panel2:rgba(18,16,18,.82);
+    --ink:#e7e0d3; --muted:#aaa196; --red:#b6272d; --blood:#6f1115;
+    --gold:#c5a866; --green:#7aa56c; --blue:#8da8bc; --violet:#9c83ba;
+    --line:rgba(222,210,185,.18); --black:#000;
+    --shadow:0 22px 80px rgba(0,0,0,.70), inset 0 0 1px rgba(255,255,255,.09);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#000;color:var(--ink);font-family:Georgia,"Times New Roman",serif;user-select:none}
+  #screen{position:fixed;inset:0;width:100vw;height:100vh;display:block;background:#000;cursor:crosshair}
+  #vignette{position:fixed;inset:-1px;pointer-events:none;background:radial-gradient(circle at center, transparent 34%, rgba(0,0,0,.34) 62%, rgba(0,0,0,.82) 100%);mix-blend-mode:multiply}
+  #flash{position:fixed;inset:0;pointer-events:none;background:transparent;opacity:0;transition:opacity .08s linear}
+  #hud{position:fixed;inset:0;pointer-events:none;color:var(--ink);text-shadow:0 2px 8px rgba(0,0,0,.82)}
+  .hidden{display:none!important}
+  #topLeft{position:absolute;left:18px;top:16px;width:min(440px,42vw)}
+  .bar{height:22px;margin:0 0 8px 0;background:linear-gradient(90deg,rgba(0,0,0,.75),rgba(0,0,0,.35));border:1px solid var(--line);box-shadow:inset 0 0 12px rgba(0,0,0,.75);position:relative;overflow:hidden}
+  .bar i{display:block;height:100%;width:50%;background:#777;box-shadow:inset 0 0 12px rgba(255,255,255,.16),0 0 15px rgba(255,255,255,.04);transition:width .12s linear}
+  .bar span{position:absolute;left:9px;top:2px;z-index:3;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#f2eadb}
+  #hpBar{background:linear-gradient(90deg,#5d0e12,#b8272f,#d95f5d)}
+  #nerveBar{background:linear-gradient(90deg,#3d4a2e,#7ea05b,#c6c27a)}
+  #sanityBar{background:linear-gradient(90deg,#273549,#5d7f9e,#adbfcd)}
+  #xpBar{background:linear-gradient(90deg,#604720,#b4934f,#e0c77d)}
+  #runInfo{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:1.45;color:#d5c9b6;background:rgba(0,0,0,.36);border:1px solid rgba(255,255,255,.07);padding:8px 10px;max-width:420px}
+  #log{position:absolute;left:18px;bottom:132px;width:min(560px,58vw);font-size:15px;line-height:1.32;color:#e3dccf}
+  #log .line{margin-top:6px;padding:7px 10px;background:linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,.05));border-left:2px solid rgba(198,168,102,.42)}
+  #log .bad{border-left-color:rgba(190,44,50,.86);color:#f1d5d4}
+  #log .good{border-left-color:rgba(136,177,111,.86);color:#e6f2dc}
+  #log .weird{border-left-color:rgba(156,131,186,.9);color:#eadfff}
+  #bottomRight{position:absolute;right:18px;bottom:18px;min-width:280px;text-align:right;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:#d8cfbf}
+  #weaponLine{font-size:17px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;color:#f0e6d2}
+  #inventoryLine{font-size:13px;line-height:1.7;color:#cfc2b1}
+  #prompt{position:absolute;left:50%;bottom:86px;transform:translateX(-50%);min-width:260px;text-align:center;font-size:17px;letter-spacing:.07em;text-transform:uppercase;color:#f5ead5;background:linear-gradient(90deg,transparent,rgba(0,0,0,.62),transparent);padding:10px 42px;opacity:.95}
+  #crosshair{position:absolute;left:50%;top:50%;width:34px;height:34px;transform:translate(-50%,-50%);opacity:.76}
+  #crosshair:before,#crosshair:after{content:"";position:absolute;background:rgba(238,224,200,.78);box-shadow:0 0 8px rgba(190,44,50,.35)}
+  #crosshair:before{left:16px;top:4px;width:2px;height:26px}
+  #crosshair:after{left:4px;top:16px;width:26px;height:2px}
+  #reticleDot{position:absolute;left:15px;top:15px;width:4px;height:4px;border-radius:50%;background:#cfc2aa}
+  #minimap{position:absolute;right:18px;top:18px;width:180px;height:180px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.56);box-shadow:var(--shadow);opacity:.82}
+  #seedTag{position:absolute;right:18px;top:207px;width:180px;text-align:center;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;color:#aea394;background:rgba(0,0,0,.34);padding:5px;border:1px solid rgba(255,255,255,.07)}
+  .panel{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at center, rgba(52,8,12,.16),rgba(0,0,0,.88) 62%,#000 100%);z-index:15}
+  .box{width:min(820px,92vw);max-height:92vh;overflow:auto;background:linear-gradient(180deg,rgba(18,17,19,.94),rgba(7,8,11,.94));border:1px solid rgba(230,210,172,.20);box-shadow:var(--shadow);padding:34px 36px}
+  h1{font-size:56px;letter-spacing:.045em;text-transform:uppercase;margin:0 0 4px 0;line-height:.95;font-weight:500;color:#f1e5d0;text-shadow:0 6px 22px rgba(129,20,25,.65)}
+  h2{font-size:26px;margin:0 0 16px 0;font-weight:400;color:#f0e5d1;letter-spacing:.03em}
+  h3{margin:18px 0 10px 0;font-size:18px;color:#dac592;letter-spacing:.08em;text-transform:uppercase;font-weight:400}
+  .subtitle{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:#bcae9b;font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:22px}
+  .copy{font-size:17px;line-height:1.55;color:#d3c8b8;margin:12px 0}
+  .small{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:#a99e90;font-size:12px;line-height:1.55}
+  button,.buttonLike{appearance:none;border:1px solid rgba(229,210,174,.24);background:linear-gradient(180deg,rgba(108,26,31,.88),rgba(38,11,15,.92));color:#f4e9d7;padding:12px 16px;margin:6px 8px 6px 0;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;box-shadow:inset 0 0 22px rgba(255,255,255,.04),0 8px 22px rgba(0,0,0,.28)}
+  button:hover{filter:brightness(1.13)}
+  button.secondary{background:linear-gradient(180deg,rgba(41,39,43,.95),rgba(14,14,18,.95))}
+  button.gold{background:linear-gradient(180deg,rgba(117,91,42,.95),rgba(48,34,16,.95))}
+  input[type=text]{background:rgba(0,0,0,.45);border:1px solid rgba(229,210,174,.22);color:#f0e4d0;padding:12px 14px;width:min(360px,100%);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;outline:none}
+  input[type=range]{width:210px;vertical-align:middle}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:12px}
+  .card{border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035);padding:14px 16px;min-height:72px}
+  .card strong{display:block;color:#f2e4cc;margin-bottom:5px;font-weight:500;letter-spacing:.04em}
+  #modal{z-index:25;background:rgba(0,0,0,.78);backdrop-filter:blur(2px)}
+  #modal .box{width:min(760px,92vw)}
+  #modalText{white-space:pre-line}
+  #choiceRow{display:grid;grid-template-columns:1fr;gap:8px;margin-top:18px}
+  #choiceRow button{text-align:left;line-height:1.35;margin:0;padding:14px 15px;background:linear-gradient(180deg,rgba(39,38,43,.96),rgba(10,11,15,.96))}
+  #choiceRow button strong{display:block;color:#efd69a;font-size:14px;margin-bottom:4px}
+  #deathPanel,#winPanel,#pausePanel,#inventoryPanel{z-index:23}
+  .twoCol{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .kbd{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.35);padding:1px 5px;color:#f3e4c9}
+  #titleStats{margin-top:14px;padding:12px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.24)}
+  @media (max-width:760px){
+    h1{font-size:40px}.box{padding:24px 20px}.grid,.twoCol{grid-template-columns:1fr}
+    #topLeft{width:calc(100vw - 36px)}#minimap,#seedTag{display:none}#log{width:calc(100vw - 36px);bottom:118px}#bottomRight{left:18px;text-align:left;right:auto}
+  }
+</style>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<div id="hud" class="hidden">
+  <div id="topLeft">
+    <div class="bar"><span id="hpText">Blood</span><i id="hpBar"></i></div>
+    <div class="bar"><span id="nerveText">Nerve</span><i id="nerveBar"></i></div>
+    <div class="bar"><span id="sanityText">Sanity</span><i id="sanityBar"></i></div>
+    <div class="bar"><span id="xpText">Level</span><i id="xpBar"></i></div>
+    <div id="runInfo"></div>
+  </div>
+  <canvas id="minimap" width="180" height="180"></canvas>
+  <div id="seedTag"></div>
+  <div id="crosshair"><div id="reticleDot"></div></div>
+  <div id="prompt"></div>
+  <div id="log"></div>
+  <div id="bottomRight">
+    <div id="weaponLine"></div>
+    <div id="inventoryLine"></div>
+  </div>
+</div>
+<div id="vignette"></div>
+<div id="flash"></div>
+
+<div id="menu" class="panel">
+  <div class="box">
+    <h1>Nightfall Reliquary</h1>
+    <div class="subtitle">A single-file first-person horror roguelike RPG</div>
+    <p class="copy">Descend through a procedurally corrupted reliquary, steal the Saint of Ash from the fifth depth, and survive long enough to remember your name. Every run changes its layout, loot, shrines, monsters, and notes. Death is permanent; relic shards persist.</p>
+    <div>
+      <button id="newRunBtn" class="gold">New Run</button>
+      <button id="continueBtn" class="secondary">Continue</button>
+      <button id="settingsBtn" class="secondary">Settings</button>
+      <button id="creditsBtn" class="secondary">Credits</button>
+    </div>
+    <div style="margin-top:12px">
+      <input id="seedInput" type="text" maxlength="32" placeholder="Optional seed phrase">
+    </div>
+    <div class="grid">
+      <div class="card"><strong>Controls</strong><span class="small"><span class="kbd">WASD</span> move · Mouse turn · Click attack · <span class="kbd">E</span> interact · <span class="kbd">R</span> tonic · <span class="kbd">1/2</span> weapon · <span class="kbd">Tab</span> inventory · <span class="kbd">Esc</span> pause.</span></div>
+      <div class="card"><strong>Run Structure</strong><span class="small">Five depths, procedural rooms, RPG leveling, relic builds, sanity pressure, permadeath, and persistent legacy shards.</span></div>
+      <div class="card"><strong>Audio</strong><span class="small">Procedural WebAudio drones, footsteps, impacts, whispers, and alert stingers. Browser audio starts after input.</span></div>
+      <div class="card"><strong>Release Constraint</strong><span class="small">No CDN, no external art, no external scripts. This page is the game.</span></div>
+    </div>
+    <div id="titleStats" class="small"></div>
+  </div>
+</div>
+
+<div id="settingsPanel" class="panel hidden">
+  <div class="box">
+    <h2>Settings</h2>
+    <p class="copy">Options are stored locally in this browser.</p>
+    <p class="small">Mouse sensitivity <input id="sensSlider" type="range" min="40" max="180" value="100"> <span id="sensVal"></span></p>
+    <p class="small">Audio volume <input id="volSlider" type="range" min="0" max="100" value="70"> <span id="volVal"></span></p>
+    <p class="small">Film grain <input id="grainSlider" type="range" min="0" max="100" value="55"> <span id="grainVal"></span></p>
+    <p class="small"><label><input id="motionCheck" type="checkbox"> Reduced camera motion</label></p>
+    <p class="small"><label><input id="contrastCheck" type="checkbox"> High contrast glyphs</label></p>
+    <button id="settingsBack" class="secondary">Back</button>
+  </div>
+</div>
+
+<div id="pausePanel" class="panel hidden">
+  <div class="box">
+    <h2>Paused</h2>
+    <p class="copy">The reliquary waits without breathing.</p>
+    <button id="resumeBtn" class="gold">Resume</button>
+    <button id="saveQuitBtn" class="secondary">Save and Quit</button>
+    <button id="abandonBtn" class="secondary">Abandon Run</button>
+  </div>
+</div>
+
+<div id="inventoryPanel" class="panel hidden">
+  <div class="box">
+    <h2>Inventory & Character</h2>
+    <div id="inventoryText" class="copy"></div>
+    <div id="relicList" class="grid"></div>
+    <button id="inventoryClose" class="gold">Return</button>
+  </div>
+</div>
+
+<div id="modal" class="panel hidden">
+  <div class="box">
+    <h2 id="modalTitle"></h2>
+    <div id="modalText" class="copy"></div>
+    <div id="choiceRow"></div>
+  </div>
+</div>
+
+<div id="deathPanel" class="panel hidden">
+  <div class="box">
+    <h2>You Have Been Remembered Incorrectly</h2>
+    <p id="deathText" class="copy"></p>
+    <button id="deathNew" class="gold">New Run</button>
+    <button id="deathMenu" class="secondary">Main Menu</button>
+  </div>
+</div>
+
+<div id="winPanel" class="panel hidden">
+  <div class="box">
+    <h2>The Reliquary Opens</h2>
+    <p id="winText" class="copy"></p>
+    <button id="winNew" class="gold">New Run</button>
+    <button id="winMenu" class="secondary">Main Menu</button>
+  </div>
+</div>
+
+<script>
+(()=>{
+'use strict';
+
+const VERSION = '1.0.0-single-file';
+const $ = id => document.getElementById(id);
+const canvas = $('screen');
+const ctx = canvas.getContext('2d', { alpha:false });
+const mini = $('minimap');
+const mctx = mini.getContext('2d');
+const hud = $('hud');
+const flash = $('flash');
+
+const TAU = Math.PI * 2;
+const FOV = Math.PI / 3.05;
+const FINAL_FLOOR = 5;
+const TILE = { FLOOR:0, WALL:1, DOOR:2 };
+const SOLID = new Set([TILE.WALL, TILE.DOOR]);
+const SAVE_META = 'nightfall.reliquary.meta.v1';
+const SAVE_RUN = 'nightfall.reliquary.run.v1';
+const MAX_LOG = 7;
+
+let W = 1280, H = 720, HALF = 360, DPR = 1, rayStep = 2;
+let lastT = performance.now();
+let bob = 0, breath = 0, screenShake = 0, damageFlash = 0, dreadPulse = 0;
+let zBuffer = [];
+let renderTick = 0;
+let pointerWanted = false;
+const keys = Object.create(null);
+const just = Object.create(null);
+const mouse = { down:false, right:false };
+const logLines = [];
+
+function clamp(v,a,b){ return v<a?a:v>b?b:v; }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function dist2(ax,ay,bx,by){ const x=ax-bx,y=ay-by; return x*x+y*y; }
+function normAngle(a){ while(a<=-Math.PI)a+=TAU; while(a>Math.PI)a-=TAU; return a; }
+function mod(a,n){ return ((a%n)+n)%n; }
+function html(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function rgb(r,g,b,a=1){ return `rgba(${r|0},${g|0},${b|0},${a})`; }
+
+function hashString(str){
+  str = String(str || '');
+  let h = 2166136261 >>> 0;
+  for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function RNG(seed){ this.s = (seed >>> 0) || 0xA53A9D1; }
+RNG.prototype.next = function(){
+  let t = (this.s += 0x6D2B79F5);
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+RNG.prototype.int = function(a,b){ return Math.floor(this.next()*(b-a+1))+a; };
+RNG.prototype.range = function(a,b){ return a + this.next()*(b-a); };
+RNG.prototype.chance = function(p){ return this.next() < p; };
+RNG.prototype.pick = function(arr){ return arr[Math.floor(this.next()*arr.length)]; };
+RNG.prototype.shuffle = function(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(this.next()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; };
+
+const NOTE_BANK = [
+  {t:'Litany of Spores', b:'The walls learned our prayers first. Then they learned our names. Do not answer when stone says yours.'},
+  {t:'A Warder\'s Receipt', b:'Inventory: three keys, two lantern wicks, one sealed infant-shaped reliquary, no witnesses. The ledger bleeds through the page.'},
+  {t:'Letter Never Posted', b:'Mara, if I return, ask me about the blue door. If I cannot remember it, kill the thing wearing me.'},
+  {t:'The Choir Below', b:'Singing rises from the drainage grates every thirteenth bell. It is not Latin. It is counting.'},
+  {t:'Diagnosis', b:'Patient exhibits reverse grief: remembers funerals before deaths. Prescribed laudanum, iron filings, and abandonment.'},
+  {t:'Floor Plan Fragment', b:'No map is reliable past the second descent. Corridors rearrange to avoid being understood.'},
+  {t:'Confession of Prior Halewick', b:'We buried the saint in ash because fire refused her. We chained the ash because it began to walk.'},
+  {t:'Knife Hymn', b:'A blade is a question asked near enough to receive an honest answer.'},
+  {t:'Marginalia', b:'The reliquary rewards trespass with strength, then invoices the soul.'},
+  {t:'Exit Prayer', b:'Count your breaths. If the next breath arrives before you make it, hide.'}
+];
+
+const RELICS = [
+  {id:'crow_eye', name:'Crow\'s Eye', desc:'+10% critical chance. Distant enemies are easier to strike with the pistol.'},
+  {id:'iron_lung', name:'Iron Lung', desc:'+24 maximum Nerve and faster recovery while standing still.'},
+  {id:'martyr_pin', name:'Martyr Pin', desc:'The first lethal hit each depth leaves you at 1 Blood instead.'},
+  {id:'ashen_coin', name:'Ashen Coin', desc:'+18% XP, but shrines ask for more Sanity.'},
+  {id:'choir_bone', name:'Choir Bone', desc:'Whispers reveal nearby loot on the minimap.'},
+  {id:'salt_thread', name:'Salt Thread', desc:'Traps trigger slower and deal reduced damage.'},
+  {id:'black_candle', name:'Black Candle', desc:'+8 maximum Sanity at the start of each new depth.'},
+  {id:'widow_needle', name:'Widow Needle', desc:'Knife hits poison enemies for a short duration.'},
+  {id:'rat_king', name:'Rat King\'s Favor', desc:'Chests are more likely to contain tonics and keys.'},
+  {id:'broken_sigil', name:'Broken Sigil', desc:'Pistol shots can stagger bosses.'},
+  {id:'milk_glass', name:'Milk-Glass Saint', desc:'Low Sanity grants +20% melee damage instead of only penalties.'},
+  {id:'grave_dice', name:'Grave Dice', desc:'Loot rolls twice and keeps the stranger result.'}
+];
+
+const PERKS = [
+  {id:'vitality', name:'Vessel of Blood', desc:'+18 maximum Blood and heal 18.', apply:p=>{p.maxHp+=18;p.hp=clamp(p.hp+18,0,p.maxHp);}},
+  {id:'nerve', name:'Steady Hands', desc:'+18 maximum Nerve and +8% stamina recovery.', apply:p=>{p.maxNerve+=18;p.nerve=p.maxNerve;p.nerveRegen+=0.08;}},
+  {id:'sanity', name:'Cold Composure', desc:'+16 maximum Sanity and resist dread.', apply:p=>{p.maxSanity+=16;p.sanity=clamp(p.sanity+18,0,p.maxSanity);p.dreadResist+=0.08;}},
+  {id:'blade', name:'Anatomist', desc:'+18% knife damage.', apply:p=>{p.knifeSkill+=0.18;}},
+  {id:'pistol', name:'Graveshot', desc:'+15% pistol damage and +2 maximum ammo capacity.', apply:p=>{p.pistolSkill+=0.15;p.ammoCap+=2;p.ammo+=2;}},
+  {id:'swift', name:'Flight Instinct', desc:'+5% move speed and shorter dodge cooldown.', apply:p=>{p.speedBonus+=0.05;p.dodgeBonus+=0.10;}},
+  {id:'butcher', name:'Butcher\'s Mercy', desc:'Killing blows restore 4 Blood.', apply:p=>{p.killHeal+=4;}},
+  {id:'scholar', name:'Grave Scholar', desc:'+20% note XP and +1 Insight.', apply:p=>{p.noteXP+=0.20;p.insight+=1;}},
+  {id:'warded', name:'Warded Skin', desc:'All incoming damage reduced by 7%.', apply:p=>{p.armor+=0.07;}},
+  {id:'quiet', name:'Quiet Pulse', desc:'Enemies hear sprinting from a shorter distance.', apply:p=>{p.stealth+=0.16;}},
+  {id:'critical', name:'Sure Omen', desc:'+8% critical chance.', apply:p=>{p.crit+=0.08;}},
+  {id:'survivor', name:'Last Rites', desc:'Tonics heal 10 more and restore a little Sanity.', apply:p=>{p.tonicBonus+=10;}}
+];
+
+const ENEMY_DATA = {
+  husk:{name:'Husk', hp:24, speed:1.05, dmg:10, sight:8.5, range:.74, xp:11, scale:.95, color:[92,82,75], eye:[235,185,120], attack:.96},
+  skitter:{name:'Skitter', hp:15, speed:1.62, dmg:7, sight:7, range:.62, xp:9, scale:.62, color:[64,63,68], eye:[205,70,80], attack:.72},
+  watcher:{name:'Watcher', hp:32, speed:.82, dmg:7, sight:11, range:.92, xp:15, scale:1.08, color:[54,64,82], eye:[120,185,230], attack:1.25},
+  brute:{name:'Penitent Brute', hp:52, speed:.73, dmg:17, sight:9, range:.88, xp:24, scale:1.32, color:[82,60,58], eye:[250,110,80], attack:1.42},
+  boss:{name:'The Saint of Ash', hp:280, speed:.76, dmg:22, sight:16, range:1.15, xp:160, scale:2.05, color:[155,145,126], eye:[250,220,150], attack:1.18}
+};
+
+const G = {
+  mode:'title', meta:null, run:null, player:null, rng:new RNG(Date.now()), frame:0,
+  seenPrompt:'', lastSave:0, modalReturn:'playing', nearest:null
+};
+
+function defaultMeta(){
+  return {
+    version:VERSION, deaths:0, wins:0, bestFloor:0, shards:0, totalKills:0, totalRuns:0,
+    settings:{sens:100, volume:70, grain:55, reducedMotion:false, contrast:false}
+  };
+}
+function loadMeta(){
+  try{
+    const raw = localStorage.getItem(SAVE_META);
+    G.meta = raw ? Object.assign(defaultMeta(), JSON.parse(raw)) : defaultMeta();
+    G.meta.settings = Object.assign(defaultMeta().settings, G.meta.settings || {});
+  }catch(e){ G.meta = defaultMeta(); }
+  applySettingsToUI();
+  updateTitleStats();
+}
+function saveMeta(){ try{ localStorage.setItem(SAVE_META, JSON.stringify(G.meta)); }catch(e){} }
+function saveRun(){
+  if(!G.run || !G.player || G.mode==='dead' || G.mode==='win') return;
+  const data = { run:G.run, player:G.player, log:logLines.slice(-MAX_LOG), t:Date.now() };
+  try{ localStorage.setItem(SAVE_RUN, JSON.stringify(data)); }catch(e){}
+}
+function clearRunSave(){ try{ localStorage.removeItem(SAVE_RUN); }catch(e){} }
+function hasRunSave(){ try{ return !!localStorage.getItem(SAVE_RUN); }catch(e){ return false; } }
+
+function makePlayer(metaBoost=0){
+  const shardBonus = Math.min(12, metaBoost|0);
+  return {
+    x:2.5,y:2.5,a:0,hp:100+shardBonus,maxHp:100+shardBonus,nerve:100,maxNerve:100,sanity:92,maxSanity:92,
+    level:1,xp:0,nextXP:42,insight:0,weapon:'knife',ammo:6,ammoCap:10,keys:0,tonics:2,shards:0,
+    knifeSkill:1,pistolSkill:1,crit:.06,armor:0,nerveRegen:1,dreadResist:0,speedBonus:0,dodgeBonus:0,
+    stealth:0,killHeal:0,noteXP:1,tonicBonus:0,perks:[],relics:[],alive:true,invuln:0,
+    attackCd:0,dodgeCd:0,blocking:false,noise:0,steps:0,depthSurvive:{},martyrUsed:{},weaponSway:0
+  };
+}
+function xpNeeded(level){ return Math.floor(42 + Math.pow(level, 1.68)*24); }
+function hasRelic(id){ return !!(G.player && G.player.relics && G.player.relics.includes(id)); }
+function addRelic(id){
+  if(!G.player || G.player.relics.includes(id)) return false;
+  G.player.relics.push(id);
+  const r = RELICS.find(x=>x.id===id);
+  if(id==='iron_lung'){ G.player.maxNerve += 24; G.player.nerve = G.player.maxNerve; }
+  if(id==='black_candle'){ G.player.maxSanity += 8; G.player.sanity = Math.min(G.player.maxSanity, G.player.sanity+8); }
+  if(id==='crow_eye') G.player.crit += .10;
+  if(id==='salt_thread') G.player.armor += .03;
+  log(`Relic acquired: ${r?r.name:id}.`, 'good');
+  return true;
+}
+
+function generateDungeon(seed, floor){
+  const rng = new RNG((seed ^ Math.imul(floor, 0x9E3779B1)) >>> 0);
+  const w = 48 + floor * 2, h = 48 + floor * 2;
+  const map = new Array(w*h).fill(TILE.WALL);
+  const rooms = [];
+  const roomTarget = 13 + floor * 3;
+  function inside(x,y){ return x>0 && y>0 && x<w-1 && y<h-1; }
+  function set(x,y,v){ if(inside(x,y)) map[y*w+x]=v; }
+  function carveRoom(r){ for(let y=r.y;y<r.y+r.h;y++) for(let x=r.x;x<r.x+r.w;x++) set(x,y,TILE.FLOOR); }
+  function carveH(x1,x2,y){ for(let x=Math.min(x1,x2);x<=Math.max(x1,x2);x++) set(x,y,TILE.FLOOR); }
+  function carveV(y1,y2,x){ for(let y=Math.min(y1,y2);y<=Math.max(y1,y2);y++) set(x,y,TILE.FLOOR); }
+  function overlaps(r){
+    for(const o of rooms){
+      if(r.x < o.x+o.w+2 && r.x+r.w+2 > o.x && r.y < o.y+o.h+2 && r.y+r.h+2 > o.y) return true;
+    }
+    return false;
+  }
+  for(let tries=0; rooms.length<roomTarget && tries<640; tries++){
+    const rw = rng.int(4, floor>3?10:9), rh = rng.int(4, floor>2?10:9);
+    const rx = rng.int(2, w-rw-3), ry = rng.int(2, h-rh-3);
+    const r = {x:rx,y:ry,w:rw,h:rh,cx:rx+Math.floor(rw/2),cy:ry+Math.floor(rh/2),id:rooms.length};
+    if(overlaps(r)) continue;
+    carveRoom(r);
+    if(rooms.length){
+      const prev = rooms[rooms.length-1];
+      if(rng.chance(.5)){ carveH(prev.cx,r.cx,prev.cy); carveV(prev.cy,r.cy,r.cx); }
+      else { carveV(prev.cy,r.cy,prev.cx); carveH(prev.cx,r.cx,r.cy); }
+      if(rooms.length>2 && rng.chance(.24)){ const other=rng.pick(rooms); carveH(other.cx,r.cx,other.cy); carveV(other.cy,r.cy,r.cx); }
+    }
+    rooms.push(r);
+  }
+  if(rooms.length < 5){
+    for(let y=2;y<h-2;y++) for(let x=2;x<w-2;x++) if(x%2||y%2) set(x,y,TILE.FLOOR);
+    rooms.push({x:3,y:3,w:6,h:6,cx:6,cy:6,id:0},{x:w-10,y:h-10,w:7,h:7,cx:w-7,cy:h-7,id:1});
+  }
+  const startRoom = rooms[0];
+  let exitRoom = rooms[1] || rooms[0], best=-1;
+  for(const r of rooms){
+    const d = dist2(startRoom.cx,startRoom.cy,r.cx,r.cy);
+    if(d>best){ best=d; exitRoom=r; }
+  }
+  const objects = [];
+  let objId = 1;
+  function roomPoint(r, margin=1){ return {x:rng.int(r.x+margin,r.x+r.w-1-margin)+.5, y:rng.int(r.y+margin,r.y+r.h-1-margin)+.5}; }
+  function addObj(type, room, extra={}){ const p=roomPoint(room, room.w>5&&room.h>5?1:0); objects.push(Object.assign({id:objId++, type, x:p.x, y:p.y, active:true, seen:false}, extra)); }
+  const stairPos = {x:exitRoom.cx+.5, y:exitRoom.cy+.5};
+  objects.push({id:objId++, type:'stair', x:stairPos.x, y:stairPos.y, active:true, seen:true});
+
+  const shuffled = rng.shuffle(rooms.slice(1).filter(r=>r!==exitRoom));
+  const noteCount = Math.min(3, 1 + Math.floor(floor/2));
+  for(let i=0;i<shuffled.length;i++){
+    const r = shuffled[i];
+    if(i < noteCount) addObj('note', r, {note:rng.pick(NOTE_BANK)});
+    else if(rng.chance(.38)) addObj('chest', r, {locked:rng.chance(.28 + floor*.02)});
+    else if(rng.chance(.20)) addObj('corpse', r);
+    else if(rng.chance(.15)) addObj('shrine', r, {used:false});
+    if(rng.chance(.12 + floor*.025)) addObj('trap', r, {armed:true, radius:rng.range(.65,1.05)});
+  }
+  const keyRooms = rng.shuffle(rooms.slice(1, -1));
+  for(let i=0; i<Math.min(2+Math.floor(floor/2), keyRooms.length); i++) addObj('key', keyRooms[i]);
+  if(floor>1 && rng.chance(.75)) addObj('relic', rng.pick(rooms.slice(1)), {relic:rng.pick(RELICS).id});
+
+  const enemies = [];
+  let enemyId = 1;
+  function addEnemy(kind, room, boss=false){
+    const p = roomPoint(room, 1);
+    enemies.push(makeEnemy(enemyId++, kind, p.x, p.y, floor, boss));
+  }
+  const enemyRooms = rng.shuffle(rooms.filter(r=>r!==startRoom && r!==exitRoom));
+  const count = 4 + floor*3 + rng.int(0, 3);
+  for(let i=0;i<count && i<enemyRooms.length*2;i++){
+    const room = enemyRooms[i % enemyRooms.length] || exitRoom;
+    let kind = 'husk';
+    const roll = rng.next();
+    if(floor>=2 && roll>.62) kind='skitter';
+    if(floor>=3 && roll>.76) kind='watcher';
+    if(floor>=4 && roll>.88) kind='brute';
+    addEnemy(kind, room);
+  }
+  if(floor===FINAL_FLOOR){
+    enemies.push(makeEnemy(enemyId++, 'boss', stairPos.x + rng.range(-1.8,1.8), stairPos.y + rng.range(-1.8,1.8), floor, true));
+  } else if(floor>=3 && rng.chance(.42)) addEnemy('brute', exitRoom);
+
+  const discovered = new Array(w*h).fill(false);
+  return {seed, floor, w, h, map, rooms, start:{x:startRoom.cx+.5,y:startRoom.cy+.5}, exit:stairPos, objects, enemies, discovered, time:0, kills:0, opened:0, bossDead:false, threat:0, ambienceSeed:rng.s};
+}
+
+function makeEnemy(id, kind, x, y, floor, boss=false){
+  const d = ENEMY_DATA[kind];
+  const hp = Math.floor(d.hp * (1 + (floor-1)*.23) * (boss?1.22:1));
+  return {
+    id, kind, name:d.name, x,y,a:0,hp,maxHp:hp,alive:true,boss,poison:0,stun:0,alert:boss?4:0,heard:0,
+    speed:d.speed * (1 + floor*.025), dmg:Math.floor(d.dmg*(1+(floor-1)*.18)), sight:d.sight + floor*.45,
+    range:d.range, xp:Math.floor(d.xp*(1+(floor-1)*.2)), scale:d.scale, attackCd:0, think:0,
+    wanderA:Math.random()*TAU, state:'idle', lastSeenX:x, lastSeenY:y, summonCd:boss?6:0, pain:0
+  };
+}
+
+function cell(run,x,y){
+  x = Math.floor(x); y = Math.floor(y);
+  if(!run || x<0 || y<0 || x>=run.w || y>=run.h) return TILE.WALL;
+  return run.map[y*run.w+x];
+}
+function setCell(run,x,y,v){ if(x>=0&&y>=0&&x<run.w&&y<run.h) run.map[y*run.w+x]=v; }
+function isSolidAt(run,x,y){ return SOLID.has(cell(run,x,y)); }
+function passable(x,y, radius=.22){
+  const r = G.run;
+  return !isSolidAt(r,x-radius,y-radius) && !isSolidAt(r,x+radius,y-radius) && !isSolidAt(r,x-radius,y+radius) && !isSolidAt(r,x+radius,y+radius);
+}
+function moveCircle(ent, vx, vy, dt, radius=.22){
+  const nx = ent.x + vx*dt;
+  if(passable(nx, ent.y, radius)) ent.x = nx;
+  const ny = ent.y + vy*dt;
+  if(passable(ent.x, ny, radius)) ent.y = ny;
+}
+
+function castRay(px,py,angle,maxDist=32){
+  const dx = Math.cos(angle), dy = Math.sin(angle);
+  let mapX = Math.floor(px), mapY = Math.floor(py);
+  const deltaX = Math.abs(1/(dx || 1e-9));
+  const deltaY = Math.abs(1/(dy || 1e-9));
+  let stepX, stepY, sideX, sideY;
+  if(dx < 0){ stepX=-1; sideX=(px-mapX)*deltaX; } else { stepX=1; sideX=(mapX+1-px)*deltaX; }
+  if(dy < 0){ stepY=-1; sideY=(py-mapY)*deltaY; } else { stepY=1; sideY=(mapY+1-py)*deltaY; }
+  let side=0, dist=0, tile=TILE.WALL;
+  for(let i=0;i<128;i++){
+    if(sideX < sideY){ mapX += stepX; dist = sideX; sideX += deltaX; side=0; }
+    else { mapY += stepY; dist = sideY; sideY += deltaY; side=1; }
+    tile = cell(G.run,mapX,mapY);
+    if(SOLID.has(tile) || dist>maxDist) break;
+  }
+  const hx = px + dx*dist, hy = py + dy*dist;
+  return {dist:Math.min(dist,maxDist), tile, side, x:mapX,y:mapY,hx,hy,dx,dy};
+}
+function hasLOS(x1,y1,x2,y2,max=18){
+  const d = Math.sqrt(dist2(x1,y1,x2,y2));
+  if(d>max) return false;
+  const steps = Math.ceil(d*7);
+  for(let i=1;i<steps;i++){
+    const t=i/steps, x=lerp(x1,x2,t), y=lerp(y1,y2,t);
+    if(isSolidAt(G.run,x,y)) return false;
+  }
+  return true;
+}
+
+function log(text, kind=''){
+  logLines.unshift({text:String(text), kind, ttl:7});
+  while(logLines.length>MAX_LOG) logLines.pop();
+  updateLog();
+}
+function updateLog(){
+  $('log').innerHTML = logLines.map(l=>`<div class="line ${html(l.kind)}">${html(l.text)}</div>`).join('');
+}
+function showPanel(id, on=true){ $(id).classList.toggle('hidden', !on); }
+function hideAllPanels(){ ['menu','settingsPanel','pausePanel','inventoryPanel','modal','deathPanel','winPanel'].forEach(id=>showPanel(id,false)); }
+function setMode(mode){ G.mode = mode; hud.classList.toggle('hidden', !G.run || mode==='title'); }
+
+function startNewRun(seedText=''){
+  AudioSystem.init();
+  const phrase = seedText.trim();
+  const seed = phrase ? hashString(phrase) : ((Date.now() ^ ((Math.random()*0xFFFFFFFF)>>>0))>>>0);
+  const legacyBoost = Math.floor(Math.sqrt(G.meta.shards));
+  G.player = makePlayer(legacyBoost);
+  G.run = generateDungeon(seed, 1);
+  G.player.x = G.run.start.x; G.player.y = G.run.start.y; G.player.a = Math.atan2(G.run.exit.y-G.player.y, G.run.exit.x-G.player.x);
+  G.meta.totalRuns++; saveMeta();
+  clearRunSave(); logLines.length=0; updateLog();
+  hideAllPanels(); setMode('playing'); hud.classList.remove('hidden');
+  log('You wake under a ceiling that is breathing.', 'weird');
+  log('Find the stair seal. Descend. Do not spend all your sanity.', '');
+  revealAround(); saveRun(); requestPointer();
+}
+function continueRun(){
+  try{
+    const raw = localStorage.getItem(SAVE_RUN);
+    if(!raw){ logMenuMessage('No saved run exists.'); return; }
+    const data = JSON.parse(raw);
+    if(!data.run || !data.player) throw new Error('bad save');
+    G.run = data.run; G.player = data.player;
+    if(!Array.isArray(G.run.discovered)) G.run.discovered = new Array(G.run.w*G.run.h).fill(false);
+    logLines.length=0; (data.log||[]).slice(0,MAX_LOG).forEach(x=>logLines.push(x)); updateLog();
+    hideAllPanels(); setMode('playing'); hud.classList.remove('hidden');
+    log('The saved nightmare resumes.', 'weird');
+    AudioSystem.init(); requestPointer();
+  }catch(e){ logMenuMessage('Saved run could not be read.'); }
+}
+function logMenuMessage(msg){
+  const box = $('titleStats');
+  box.innerHTML = `${html(msg)}<br>` + box.innerHTML;
+}
+function updateTitleStats(){
+  if(!G.meta) return;
+  $('continueBtn').disabled = !hasRunSave();
+  $('titleStats').innerHTML = `Version ${html(VERSION)}<br>Deaths: ${G.meta.deaths} · Wins: ${G.meta.wins} · Best depth: ${G.meta.bestFloor}/${FINAL_FLOOR} · Legacy shards: ${G.meta.shards} · Total kills: ${G.meta.totalKills}`;
+}
+
+function revealAround(){
+  if(!G.run) return;
+  const px=Math.floor(G.player.x), py=Math.floor(G.player.y), r=7;
+  for(let y=py-r;y<=py+r;y++) for(let x=px-r;x<=px+r;x++){
+    if(x>=0&&y>=0&&x<G.run.w&&y<G.run.h && dist2(px,py,x,y)<=r*r){
+      G.run.discovered[y*G.run.w+x]=true;
+    }
+  }
+}
+
+function nextFloor(){
+  const old = G.run.floor;
+  if(old >= FINAL_FLOOR){ winGame(); return; }
+  const hpCarry = G.player.hp;
+  G.run = generateDungeon(G.run.seed, old+1);
+  G.player.x = G.run.start.x; G.player.y = G.run.start.y; G.player.a = Math.atan2(G.run.exit.y-G.player.y, G.run.exit.x-G.player.x);
+  G.player.hp = clamp(hpCarry + 10 + Math.floor(G.player.maxHp*.12), 1, G.player.maxHp);
+  G.player.nerve = G.player.maxNerve;
+  G.player.sanity = clamp(G.player.sanity + 6 + (hasRelic('black_candle')?8:0), 1, G.player.maxSanity);
+  log(`Depth ${G.run.floor}. The architecture takes a new oath.`, 'weird');
+  if(G.run.floor===FINAL_FLOOR) log('A saint-shaped absence waits near the final seal.', 'bad');
+  revealAround(); saveRun();
+}
+function winGame(){
+  G.mode='win'; hideAllPanels(); hud.classList.add('hidden'); clearRunSave();
+  const p=G.player, run=G.run;
+  const shards = 18 + p.level*3 + run.kills + Math.floor(p.sanity/8);
+  G.meta.wins++; G.meta.shards += shards; G.meta.bestFloor = FINAL_FLOOR; saveMeta();
+  $('winText').innerHTML = `You recover the Saint of Ash and leave through a door that was not present when you arrived.<br><br>Level ${p.level}. Kills ${run.kills}. Relics ${p.relics.length}. Sanity ${Math.floor(p.sanity)}. Legacy shards gained: ${shards}.`;
+  showPanel('winPanel', true); updateTitleStats(); AudioSystem.stinger('win');
+}
+function die(reason='The reliquary closes over you.'){
+  if(!G.player || !G.player.alive) return;
+  G.player.alive=false; G.mode='dead'; hideAllPanels(); hud.classList.add('hidden'); clearRunSave();
+  const shards = Math.max(1, Math.floor((G.run.floor-1)*4 + G.player.level*1.5 + G.run.kills/3));
+  G.meta.deaths++; G.meta.shards += shards; G.meta.bestFloor = Math.max(G.meta.bestFloor, G.run.floor); saveMeta(); updateTitleStats();
+  $('deathText').innerHTML = `${html(reason)}<br><br>Depth reached: ${G.run.floor}/${FINAL_FLOOR}. Level ${G.player.level}. Kills ${G.run.kills}. Legacy shards salvaged: ${shards}.`;
+  showPanel('deathPanel', true); AudioSystem.stinger('death');
+}
+
+function gainXP(amount, source=''){
+  const p=G.player;
+  const mult = (hasRelic('ashen_coin')?1.18:1) * (source==='note'?p.noteXP:1);
+  p.xp += Math.max(1, Math.floor(amount*mult));
+  while(p.xp >= p.nextXP){
+    p.xp -= p.nextXP; p.level++; p.nextXP = xpNeeded(p.level); openPerkChoice(); break;
+  }
+}
+function openPerkChoice(){
+  const rng = new RNG((G.run.seed ^ (G.player.level*0x45d9f3b) ^ (G.run.floor*99991))>>>0);
+  const pool = PERKS.filter(p=>true);
+  rng.shuffle(pool);
+  const choices = pool.slice(0,3).map(perk=>({
+    label:perk.name, text:perk.desc, action:()=>{ perk.apply(G.player); G.player.perks.push(perk.id); log(`Level ${G.player.level}: ${perk.name}.`, 'good'); saveRun(); }
+  }));
+  openModal('Choose a Scar', `You have survived enough to become less human. Level ${G.player.level}.`, choices, false);
+}
+
+function openModal(title, text, choices, allowClose=true){
+  G.modalReturn = G.mode==='playing' ? 'playing' : G.modalReturn;
+  setMode('modal');
+  $('modalTitle').textContent = title;
+  $('modalText').textContent = text;
+  const row = $('choiceRow'); row.innerHTML='';
+  choices.forEach(c=>{
+    const b=document.createElement('button');
+    b.innerHTML = `<strong>${html(c.label)}</strong>${html(c.text||'')}`;
+    b.onclick=()=>{ AudioSystem.click(); try{ c.action&&c.action(); } finally{ closeModal(); } };
+    row.appendChild(b);
+  });
+  if(allowClose){
+    const b=document.createElement('button'); b.className='secondary'; b.textContent='Close'; b.onclick=closeModal; row.appendChild(b);
+  }
+  showPanel('modal', true);
+  document.exitPointerLock?.();
+}
+function closeModal(){ showPanel('modal', false); setMode('playing'); requestPointer(); }
+
+function nearestObject(){
+  let best=null, bd=1.55*1.55;
+  for(const o of G.run.objects){
+    if(!o.active) continue;
+    const d=dist2(G.player.x,G.player.y,o.x,o.y);
+    if(d<bd){ bd=d; best=o; }
+  }
+  return best;
+}
+function objectPrompt(o){
+  if(!o) return '';
+  const map = {chest:'Open chest', shrine:'Kneel at shrine', note:'Read note', stair:'Use stair seal', trap:'Inspect glyph', corpse:'Search corpse', key:'Take key', relic:'Take relic'};
+  return `[E] ${map[o.type]||'Interact'}`;
+}
+function interact(){
+  const o = nearestObject();
+  if(!o){
+    const fx = G.player.x + Math.cos(G.player.a)*.8, fy = G.player.y + Math.sin(G.player.a)*.8;
+    const tx=Math.floor(fx), ty=Math.floor(fy);
+    if(cell(G.run,tx,ty)===TILE.DOOR){ openDoor(tx,ty); return; }
+    log('Your hand finds only damp stone.'); return;
+  }
+  switch(o.type){
+    case 'chest': openChest(o); break;
+    case 'shrine': useShrine(o); break;
+    case 'note': readNote(o); break;
+    case 'stair': useStair(o); break;
+    case 'corpse': searchCorpse(o); break;
+    case 'key': o.active=false; G.player.keys++; log('Iron key acquired.', 'good'); AudioSystem.pickup(); break;
+    case 'relic': o.active=false; addRelic(o.relic || G.rng.pick(RELICS).id); AudioSystem.relic(); break;
+    case 'trap': inspectTrap(o); break;
+  }
+  saveRun();
+}
+function openDoor(x,y){ setCell(G.run,x,y,TILE.FLOOR); log('The door opens with a wet hinge-sound.'); AudioSystem.door(); }
+function openChest(o){
+  if(o.locked){
+    if(G.player.keys<=0){ log('Locked. The keyhole is packed with ash.', 'bad'); AudioSystem.click(); return; }
+    G.player.keys--; log('A key turns itself in the lock.');
+  }
+  o.active=false; G.run.opened++;
+  const rng = new RNG((G.run.seed ^ o.id*2654435761 ^ G.run.floor*81821)>>>0);
+  const rolls = hasRelic('grave_dice') ? 2 : 1;
+  let best = null;
+  for(let i=0;i<rolls;i++){
+    const r = rng.next();
+    let loot;
+    if(r < .23 + (hasRelic('rat_king')?.10:0)) loot = 'tonic';
+    else if(r < .42) loot = 'ammo';
+    else if(r < .58) loot = 'key';
+    else if(r < .77) loot = 'xp';
+    else loot = 'relic';
+    if(!best || ['xp','ammo','tonic','key','relic'].indexOf(loot)>['xp','ammo','tonic','key','relic'].indexOf(best)) best=loot;
+  }
+  if(best==='tonic'){ G.player.tonics++; log('Found a blood tonic sealed with wax.', 'good'); }
+  else if(best==='ammo'){ const n=rng.int(2,5); G.player.ammo=clamp(G.player.ammo+n,0,G.player.ammoCap); log(`Found ${n} silver rounds.`, 'good'); }
+  else if(best==='key'){ G.player.keys++; log('Found an iron key and a tooth that matches it.', 'good'); }
+  else if(best==='relic'){
+    const available = RELICS.filter(r=>!G.player.relics.includes(r.id));
+    if(available.length) addRelic(rng.pick(available).id); else { gainXP(28,'chest'); log('The empty reliquary teaches you instead.', 'good'); }
+  } else { const n=22+rng.int(0,16)+G.run.floor*4; gainXP(n,'chest'); log(`Found a preserved memory. +${n} XP.`, 'good'); }
+  AudioSystem.pickup();
+}
+function useShrine(o){
+  if(o.used){ log('The shrine is cold and ordinary now.'); return; }
+  const cost = 14 + G.run.floor*3 + (hasRelic('ashen_coin')?6:0);
+  openModal('Shrine of the Unwound Saint', 'A faceless icon offers three bargains. It smells of winter and old coins.', [
+    {label:'Drink the Lamp Oil', text:`Heal 45 Blood. Lose ${cost} Sanity.`, action:()=>{ o.used=true; G.player.hp=clamp(G.player.hp+45,0,G.player.maxHp); sanityDamage(cost*.85); log('The oil burns clean through your ribs.', 'weird'); }},
+    {label:'Take the Thorn', text:`Gain a relic. Lose ${Math.floor(cost*.7)} Sanity.`, action:()=>{ o.used=true; sanityDamage(cost*.7); const av=RELICS.filter(r=>!G.player.relics.includes(r.id)); if(av.length)addRelic(G.rng.pick(av).id); }},
+    {label:'Confess a Memory', text:'Gain XP and one key. Lose 12 Blood.', action:()=>{ o.used=true; damagePlayer(12,'confession',0,true); G.player.keys++; gainXP(35+G.run.floor*10,'shrine'); log('The shrine keeps the memory. You keep the key.', 'good'); }}
+  ], true);
+}
+function readNote(o){
+  o.active=false;
+  const n = o.note || G.rng.pick(NOTE_BANK);
+  gainXP(18+G.run.floor*7, 'note');
+  G.player.insight += .25;
+  openModal(n.t, n.b + '\n\nInsight increases. The ink moves after you finish reading.', [{label:'Fold the page', text:'Keep moving.', action:()=>{ log(`Read: ${n.t}.`, 'good'); }}], false);
+}
+function useStair(o){
+  const bossAlive = G.run.enemies.some(e=>e.alive && e.boss);
+  if(G.run.floor===FINAL_FLOOR && bossAlive){ log('The final seal will not open while the Saint of Ash is unbroken.', 'bad'); AudioSystem.stinger('alert'); return; }
+  AudioSystem.stair(); nextFloor();
+}
+function searchCorpse(o){
+  o.active=false;
+  const rng = new RNG((G.run.seed ^ o.id*97)>>>0);
+  if(rng.chance(.36)){ G.player.tonics++; log('The corpse clutches a tonic. It lets go reluctantly.', 'good'); }
+  else if(rng.chance(.55)){ const n=rng.int(1,3); G.player.ammo=clamp(G.player.ammo+n,0,G.player.ammoCap); log(`Found ${n} rounds in a burial coat.`, 'good'); }
+  else { sanityDamage(5); log('The corpse has your face for one second.', 'weird'); }
+  AudioSystem.pickup();
+}
+function inspectTrap(o){
+  if(!o.armed){ log('A spent glyph. Harmless now.'); return; }
+  const chance = .52 + G.player.insight*.05 + (hasRelic('salt_thread')?.22:0);
+  if(Math.random()<chance){ o.armed=false; o.active=false; gainXP(8+G.run.floor*4,'trap'); log('You break the trap glyph without waking it.', 'good'); AudioSystem.click(); }
+  else triggerTrap(o);
+}
+function triggerTrap(o){
+  if(!o.armed) return;
+  o.armed=false; o.active=false;
+  const dmg = Math.floor((hasRelic('salt_thread')?9:16) + G.run.floor*3);
+  damagePlayer(dmg, 'a glyph detonates under your skin', 8);
+  screenShake = Math.max(screenShake, .45); AudioSystem.trap();
+}
+
+function useTonic(){
+  const p=G.player;
+  if(p.tonics<=0){ log('No tonics remain.', 'bad'); AudioSystem.click(); return; }
+  if(p.hp>=p.maxHp && p.sanity>=p.maxSanity-1){ log('You are already as whole as this place allows.'); return; }
+  p.tonics--;
+  const heal = 38 + p.tonicBonus;
+  p.hp = clamp(p.hp+heal,0,p.maxHp);
+  if(p.tonicBonus) p.sanity = clamp(p.sanity+7,0,p.maxSanity);
+  log(`Tonic used. +${heal} Blood.`, 'good'); AudioSystem.drink(); saveRun();
+}
+function sanityDamage(amount){
+  const p=G.player;
+  const a = Math.max(0, amount * (1 - p.dreadResist));
+  p.sanity = clamp(p.sanity - a, 0, p.maxSanity);
+  dreadPulse = Math.max(dreadPulse, .45);
+  if(p.sanity<=0) damagePlayer(Math.ceil(a*.35)+4, 'your mind folds inward', 0, true);
+}
+function damagePlayer(amount, source='something in the dark', sanity=0, pure=false){
+  const p=G.player;
+  if(!p || !p.alive || p.invuln>0) return;
+  let dmg = amount;
+  if(p.blocking && !pure){ dmg *= .55; p.nerve = Math.max(0,p.nerve-10); }
+  if(!pure) dmg *= (1 - clamp(p.armor,0,.55));
+  dmg = Math.max(1, Math.round(dmg));
+  if(hasRelic('martyr_pin') && p.hp - dmg <= 0 && !p.martyrUsed[G.run.floor]){
+    p.martyrUsed[G.run.floor] = true; p.hp = 1; p.invuln = 1.2; log('The Martyr Pin snaps. Death is postponed.', 'good'); AudioSystem.relic(); return;
+  }
+  p.hp = clamp(p.hp - dmg, 0, p.maxHp);
+  damageFlash = Math.max(damageFlash, .75); screenShake = Math.max(screenShake, .28);
+  if(sanity) sanityDamage(sanity);
+  AudioSystem.hurt();
+  if(p.hp<=0) die(`Killed by ${source}.`);
+}
+
+function attack(){
+  if(G.mode!=='playing') return;
+  const p=G.player;
+  if(p.attackCd>0) return;
+  AudioSystem.init();
+  if(p.weapon==='pistol') pistolAttack(); else knifeAttack();
+}
+function critMult(){
+  let c = G.player.crit + (G.player.sanity < 28 && hasRelic('milk_glass') ? .04 : 0);
+  return Math.random() < c ? 1.9 : 1;
+}
+function knifeAttack(){
+  const p=G.player;
+  p.attackCd = .46; p.weaponSway = .55; p.noise = Math.max(p.noise, 2.5);
+  let best=null, score=99;
+  for(const e of G.run.enemies){
+    if(!e.alive) continue;
+    const dx=e.x-p.x, dy=e.y-p.y, d=Math.sqrt(dx*dx+dy*dy);
+    const aa=Math.abs(normAngle(Math.atan2(dy,dx)-p.a));
+    if(d < 1.48 && aa < .62 && hasLOS(p.x,p.y,e.x,e.y,2.2) && d+aa<score){ best=e; score=d+aa; }
+  }
+  AudioSystem.swing();
+  if(best){
+    let dmg = (18 + G.player.level*2.4) * p.knifeSkill * critMult();
+    if(p.sanity<30 && hasRelic('milk_glass')) dmg *= 1.20;
+    hitEnemy(best, Math.round(dmg), 'knife');
+  }
+}
+function pistolAttack(){
+  const p=G.player;
+  if(p.ammo<=0){ p.attackCd=.24; log('The pistol clicks on an empty chamber.', 'bad'); AudioSystem.empty(); return; }
+  p.ammo--; p.attackCd=.82; p.weaponSway=.82; p.noise = Math.max(p.noise, 12);
+  let best=null, bestA=.095 + (hasRelic('crow_eye')?.04:0), bestD=99;
+  for(const e of G.run.enemies){
+    if(!e.alive) continue;
+    const dx=e.x-p.x, dy=e.y-p.y, d=Math.sqrt(dx*dx+dy*dy);
+    const aa=Math.abs(normAngle(Math.atan2(dy,dx)-p.a));
+    if(d<13 && aa<bestA && d<bestD && hasLOS(p.x,p.y,e.x,e.y,14)){ best=e; bestD=d; }
+  }
+  screenShake = Math.max(screenShake, .18); AudioSystem.gun();
+  if(best){
+    const dmg = Math.round((34 + G.player.level*3.3) * p.pistolSkill * critMult() * (1 - bestD*.018));
+    hitEnemy(best, dmg, 'pistol');
+  }
+}
+function hitEnemy(e, dmg, source){
+  if(!e.alive) return;
+  if(source==='knife' && hasRelic('widow_needle')) e.poison = Math.max(e.poison, 5);
+  e.hp -= dmg; e.alert = Math.max(e.alert, 4); e.stun = Math.max(e.stun, source==='pistol' && (hasRelic('broken_sigil') || !e.boss) ? .45 : .2); e.pain=.4;
+  log(`${e.name} takes ${dmg}.`, e.boss?'bad':'');
+  AudioSystem.hit(e.boss);
+  if(e.hp<=0){ killEnemy(e); }
+}
+function killEnemy(e){
+  e.alive=false; G.run.kills++; G.meta.totalKills++; G.player.shards += e.boss ? 10 : (Math.random()<.18?1:0);
+  if(G.player.killHeal){ G.player.hp=clamp(G.player.hp+G.player.killHeal,0,G.player.maxHp); }
+  const xp = e.xp + (e.boss?80:0);
+  gainXP(xp, 'kill');
+  if(e.boss){ G.run.bossDead=true; log('The Saint of Ash collapses into a human-shaped weather. The final seal wakes.', 'good'); AudioSystem.stinger('bossdead'); }
+  else log(`${e.name} unthreads. +${xp} XP.`, 'good');
+  if(Math.random()<.08 + (hasRelic('rat_king')?.04:0)){ G.run.objects.push({id:90000+G.run.objects.length,type:Math.random()<.5?'corpse':'key',x:e.x,y:e.y,active:true,seen:true}); }
+}
+
+function dodge(){
+  const p=G.player;
+  if(p.dodgeCd>0 || p.nerve<18) return;
+  p.dodgeCd = Math.max(.65, 1.05 - p.dodgeBonus);
+  p.nerve -= 18; p.invuln = .24;
+  const dir = keys.KeyS ? -1 : 1;
+  moveCircle(p, Math.cos(p.a)*dir*5.2, Math.sin(p.a)*dir*5.2, .16, .22);
+  screenShake = Math.max(screenShake,.14); AudioSystem.dodge();
+}
+
+function update(dt){
+  if(!G.run || !G.player) return;
+  G.frame++; G.run.time += dt; breath += dt; renderTick += dt;
+  for(const k in just) delete just[k];
+  updatePlayer(dt);
+  updateEnemies(dt);
+  updateObjects(dt);
+  revealAround();
+  G.nearest = nearestObject();
+  updateHud();
+  updateMiniMap();
+  AudioSystem.update(dt);
+  if(screenShake>0) screenShake=Math.max(0,screenShake-dt*1.8);
+  if(damageFlash>0) damageFlash=Math.max(0,damageFlash-dt*1.6);
+  if(dreadPulse>0) dreadPulse=Math.max(0,dreadPulse-dt*.55);
+  if(performance.now() - G.lastSave > 8000){ G.lastSave=performance.now(); saveRun(); }
+}
+function updatePlayer(dt){
+  const p=G.player;
+  p.attackCd=Math.max(0,p.attackCd-dt); p.dodgeCd=Math.max(0,p.dodgeCd-dt); p.invuln=Math.max(0,p.invuln-dt); p.noise=Math.max(0,p.noise-dt*4); p.weaponSway=Math.max(0,p.weaponSway-dt*2.8);
+  const sens = (G.meta.settings.sens || 100) / 100;
+  if(keys.ArrowLeft) p.a -= dt*2.2*sens;
+  if(keys.ArrowRight) p.a += dt*2.2*sens;
+  let mx=0,my=0;
+  if(keys.KeyW||keys.ArrowUp) mx += 1;
+  if(keys.KeyS||keys.ArrowDown) mx -= 1;
+  if(keys.KeyA) my -= 1;
+  if(keys.KeyD) my += 1;
+  const len = Math.hypot(mx,my) || 1;
+  mx/=len; my/=len;
+  const sprint = (keys.ShiftLeft || keys.ShiftRight) && p.nerve>1 && mx>0;
+  let speed = (sprint?2.85:1.72) * (1+p.speedBonus);
+  if(p.sanity<20) speed *= .92;
+  const vx = (Math.cos(p.a)*mx + Math.cos(p.a+Math.PI/2)*my) * speed;
+  const vy = (Math.sin(p.a)*mx + Math.sin(p.a+Math.PI/2)*my) * speed;
+  if(mx||my){
+    moveCircle(p, vx, vy, dt, .23);
+    bob += dt * (sprint?13:8.2) * (G.meta.settings.reducedMotion?.35:1);
+    p.steps += dt*speed;
+    if(p.steps > (sprint?.62:.82)){ p.steps=0; AudioSystem.step(sprint); }
+    p.noise = Math.max(p.noise, sprint ? 8*(1-p.stealth) : 2.1*(1-p.stealth));
+    if(sprint) p.nerve = Math.max(0,p.nerve - dt*18);
+  } else {
+    bob = lerp(bob,0,dt*5);
+  }
+  const regen = (12 + (hasRelic('iron_lung') && !(mx||my) ? 9 : 0)) * p.nerveRegen;
+  if(!sprint) p.nerve = clamp(p.nerve + dt*regen, 0, p.maxNerve);
+  const ambientDread = (.22 + G.run.floor*.07) * (1-p.dreadResist);
+  p.sanity = clamp(p.sanity - dt*ambientDread, 0, p.maxSanity);
+  if(p.sanity<=0 && Math.random()<dt*.5) damagePlayer(2,'absolute certainty',0,true);
+}
+function updateObjects(dt){
+  for(const o of G.run.objects){
+    if(!o.active) continue;
+    const d = Math.sqrt(dist2(G.player.x,G.player.y,o.x,o.y));
+    if(o.type==='trap' && o.armed && d < (o.radius || .85)) triggerTrap(o);
+    if(d < 6) o.seen = true;
+  }
+}
+function updateEnemies(dt){
+  const p=G.player;
+  let pressure=0;
+  for(const e of G.run.enemies){
+    if(!e.alive) continue;
+    e.attackCd=Math.max(0,e.attackCd-dt); e.stun=Math.max(0,e.stun-dt); e.pain=Math.max(0,e.pain-dt);
+    if(e.poison>0){ e.poison-=dt; e.hp -= dt*2.2; if(e.hp<=0){ killEnemy(e); continue; } }
+    const dx=p.x-e.x, dy=p.y-e.y, d=Math.hypot(dx,dy);
+    const los = d < e.sight && hasLOS(e.x,e.y,p.x,p.y,e.sight+1);
+    if(los){ e.alert = Math.max(e.alert, 3.8 + G.run.floor*.2); e.lastSeenX=p.x; e.lastSeenY=p.y; }
+    if(p.noise > 0 && d < p.noise + (e.kind==='watcher'?3:0)){ e.alert = Math.max(e.alert, 2.5); e.lastSeenX=p.x; e.lastSeenY=p.y; }
+    e.alert = Math.max(0, e.alert - dt*(los?.26:.62));
+    if(d<10 && (los || e.alert>0)) pressure += (e.boss?3:1) / Math.max(1,d*.35);
+    if(e.kind==='watcher' && los && d<8){ sanityDamage(dt*(2.7+G.run.floor*.35)); dreadPulse=Math.max(dreadPulse,.28); }
+    if(e.stun>0) continue;
+    if(e.boss) updateBoss(e, dt, d, los);
+    else updateEnemyMotion(e, dt, d, los);
+    if(d < e.range && e.attackCd<=0 && hasLOS(e.x,e.y,p.x,p.y,1.6)){
+      e.attackCd = e.attack + Math.random()*.25;
+      const src = e.name.toLowerCase();
+      damagePlayer(e.dmg, src, e.kind==='watcher'?8:3);
+      log(`${e.name} strikes.`, 'bad');
+    }
+  }
+  G.run.threat = lerp(G.run.threat, clamp(pressure/5,0,1), dt*2.2);
+}
+function updateEnemyMotion(e, dt, d, los){
+  const targetX = e.alert>0 ? e.lastSeenX : e.x + Math.cos(e.wanderA)*2.4;
+  const targetY = e.alert>0 ? e.lastSeenY : e.y + Math.sin(e.wanderA)*2.4;
+  e.think -= dt;
+  if(e.think<=0){ e.think = .6 + Math.random()*1.2; if(Math.random()<.33) e.wanderA += (Math.random()-.5)*1.8; }
+  const ang = Math.atan2(targetY-e.y, targetX-e.x);
+  e.a = ang;
+  let speed = e.speed * (e.alert>0?1:.38);
+  if(e.kind==='skitter' && d<3.2) speed *= 1.22;
+  if(e.kind==='watcher' && d<2.2) speed *= -.45;
+  if(Math.hypot(targetX-e.x,targetY-e.y)>.2) moveEnemy(e, Math.cos(ang)*speed, Math.sin(ang)*speed, dt);
+}
+function updateBoss(e, dt, d, los){
+  e.summonCd -= dt;
+  if(e.summonCd<=0 && G.run.enemies.filter(x=>x.alive&&!x.boss).length<8){
+    e.summonCd = 7.5 - G.run.floor*.25;
+    const a = Math.random()*TAU, r=2.2+Math.random()*1.4;
+    const x = e.x+Math.cos(a)*r, y=e.y+Math.sin(a)*r;
+    if(passable(x,y,.24)){ G.run.enemies.push(makeEnemy(40000+G.run.enemies.length, Math.random()<.55?'husk':'skitter', x,y,G.run.floor,false)); log('Ash gathers itself into a servant.', 'bad'); AudioSystem.stinger('alert'); }
+  }
+  if(los || e.alert>0){ e.lastSeenX=G.player.x; e.lastSeenY=G.player.y; e.alert=Math.max(e.alert,4); }
+  const ang = Math.atan2(e.lastSeenY-e.y, e.lastSeenX-e.x); e.a=ang;
+  const speed = e.speed * (d<2.0?.55:1);
+  moveEnemy(e, Math.cos(ang)*speed, Math.sin(ang)*speed, dt);
+  if(los && d<11) sanityDamage(dt*3.3);
+}
+function moveEnemy(e, vx, vy, dt){
+  const oldx=e.x, oldy=e.y;
+  const radius = e.boss?.38:.25;
+  if(passable(e.x+vx*dt,e.y,radius)) e.x += vx*dt;
+  if(passable(e.x,e.y+vy*dt,radius)) e.y += vy*dt;
+  if(Math.abs(e.x-oldx)+Math.abs(e.y-oldy)<.006){ e.wanderA += (Math.random()-.5)*1.4; }
+}
+
+function render(){
+  if(!G.run || !G.player){ renderTitleBackground(); return; }
+  const p=G.player;
+  ctx.save();
+  const shake = (screenShake + damageFlash*.25 + G.run.threat*.08) * (G.meta.settings.reducedMotion?.25:1);
+  if(shake>0){ ctx.translate((Math.random()-.5)*shake*20, (Math.random()-.5)*shake*14); }
+  renderWorld();
+  renderSprites();
+  renderWeapon();
+  renderOverlays();
+  ctx.restore();
+  flash.style.opacity = clamp(damageFlash*.33 + dreadPulse*.08,0,.55);
+  flash.style.background = damageFlash>dreadPulse ? 'rgba(132,12,16,.85)' : 'rgba(88,71,121,.45)';
+}
+function renderTitleBackground(){
+  const t=performance.now()/1000;
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#050609'); g.addColorStop(.52,'#10080a'); g.addColorStop(1,'#000');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  ctx.save(); ctx.globalAlpha=.12;
+  for(let i=0;i<44;i++){
+    const x = mod(i*83 + Math.sin(t*.2+i)*40, W);
+    const y = mod(i*47 + t*12*(i%3+1), H);
+    ctx.fillStyle = i%7===0 ? '#7c2228' : '#8b8071';
+    ctx.fillRect(x,y,1+(i%3),30+(i%5)*12);
+  }
+  ctx.restore();
+}
+function renderWorld(){
+  const p=G.player;
+  const ceil=ctx.createLinearGradient(0,0,0,HALF);
+  ceil.addColorStop(0,'#020205'); ceil.addColorStop(.7,'#09080b'); ceil.addColorStop(1,'#121010');
+  ctx.fillStyle=ceil; ctx.fillRect(0,0,W,HALF+2);
+  const floor=ctx.createLinearGradient(0,HALF,0,H);
+  floor.addColorStop(0,'#100d0c'); floor.addColorStop(.55,'#090706'); floor.addColorStop(1,'#020202');
+  ctx.fillStyle=floor; ctx.fillRect(0,HALF,W,H-HALF);
+  const horizon = Math.sin(breath*1.7)*2*(G.meta.settings.reducedMotion?.25:1);
+  ctx.fillStyle='rgba(255,255,255,.018)';
+  for(let y=HALF+12;y<H;y+=Math.max(5, Math.floor((y-HALF)/18))){
+    const a=(y-HALF)/(H-HALF); ctx.globalAlpha=.08*(1-a);
+    ctx.fillRect(0,y+horizon,W,1);
+  }
+  ctx.globalAlpha=1;
+  zBuffer.length = Math.ceil(W/rayStep)+2;
+  const lamp = 1.0 + Math.sin(G.run.time*8.1)*.035 + Math.sin(G.run.time*17.7)*.018;
+  const sanityFog = clamp((34-G.player.sanity)/48,0,.55);
+  for(let x=0, zi=0; x<W; x+=rayStep, zi++){
+    const rel = (x/W - .5);
+    const angle = p.a + rel * FOV;
+    const hit = castRay(p.x,p.y,angle,30);
+    const corrected = Math.max(.05, hit.dist * Math.cos(angle-p.a));
+    zBuffer[zi] = corrected;
+    let wallH = Math.min(H*2.2, H / (corrected*.78));
+    const top = HALF - wallH/2 + Math.sin(bob)*3 + Math.sin(breath*.9)*1.5;
+    let shade = clamp(1 / (1 + corrected*corrected*.075), .025, .95) * lamp;
+    shade *= hit.side ? .72 : 1;
+    shade *= 1 - sanityFog*.22;
+    const tex = Math.floor(((hit.side?hit.hx:hit.hy)%1)*10);
+    let base;
+    if(hit.tile===TILE.DOOR) base=[78,54,42];
+    else if((hit.x*13+hit.y*7+tex)%11===0) base=[73,63,58];
+    else base=[48,45,43];
+    const red = G.run.threat*25 + damageFlash*55;
+    const r = base[0]*shade + red, g = base[1]*shade, b = base[2]*shade;
+    ctx.fillStyle = rgb(r,g,b,1);
+    ctx.fillRect(x, top, rayStep+1, wallH);
+    if(tex===0 || tex===9){ ctx.fillStyle=rgb(r*.48,g*.48,b*.48,.58); ctx.fillRect(x,top,Math.max(1,rayStep),wallH); }
+    if(corrected<7 && ((hit.x*31+hit.y*17+tex)%23===0)){
+      ctx.fillStyle=rgb(8,5,4,.28*shade); ctx.fillRect(x, top+wallH*.18, rayStep+1, wallH*.44);
+    }
+    const fogA = clamp((corrected-7)/18,0,.82);
+    if(fogA>0){ ctx.fillStyle=`rgba(0,0,0,${fogA})`; ctx.fillRect(x, top-1, rayStep+1, wallH+2); }
+  }
+}
+function spriteScreen(x,y,scale=1){
+  const p=G.player;
+  const dx=x-p.x, dy=y-p.y;
+  const dist=Math.hypot(dx,dy);
+  const ang=normAngle(Math.atan2(dy,dx)-p.a);
+  if(Math.abs(ang)>FOV*.68 || dist<.08) return null;
+  const sx = W/2 + Math.tan(ang)/Math.tan(FOV/2)*W/2;
+  const size = (H/(dist*.92))*scale;
+  const sy = HALF + size*.22 + Math.sin(bob)*2;
+  const zi=clamp(Math.floor(sx/rayStep),0,zBuffer.length-1);
+  if(zBuffer[zi] && dist > zBuffer[zi]+.32) return null;
+  return {sx,sy,size,dist,ang};
+}
+function renderSprites(){
+  const sprites=[];
+  for(const o of G.run.objects){ if(o.active && (o.type!=='trap' || o.seen || dist2(o.x,o.y,G.player.x,G.player.y)<9)) sprites.push({kind:'object', o, d:dist2(o.x,o.y,G.player.x,G.player.y)}); }
+  for(const e of G.run.enemies){ if(e.alive) sprites.push({kind:'enemy', e, d:dist2(e.x,e.y,G.player.x,G.player.y)}); }
+  if(G.player.sanity<34){
+    const count = Math.floor((34-G.player.sanity)/11);
+    for(let i=0;i<count;i++){
+      const a = G.run.time*.4 + i*2.1, r=4+i*1.2;
+      sprites.push({kind:'hallucination', x:G.player.x+Math.cos(a)*r, y:G.player.y+Math.sin(a)*r, d:r*r});
+    }
+  }
+  sprites.sort((a,b)=>b.d-a.d);
+  for(const s of sprites){
+    if(s.kind==='enemy'){
+      const sp=spriteScreen(s.e.x,s.e.y,s.e.scale); if(sp) drawEnemy(s.e, sp);
+    } else if(s.kind==='object'){
+      const scale = s.o.type==='stair'?1.05:s.o.type==='shrine'?1.0:s.o.type==='relic'?.72:.55;
+      const sp=spriteScreen(s.o.x,s.o.y,scale); if(sp) drawObject(s.o, sp);
+    } else {
+      const sp=spriteScreen(s.x,s.y,1.0); if(sp) drawHallucination(sp);
+    }
+  }
+}
+function drawEnemy(e, sp){
+  const {sx,sy,size,dist} = sp;
+  const alpha = clamp(1 - (dist-15)/10, .12, 1);
+  const data = ENEMY_DATA[e.kind], c=data.color, eye=data.eye;
+  const pain = e.pain>0 ? 55 : 0;
+  ctx.save(); ctx.globalAlpha=alpha;
+  const baseY = sy + size*.34;
+  ctx.fillStyle=`rgba(0,0,0,${clamp(.42/dist, .06, .35)})`; ctx.beginPath(); ctx.ellipse(sx,baseY,size*.32,size*.10,0,0,TAU); ctx.fill();
+  if(e.boss){
+    const glow=ctx.createRadialGradient(sx,sy-size*.15,1,sx,sy-size*.15,size*.72);
+    glow.addColorStop(0,'rgba(209,180,120,.25)'); glow.addColorStop(.45,'rgba(125,30,35,.16)'); glow.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(sx,sy-size*.16,size*.72,0,TAU); ctx.fill();
+  }
+  ctx.fillStyle=rgb(c[0]+pain,c[1]*.95,c[2]*.9,.95);
+  ctx.beginPath(); ctx.ellipse(sx, sy, size*.20, size*.48, Math.sin(G.run.time*2+e.id)*.08, 0, TAU); ctx.fill();
+  ctx.fillStyle=rgb(c[0]*.55,c[1]*.48,c[2]*.5,.88);
+  ctx.beginPath(); ctx.ellipse(sx-size*.11, sy-size*.04, size*.08, size*.38, -.25, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(sx+size*.12, sy-size*.01, size*.08, size*.37, .25, 0, TAU); ctx.fill();
+  ctx.strokeStyle=rgb(18,12,11,.6); ctx.lineWidth=Math.max(1,size*.012);
+  ctx.beginPath(); ctx.moveTo(sx-size*.08,sy+size*.34); ctx.lineTo(sx-size*.20,sy+size*.56); ctx.moveTo(sx+size*.08,sy+size*.34); ctx.lineTo(sx+size*.20,sy+size*.56); ctx.stroke();
+  ctx.fillStyle=rgb(eye[0],eye[1],eye[2], e.kind==='watcher'? .95:.82);
+  const eyeY=sy-size*.21, ew=Math.max(2,size*.022), eh=Math.max(1,size*.010);
+  ctx.fillRect(sx-size*.055,eyeY,ew,eh); ctx.fillRect(sx+size*.040,eyeY,ew,eh);
+  if(e.hp<e.maxHp){
+    ctx.fillStyle='rgba(0,0,0,.65)'; ctx.fillRect(sx-size*.22, sy-size*.62, size*.44, 4);
+    ctx.fillStyle=e.boss?'rgba(220,190,125,.88)':'rgba(166,39,46,.88)'; ctx.fillRect(sx-size*.22, sy-size*.62, size*.44*clamp(e.hp/e.maxHp,0,1), 4);
+  }
+  if(e.poison>0){ ctx.strokeStyle='rgba(120,190,112,.75)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(sx,sy,size*.26,0,TAU); ctx.stroke(); }
+  ctx.restore();
+}
+function drawObject(o, sp){
+  const {sx,sy,size,dist}=sp;
+  const pulse = .7 + Math.sin(G.run.time*3 + o.id)*.3;
+  ctx.save(); ctx.globalAlpha = clamp(1 - (dist-13)/10, .16, 1);
+  if(o.type==='stair'){
+    ctx.strokeStyle=`rgba(210,185,110,${.45+.3*pulse})`; ctx.lineWidth=Math.max(2,size*.022);
+    for(let i=0;i<3;i++){ ctx.beginPath(); ctx.ellipse(sx,sy+size*.28,size*(.18+i*.08),size*(.055+i*.02),0,0,TAU); ctx.stroke(); }
+    ctx.fillStyle=`rgba(215,190,120,${.25+.25*pulse})`; ctx.beginPath(); ctx.arc(sx, sy-size*.18, size*.13, 0, TAU); ctx.fill();
+  } else if(o.type==='chest'){
+    ctx.fillStyle='rgba(67,42,27,.95)'; ctx.fillRect(sx-size*.25,sy-size*.12,size*.50,size*.28);
+    ctx.fillStyle=o.locked?'rgba(203,166,80,.92)':'rgba(130,95,45,.9)'; ctx.fillRect(sx-size*.04,sy-size*.03,size*.08,size*.08);
+    ctx.strokeStyle='rgba(0,0,0,.6)'; ctx.strokeRect(sx-size*.25,sy-size*.12,size*.50,size*.28);
+  } else if(o.type==='shrine'){
+    ctx.fillStyle='rgba(54,50,49,.95)'; ctx.beginPath(); ctx.moveTo(sx,sy-size*.44); ctx.lineTo(sx-size*.23,sy+size*.16); ctx.lineTo(sx+size*.23,sy+size*.16); ctx.closePath(); ctx.fill();
+    ctx.fillStyle=`rgba(230,190,92,${.65+.3*pulse})`; ctx.beginPath(); ctx.arc(sx,sy-size*.18,size*.055,0,TAU); ctx.fill();
+  } else if(o.type==='note'){
+    ctx.fillStyle='rgba(210,197,165,.86)'; ctx.fillRect(sx-size*.12,sy-size*.16,size*.24,size*.23); ctx.fillStyle='rgba(85,30,30,.72)'; ctx.fillRect(sx-size*.08,sy-size*.08,size*.16,2);
+  } else if(o.type==='trap'){
+    ctx.strokeStyle=`rgba(156,95,185,${o.armed?.7:.22})`; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(sx,sy+size*.18,size*.16,0,TAU); ctx.moveTo(sx-size*.16,sy+size*.18); ctx.lineTo(sx+size*.16,sy+size*.18); ctx.moveTo(sx,sy+size*.02); ctx.lineTo(sx,sy+size*.34); ctx.stroke();
+  } else if(o.type==='corpse'){
+    ctx.fillStyle='rgba(72,66,61,.9)'; ctx.beginPath(); ctx.ellipse(sx,sy+size*.12,size*.28,size*.08,-.2,0,TAU); ctx.fill(); ctx.fillStyle='rgba(155,135,113,.62)'; ctx.beginPath(); ctx.arc(sx-size*.18,sy+size*.06,size*.055,0,TAU); ctx.fill();
+  } else if(o.type==='key'){
+    ctx.strokeStyle='rgba(224,185,92,.92)'; ctx.lineWidth=Math.max(2,size*.035); ctx.beginPath(); ctx.arc(sx-size*.06,sy-size*.02,size*.06,0,TAU); ctx.moveTo(sx,sy-size*.02); ctx.lineTo(sx+size*.20,sy-size*.02); ctx.moveTo(sx+size*.14,sy-size*.02); ctx.lineTo(sx+size*.14,sy+size*.06); ctx.stroke();
+  } else if(o.type==='relic'){
+    ctx.fillStyle=`rgba(186,160,105,${.70+.25*pulse})`; ctx.beginPath(); ctx.arc(sx,sy-size*.06,size*.13,0,TAU); ctx.fill(); ctx.strokeStyle='rgba(255,240,185,.55)'; ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawHallucination(sp){
+  if(sp.dist<1) return;
+  ctx.save(); ctx.globalAlpha=clamp((34-G.player.sanity)/64, .06, .28);
+  ctx.fillStyle='rgba(205,195,225,.45)';
+  ctx.beginPath(); ctx.ellipse(sp.sx, sp.sy-sp.size*.12, sp.size*.12, sp.size*.44, Math.sin(G.run.time)*.2, 0, TAU); ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.45)'; ctx.beginPath(); ctx.arc(sp.sx,sp.sy-sp.size*.3,sp.size*.07,0,TAU); ctx.fill();
+  ctx.restore();
+}
+function renderWeapon(){
+  const p=G.player;
+  const sway = Math.sin(bob)*8 + p.weaponSway*32;
+  ctx.save(); ctx.translate(W*.5 + sway, H*.84 + Math.sin(breath*1.8)*4);
+  if(p.weapon==='pistol'){
+    ctx.rotate(-.18 - p.weaponSway*.08);
+    ctx.fillStyle='rgba(28,27,27,.96)'; ctx.fillRect(4,-24,100,34); ctx.fillStyle='rgba(88,82,74,.95)'; ctx.fillRect(74,-18,48,20); ctx.fillStyle='rgba(58,37,29,.95)'; ctx.fillRect(0,4,32,72); ctx.fillStyle='rgba(170,150,110,.9)'; ctx.fillRect(108,-15,16,11);
+    if(p.attackCd>.55){ ctx.fillStyle='rgba(255,210,105,.55)'; ctx.beginPath(); ctx.arc(132,-9,28,0,TAU); ctx.fill(); }
+  } else {
+    ctx.rotate(.22 + p.weaponSway*.12);
+    ctx.fillStyle='rgba(55,33,28,.98)'; ctx.fillRect(-18,0,36,88);
+    const grad=ctx.createLinearGradient(0,-160,0,10); grad.addColorStop(0,'rgba(220,218,200,.92)'); grad.addColorStop(.45,'rgba(135,132,122,.96)'); grad.addColorStop(1,'rgba(50,50,52,.98)');
+    ctx.fillStyle=grad; ctx.beginPath(); ctx.moveTo(-12,3); ctx.lineTo(4,-172); ctx.lineTo(22,3); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.beginPath(); ctx.moveTo(4,-155); ctx.lineTo(10,-4); ctx.stroke();
+  }
+  ctx.restore();
+}
+function renderOverlays(){
+  const grain = (G.meta.settings.grain || 0)/100;
+  const sanity = G.player ? G.player.sanity : 100;
+  ctx.save();
+  const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.24,W/2,H/2,Math.max(W,H)*.72);
+  const dread = G.run ? G.run.threat : 0;
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(.62,`rgba(0,0,0,${.22+dread*.14})`); vg.addColorStop(1,`rgba(0,0,0,${.74+dread*.18})`);
+  ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+  if(grain>0){
+    const n = Math.floor((W*H/9000)*grain);
+    ctx.globalAlpha = .12*grain;
+    for(let i=0;i<n;i++){ const v=150+Math.random()*80|0; ctx.fillStyle=`rgb(${v},${v},${v})`; ctx.fillRect(Math.random()*W,Math.random()*H,1,1); }
+    ctx.globalAlpha=1;
+  }
+  if(sanity<45){
+    ctx.globalAlpha=clamp((45-sanity)/90,0,.42);
+    ctx.fillStyle='rgba(71,54,104,.25)';
+    for(let i=0;i<8;i++){ const y=mod(i*97+G.run.time*40,H); ctx.fillRect(0,y,W,1+Math.random()*2); }
+  }
+  ctx.restore();
+}
+function updateHud(){
+  const p=G.player,r=G.run;
+  const pct=(a,b)=>`${clamp(a/b*100,0,100)}%`;
+  $('hpBar').style.width=pct(p.hp,p.maxHp); $('nerveBar').style.width=pct(p.nerve,p.maxNerve); $('sanityBar').style.width=pct(p.sanity,p.maxSanity); $('xpBar').style.width=pct(p.xp,p.nextXP);
+  $('hpText').textContent=`Blood ${Math.ceil(p.hp)}/${p.maxHp}`;
+  $('nerveText').textContent=`Nerve ${Math.ceil(p.nerve)}/${p.maxNerve}`;
+  $('sanityText').textContent=`Sanity ${Math.ceil(p.sanity)}/${p.maxSanity}`;
+  $('xpText').textContent=`Level ${p.level}  XP ${p.xp}/${p.nextXP}`;
+  const boss = r.enemies.find(e=>e.alive&&e.boss);
+  $('runInfo').innerHTML = `Depth ${r.floor}/${FINAL_FLOOR} · ${r.rooms.length} chambers · Kills ${r.kills} · Opened ${r.opened}<br>Threat ${Math.round(r.threat*100)}% · ${boss?`Saint ${Math.ceil(boss.hp)}/${boss.maxHp}`:'Seal unstable'} · Seed ${r.seed>>>0}`;
+  $('weaponLine').textContent = p.weapon==='pistol' ? `Pistol · ${p.ammo}/${p.ammoCap}` : 'Ritual Knife';
+  $('inventoryLine').innerHTML = `Tonics <b>${p.tonics}</b> · Keys <b>${p.keys}</b> · Relics <b>${p.relics.length}</b> · Shards <b>${p.shards}</b><br><span class="small">E interact · R tonic · Space dodge · Right mouse block</span>`;
+  $('prompt').textContent = objectPrompt(G.nearest);
+  $('seedTag').textContent = `seed ${r.seed>>>0}`;
+}
+function updateMiniMap(){
+  const r=G.run,p=G.player;
+  mctx.clearRect(0,0,mini.width,mini.height);
+  mctx.fillStyle='rgba(0,0,0,.76)'; mctx.fillRect(0,0,180,180);
+  const scale = 170 / Math.max(r.w,r.h), ox=(180-r.w*scale)/2, oy=(180-r.h*scale)/2;
+  for(let y=0;y<r.h;y++) for(let x=0;x<r.w;x++){
+    const seen = r.discovered[y*r.w+x];
+    if(!seen) continue;
+    const c=cell(r,x,y);
+    mctx.fillStyle = c===TILE.WALL ? 'rgba(110,105,98,.22)' : 'rgba(205,190,162,.34)';
+    mctx.fillRect(ox+x*scale,oy+y*scale,Math.ceil(scale),Math.ceil(scale));
+  }
+  for(const o of r.objects){
+    if(!o.active) continue;
+    const seen = r.discovered[Math.floor(o.y)*r.w+Math.floor(o.x)] || o.seen;
+    if(!seen) continue;
+    if(o.type==='stair') mctx.fillStyle='rgba(222,190,95,.95)';
+    else if(o.type==='relic' || (hasRelic('choir_bone') && ['chest','key','note','shrine'].includes(o.type))) mctx.fillStyle='rgba(175,130,220,.9)';
+    else continue;
+    mctx.fillRect(ox+o.x*scale-2,oy+o.y*scale-2,4,4);
+  }
+  for(const e of r.enemies){
+    if(!e.alive) continue;
+    const d=dist2(p.x,p.y,e.x,e.y);
+    if(d<36 || e.boss){ mctx.fillStyle=e.boss?'rgba(235,205,125,.95)':'rgba(170,45,55,.78)'; mctx.fillRect(ox+e.x*scale-1.5,oy+e.y*scale-1.5,3,3); }
+  }
+  mctx.save(); mctx.translate(ox+p.x*scale,oy+p.y*scale); mctx.rotate(p.a); mctx.fillStyle='rgba(245,235,205,.98)'; mctx.beginPath(); mctx.moveTo(5,0); mctx.lineTo(-4,-3); mctx.lineTo(-4,3); mctx.closePath(); mctx.fill(); mctx.restore();
+}
+
+const AudioSystem = {
+  ctx:null, master:null, drone:null, droneGain:null, enabled:false, whisperT:6,
+  init(){
+    if(this.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    try{
+      this.ctx = new AC(); this.master=this.ctx.createGain(); this.master.gain.value=(G.meta.settings.volume||70)/100*.42; this.master.connect(this.ctx.destination);
+      const o=this.ctx.createOscillator(), o2=this.ctx.createOscillator(), g=this.ctx.createGain(), f=this.ctx.createBiquadFilter();
+      o.type='sine'; o.frequency.value=44; o2.type='sawtooth'; o2.frequency.value=55.1; f.type='lowpass'; f.frequency.value=240; g.gain.value=.025;
+      o.connect(f); o2.connect(f); f.connect(g); g.connect(this.master); o.start(); o2.start(); this.drone={o,o2,f}; this.droneGain=g; this.enabled=true;
+    }catch(e){ this.enabled=false; }
+  },
+  update(dt){
+    if(!this.ctx || !this.master) return;
+    const vol=(G.meta.settings.volume||0)/100*.42;
+    this.master.gain.setTargetAtTime(vol, this.ctx.currentTime, .1);
+    if(this.drone){
+      const threat=G.run?G.run.threat:0, sanity=G.player?G.player.sanity:90;
+      this.drone.o.frequency.setTargetAtTime(40 + G.run.floor*2 + threat*18, this.ctx.currentTime, .2);
+      this.drone.o2.frequency.setTargetAtTime(54 + (90-sanity)*.06, this.ctx.currentTime, .35);
+      this.drone.f.frequency.setTargetAtTime(170 + threat*260 + Math.sin(G.run.time*.4)*30, this.ctx.currentTime, .4);
+      this.droneGain.gain.setTargetAtTime(.014 + threat*.05 + clamp((50-sanity)/80,0,.025), this.ctx.currentTime, .2);
+    }
+    this.whisperT -= dt;
+    if(G.mode==='playing' && this.whisperT<=0){ this.whisperT = 8 + Math.random()*18 - (G.run.threat*5); if(Math.random()<.78) this.whisper(); }
+  },
+  tone(freq=220,dur=.1,type='sine',gain=.08,slide=0){ if(!this.ctx) return; const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain(); o.type=type; o.frequency.setValueAtTime(freq,t); if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(20,freq+slide),t+dur); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(gain,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+dur); o.connect(g); g.connect(this.master); o.start(t); o.stop(t+dur+.02); },
+  noise(dur=.12,gain=.08,filter=800){ if(!this.ctx) return; const sr=this.ctx.sampleRate, len=Math.max(1,Math.floor(sr*dur)), buf=this.ctx.createBuffer(1,len,sr), data=buf.getChannelData(0); for(let i=0;i<len;i++) data[i]=(Math.random()*2-1)*(1-i/len); const src=this.ctx.createBufferSource(), g=this.ctx.createGain(), f=this.ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=filter; g.gain.value=gain; src.buffer=buf; src.connect(f); f.connect(g); g.connect(this.master); src.start(); },
+  click(){ this.tone(220,.05,'square',.025,-80); }, pickup(){ this.tone(520,.09,'sine',.045,220); this.tone(780,.11,'triangle',.025,-160); }, relic(){ this.tone(260,.38,'sine',.06,-60); this.tone(910,.2,'triangle',.025,-200); },
+  swing(){ this.noise(.08,.055,1500); }, hit(boss){ this.noise(.12,boss?.14:.09,420); this.tone(boss?92:130,.11,'sawtooth',.045,-40); }, gun(){ this.noise(.18,.18,1200); this.tone(90,.12,'square',.08,-30); }, empty(){ this.tone(180,.05,'square',.025,-40); },
+  hurt(){ this.noise(.2,.12,520); this.tone(70,.18,'sawtooth',.05,-25); }, trap(){ this.noise(.32,.16,900); this.tone(180,.22,'sawtooth',.06,220); }, door(){ this.noise(.35,.07,300); }, stair(){ this.tone(110,.55,'sine',.07,220); this.noise(.35,.04,700); }, drink(){ this.noise(.2,.04,1000); this.tone(360,.08,'triangle',.04,100); }, dodge(){ this.noise(.07,.04,1800); }, step(sprint){ this.noise(.035,sprint?.045:.025,600); },
+  whisper(){ this.noise(.42,.018 + (G.run?.threat||0)*.018,1700); if(Math.random()<.35) log(Math.random()<.5?'Someone behind you inhales.':'The walls mispronounce your name.', 'weird'); },
+  stinger(type){ if(type==='death'){ this.tone(110,.8,'sawtooth',.08,-70); this.noise(.7,.12,350); } else if(type==='win'){ this.tone(220,.7,'triangle',.07,330); this.tone(440,.9,'sine',.04,220); } else if(type==='bossdead'){ this.noise(.8,.16,500); this.tone(64,.9,'sine',.09,160); } else { this.tone(95,.32,'sawtooth',.08,30); this.noise(.2,.08,800); } }
+};
+
+function requestPointer(){ pointerWanted=true; setTimeout(()=>{ if(pointerWanted && G.mode==='playing' && document.pointerLockElement!==canvas){ try{ canvas.requestPointerLock?.(); }catch(e){} } }, 50); }
+function pauseGame(){ if(G.mode!=='playing') return; saveRun(); setMode('pause'); showPanel('pausePanel',true); document.exitPointerLock?.(); }
+function resumeGame(){ hideAllPanels(); setMode('playing'); requestPointer(); }
+function showInventory(){
+  if(G.mode!=='playing') return; saveRun(); setMode('inventory'); document.exitPointerLock?.();
+  const p=G.player;
+  $('inventoryText').innerHTML = `Blood ${Math.ceil(p.hp)}/${p.maxHp} · Nerve ${Math.ceil(p.nerve)}/${p.maxNerve} · Sanity ${Math.ceil(p.sanity)}/${p.maxSanity}<br>Level ${p.level} · XP ${p.xp}/${p.nextXP} · Insight ${p.insight.toFixed(1)}<br>Knife x${p.knifeSkill.toFixed(2)} · Pistol x${p.pistolSkill.toFixed(2)} · Critical ${Math.round(p.crit*100)}% · Armor ${Math.round(p.armor*100)}%<br>Tonics ${p.tonics} · Keys ${p.keys} · Ammo ${p.ammo}/${p.ammoCap} · Run shards ${p.shards}`;
+  const list=$('relicList'); list.innerHTML='';
+  if(!p.relics.length){ list.innerHTML='<div class="card"><strong>No relics</strong><span class="small">The reliquary has not trusted you with a curse yet.</span></div>'; }
+  for(const id of p.relics){ const r=RELICS.find(x=>x.id===id)||{name:id,desc:''}; const div=document.createElement('div'); div.className='card'; div.innerHTML=`<strong>${html(r.name)}</strong><span class="small">${html(r.desc)}</span>`; list.appendChild(div); }
+  showPanel('inventoryPanel',true);
+}
+function closeInventory(){ showPanel('inventoryPanel',false); setMode('playing'); requestPointer(); }
+function abandonRun(){ clearRunSave(); hideAllPanels(); setMode('title'); G.run=null; G.player=null; hud.classList.add('hidden'); showPanel('menu',true); updateTitleStats(); }
+
+function applySettingsToUI(){
+  const s=G.meta.settings;
+  $('sensSlider').value=s.sens; $('volSlider').value=s.volume; $('grainSlider').value=s.grain; $('motionCheck').checked=!!s.reducedMotion; $('contrastCheck').checked=!!s.contrast;
+  $('sensVal').textContent=s.sens+'%'; $('volVal').textContent=s.volume+'%'; $('grainVal').textContent=s.grain+'%';
+  document.documentElement.style.setProperty('--ink', s.contrast ? '#fff3d6' : '#e7e0d3');
+}
+function bindSettings(){
+  const update=()=>{ const s=G.meta.settings; s.sens=+$('sensSlider').value; s.volume=+$('volSlider').value; s.grain=+$('grainSlider').value; s.reducedMotion=$('motionCheck').checked; s.contrast=$('contrastCheck').checked; saveMeta(); applySettingsToUI(); };
+  ['sensSlider','volSlider','grainSlider','motionCheck','contrastCheck'].forEach(id=>$(id).addEventListener('input',update));
+}
+
+function bindInput(){
+  window.addEventListener('keydown', e=>{
+    if(e.target && ['INPUT','TEXTAREA'].includes(e.target.tagName)) return;
+    keys[e.code]=true; if(!e.repeat) just[e.code]=true;
+    if(G.mode==='playing'){
+      if(e.code==='Escape'){ e.preventDefault(); pauseGame(); }
+      else if(e.code==='KeyE'){ e.preventDefault(); interact(); }
+      else if(e.code==='KeyR'){ e.preventDefault(); useTonic(); }
+      else if(e.code==='Space'){ e.preventDefault(); dodge(); }
+      else if(e.code==='Digit1'){ G.player.weapon='knife'; log('Ritual knife readied.'); }
+      else if(e.code==='Digit2'){ G.player.weapon='pistol'; log('Pistol readied.'); }
+      else if(e.code==='Tab'){ e.preventDefault(); showInventory(); }
+    } else if(G.mode==='pause' && e.code==='Escape') resumeGame();
+    else if(G.mode==='inventory' && (e.code==='Tab'||e.code==='Escape')){ e.preventDefault(); closeInventory(); }
+  });
+  window.addEventListener('keyup', e=>{ keys[e.code]=false; });
+  document.addEventListener('mousemove', e=>{
+    if(document.pointerLockElement===canvas && G.mode==='playing'){
+      const sens=(G.meta.settings.sens||100)/100;
+      G.player.a += e.movementX * .00225 * sens;
+    }
+  });
+  canvas.addEventListener('mousedown', e=>{
+    AudioSystem.init();
+    if(G.mode==='playing'){
+      if(document.pointerLockElement!==canvas) requestPointer();
+      if(e.button===2){ mouse.right=true; G.player.blocking=true; }
+      else attack();
+    }
+  });
+  window.addEventListener('mouseup', e=>{ if(e.button===2){ mouse.right=false; if(G.player) G.player.blocking=false; } });
+  window.addEventListener('contextmenu', e=>e.preventDefault());
+  canvas.addEventListener('click', ()=>{ if(G.mode==='playing') requestPointer(); });
+}
+function bindMenus(){
+  $('newRunBtn').onclick=()=>startNewRun($('seedInput').value||'');
+  $('continueBtn').onclick=continueRun;
+  $('settingsBtn').onclick=()=>{ showPanel('menu',false); showPanel('settingsPanel',true); };
+  $('settingsBack').onclick=()=>{ showPanel('settingsPanel',false); showPanel('menu',true); updateTitleStats(); };
+  $('creditsBtn').onclick=()=>openModal('Credits', 'Created as a single-file procedural game: renderer, dungeon generator, combat, RPG systems, UI, and synthesized audio are embedded in this document.\n\nNo external assets are loaded. Save data remains in localStorage.', [{label:'Return', text:'Back to the title.', action:()=>{}}], true);
+  $('resumeBtn').onclick=resumeGame;
+  $('saveQuitBtn').onclick=()=>{ saveRun(); hideAllPanels(); setMode('title'); G.run=null; G.player=null; hud.classList.add('hidden'); showPanel('menu',true); updateTitleStats(); };
+  $('abandonBtn').onclick=()=>{ die('You abandoned the reliquary and it kept the rest of you.'); };
+  $('inventoryClose').onclick=closeInventory;
+  $('deathNew').onclick=()=>startNewRun($('seedInput').value||'');
+  $('deathMenu').onclick=()=>{ hideAllPanels(); showPanel('menu',true); setMode('title'); updateTitleStats(); };
+  $('winNew').onclick=()=>startNewRun($('seedInput').value||'');
+  $('winMenu').onclick=()=>{ hideAllPanels(); showPanel('menu',true); setMode('title'); updateTitleStats(); };
+}
+
+function resize(){
+  DPR = Math.min(1.5, window.devicePixelRatio || 1);
+  W = Math.max(640, Math.floor(innerWidth * DPR));
+  H = Math.max(360, Math.floor(innerHeight * DPR)); HALF = H/2;
+  canvas.width=W; canvas.height=H;
+  canvas.style.width='100vw'; canvas.style.height='100vh';
+  rayStep = Math.max(2, Math.floor(W/560));
+  ctx.imageSmoothingEnabled=false;
+}
+function loop(t){
+  const dt = Math.min(.05, (t-lastT)/1000 || .016); lastT=t;
+  if(G.mode==='playing') update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+loadMeta(); bindSettings(); bindInput(); bindMenus(); resize(); window.addEventListener('resize', resize);
+updateTitleStats(); requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
