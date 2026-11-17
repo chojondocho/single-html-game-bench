@@ -25,8 +25,8 @@ As of **November 18, 2026**, based on direct hands-on play testing:
 | 1    | Claude Code - Opus 5.5 Max             | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-opus-5-5-max.html)            |
 | 2    | Claude Code - Opus 5 Max with Vowline  | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-opus-5-max-with-vowline.html)  |
 | 3    | Claude Code - Fable 5 Max with Vowline | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-fable-5-max-with-vowline.html) |
-| 4    | Codex - GPT-6.2 Astra Max              | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-6-2-astra-max.html)             |
-| 5    | Claude Code - Fable 5 Max              | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-fable-5-max.html)              |
+| 4    | Claude Code - Fable 5 Max              | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-fable-5-max.html)              |
+| 5    | Codex - GPT-6.2 Astra Max              | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-6-2-astra-max.html)             |
 | 6    | Codex - GPT-6 Astra Max                | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-6-astra-max.html)               |
 | 7    | Codex - GPT-6.1 Sol Max                | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-6-1-sol-max.html)               |
 | 8    | ChatGPT - GPT-5.6 Sol Pro 0709         | [Play](https://chojondocho.github.io/single-html-game-bench/chatgpt-gpt-5-6-sol-pro-0709.html)        |
@@ -49,8 +49,8 @@ As of **November 18, 2026**, based on direct hands-on play testing:
 - [claudecode-opus-5-5-max](https://chojondocho.github.io/single-html-game-bench/claudecode-opus-5-5-max.html)
 - [claudecode-opus-5-max-with-vowline](https://chojondocho.github.io/single-html-game-bench/claudecode-opus-5-max-with-vowline.html)
 - [claudecode-fable-5-max-with-vowline](https://chojondocho.github.io/single-html-game-bench/claudecode-fable-5-max-with-vowline.html)
-- [codex-gpt-6-2-astra-max](https://chojondocho.github.io/single-html-game-bench/codex-gpt-6-2-astra-max.html)
 - [claudecode-fable-5-max](https://chojondocho.github.io/single-html-game-bench/claudecode-fable-5-max.html)
+- [codex-gpt-6-2-astra-max](https://chojondocho.github.io/single-html-game-bench/codex-gpt-6-2-astra-max.html)
 - [codex-gpt-6-astra-max](https://chojondocho.github.io/single-html-game-bench/codex-gpt-6-astra-max.html)
 - [codex-gpt-6-1-sol-max](https://chojondocho.github.io/single-html-game-bench/codex-gpt-6-1-sol-max.html)
 - [chatgpt-gpt-5-6-sol-pro-0709](https://chojondocho.github.io/single-html-game-bench/chatgpt-gpt-5-6-sol-pro-0709.html)
