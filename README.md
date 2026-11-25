@@ -18,34 +18,38 @@ Base URL:
 
 ## Personal Ranking (Subjective Result)
 
-As of **November 18, 2026**, based on direct hands-on play testing:
+As of **November 25, 2026**, based on direct hands-on play testing:
 
 | Rank | Client + Model                         | Play                                                                                                  |
 | ---- | -------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| 1    | Claude Code - Opus 5.5 Max             | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-opus-5-5-max.html)            |
-| 2    | Claude Code - Opus 5 Max with Vowline  | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-opus-5-max-with-vowline.html)  |
-| 3    | Claude Code - Fable 5 Max with Vowline | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-fable-5-max-with-vowline.html) |
-| 4    | Claude Code - Fable 5 Max              | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-fable-5-max.html)              |
-| 5    | Codex - GPT-6.2 Astra Max              | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-6-2-astra-max.html)             |
-| 6    | Codex - GPT-6 Astra Max                | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-6-astra-max.html)               |
-| 7    | Codex - GPT-6.1 Sol Max                | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-6-1-sol-max.html)               |
-| 8    | ChatGPT - GPT-5.6 Sol Pro 0709         | [Play](https://chojondocho.github.io/single-html-game-bench/chatgpt-gpt-5-6-sol-pro-0709.html)        |
-| 9    | ChatGPT - GPT-5.6 Sol Pro              | [Play](https://chojondocho.github.io/single-html-game-bench/chatgpt-gpt-5-6-sol-pro.html)             |
-| 10   | ChatGPT - GPT-5.4 Unverified           | [Play](https://chojondocho.github.io/single-html-game-bench/chatgpt-gpt-5-4-unverified.html)          |
-| 11   | ChatGPT - GPT-5.5 Pro                  | [Play](https://chojondocho.github.io/single-html-game-bench/chatgpt-gpt-5-5-pro.html)                 |
-| 12   | Claude Code - Opus 4.6                 | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-opus-4-6.html)                 |
-| 13   | ChatGPT - GPT-5.2 Pro                  | [Play](https://chojondocho.github.io/single-html-game-bench/chatgpt-gpt-5-2-pro.html)                 |
-| 14   | Gemini Web - Gemini 3.1 Pro Deepthink  | [Play](https://chojondocho.github.io/single-html-game-bench/geminiweb-gemini-3-1-pro-deepthink.html)  |
-| 15   | Codex - GPT-5.3 Codex High             | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-5-3-codex-high.html)            |
-| 16   | Claude Code - Sonnet 4.6               | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-sonnet-4-6.html)               |
-| 17   | Antigravity - Opus 4.6                 | [Play](https://chojondocho.github.io/single-html-game-bench/antigravity-opus-4-6.html)                |
-| 18   | Antigravity - Gemini 3 Pro             | [Play](https://chojondocho.github.io/single-html-game-bench/antigravity-gemini-3-pro.html)            |
-| 19   | Codex - GPT-5.3 Codex XHigh            | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-5-3-codex-xhigh.html)           |
-| 20   | Antigravity - Gemini 3 Flash           | [Play](https://chojondocho.github.io/single-html-game-bench/antigravity-gemini-3-flash.html)          |
-| 21   | Grok Web - Grok 4.20 (4 Agents)        | [Play](https://chojondocho.github.io/single-html-game-bench/grokweb-grok-4-20-4agents.html)           |
+| 1    | Claude Chat - Fable 5.2 XHigh         | [Play](https://chojondocho.github.io/single-html-game-bench/claudechat-fable-5-2-xhigh.html)         |
+| 2    | Claude Chat - Opus 5.5 Max             | [Play](https://chojondocho.github.io/single-html-game-bench/claudechat-opus-5-5-max.html)            |
+| 3    | Claude Code - Opus 5.5 Max             | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-opus-5-5-max.html)            |
+| 4    | Claude Code - Opus 5 Max with Vowline  | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-opus-5-max-with-vowline.html)  |
+| 5    | Claude Code - Fable 5 Max with Vowline | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-fable-5-max-with-vowline.html) |
+| 6    | Claude Code - Fable 5 Max              | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-fable-5-max.html)              |
+| 7    | Codex - GPT-6.2 Astra Max              | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-6-2-astra-max.html)             |
+| 8    | Codex - GPT-6 Astra Max                | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-6-astra-max.html)               |
+| 9    | Codex - GPT-6.1 Sol Max                | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-6-1-sol-max.html)               |
+| 10   | ChatGPT - GPT-5.6 Sol Pro 0709         | [Play](https://chojondocho.github.io/single-html-game-bench/chatgpt-gpt-5-6-sol-pro-0709.html)        |
+| 11   | ChatGPT - GPT-5.6 Sol Pro              | [Play](https://chojondocho.github.io/single-html-game-bench/chatgpt-gpt-5-6-sol-pro.html)             |
+| 12   | ChatGPT - GPT-5.4 Unverified           | [Play](https://chojondocho.github.io/single-html-game-bench/chatgpt-gpt-5-4-unverified.html)          |
+| 13   | ChatGPT - GPT-5.5 Pro                  | [Play](https://chojondocho.github.io/single-html-game-bench/chatgpt-gpt-5-5-pro.html)                 |
+| 14   | Claude Code - Opus 4.6                 | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-opus-4-6.html)                 |
+| 15   | ChatGPT - GPT-5.2 Pro                  | [Play](https://chojondocho.github.io/single-html-game-bench/chatgpt-gpt-5-2-pro.html)                 |
+| 16   | Gemini Web - Gemini 3.1 Pro Deepthink  | [Play](https://chojondocho.github.io/single-html-game-bench/geminiweb-gemini-3-1-pro-deepthink.html)  |
+| 17   | Codex - GPT-5.3 Codex High             | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-5-3-codex-high.html)            |
+| 18   | Claude Code - Sonnet 4.6               | [Play](https://chojondocho.github.io/single-html-game-bench/claudecode-sonnet-4-6.html)               |
+| 19   | Antigravity - Opus 4.6                 | [Play](https://chojondocho.github.io/single-html-game-bench/antigravity-opus-4-6.html)                |
+| 20   | Antigravity - Gemini 3 Pro             | [Play](https://chojondocho.github.io/single-html-game-bench/antigravity-gemini-3-pro.html)            |
+| 21   | Codex - GPT-5.3 Codex XHigh            | [Play](https://chojondocho.github.io/single-html-game-bench/codex-gpt-5-3-codex-xhigh.html)           |
+| 22   | Antigravity - Gemini 3 Flash           | [Play](https://chojondocho.github.io/single-html-game-bench/antigravity-gemini-3-flash.html)          |
+| 23   | Grok Web - Grok 4.20 (4 Agents)        | [Play](https://chojondocho.github.io/single-html-game-bench/grokweb-grok-4-20-4agents.html)           |
 
 ## Ranked Playable Builds (Direct Links)
 
+- [claudechat-fable-5-2-xhigh](https://chojondocho.github.io/single-html-game-bench/claudechat-fable-5-2-xhigh.html)
+- [claudechat-opus-5-5-max](https://chojondocho.github.io/single-html-game-bench/claudechat-opus-5-5-max.html)
 - [claudecode-opus-5-5-max](https://chojondocho.github.io/single-html-game-bench/claudecode-opus-5-5-max.html)
 - [claudecode-opus-5-max-with-vowline](https://chojondocho.github.io/single-html-game-bench/claudecode-opus-5-max-with-vowline.html)
 - [claudecode-fable-5-max-with-vowline](https://chojondocho.github.io/single-html-game-bench/claudecode-fable-5-max-with-vowline.html)
